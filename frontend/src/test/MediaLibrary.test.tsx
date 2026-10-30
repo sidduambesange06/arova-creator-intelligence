@@ -20,6 +20,41 @@ const SAMPLE_VIDEO = {
   collection_ids: [],
 };
 
+const SAMPLE_TRANSCRIPT = {
+  id: "trans-1",
+  video_id: "vid-101",
+  language: "en",
+  model_name: "faster-whisper-base",
+  full_text: "Welcome to Arova Creator Intelligence video RAG engine.",
+  segments: [
+    {
+      id: "seg-1",
+      start_time: 0.0,
+      end_time: 4.5,
+      text: "Welcome to Arova Creator Intelligence",
+      confidence: 0.98,
+    },
+    {
+      id: "seg-2",
+      start_time: 4.5,
+      end_time: 9.0,
+      text: "video RAG engine.",
+      confidence: 0.95,
+    },
+  ],
+};
+
+const SAMPLE_SCENES = [
+  {
+    id: "sc-1",
+    video_id: "vid-101",
+    scene_index: 0,
+    start_time: 0.0,
+    end_time: 15.0,
+    thumbnail_path: "C:/data/media/thumbnails/sc1.jpg",
+  },
+];
+
 describe("MediaLibraryView", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -33,6 +68,18 @@ describe("MediaLibraryView", () => {
           JSON.stringify({ imported: [SAMPLE_VIDEO], skipped_duplicates: 0 }),
           { status: 200, headers: { "Content-Type": "application/json" } }
         );
+      }
+      if (url.includes("/api/v1/videos/vid-101/transcript")) {
+        return new Response(JSON.stringify(SAMPLE_TRANSCRIPT), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url.includes("/api/v1/videos/vid-101/scenes")) {
+        return new Response(JSON.stringify(SAMPLE_SCENES), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
       }
       if (url.includes("/api/v1/videos")) {
         return new Response(JSON.stringify([SAMPLE_VIDEO]), {
@@ -57,6 +104,20 @@ describe("MediaLibraryView", () => {
 
     expect(screen.getByTestId("video-inspector-player")).toHaveTextContent("1920x1080");
 
+    // Verify transcript segments and scenes are displayed
+    await waitFor(() => {
+      expect(screen.getByTestId("transcript-segment-seg-1")).toBeInTheDocument();
+      expect(screen.getByText("Scene #1")).toBeInTheDocument();
+    });
+
+    // Clicking transcript segment seeks player
+    fireEvent.click(screen.getByTestId("transcript-segment-seg-2"));
+    expect(screen.getByLabelText("Jump to (sec):")).toHaveValue(4.5);
+
+    // Clicking scene seeks player
+    fireEvent.click(screen.getByText("Scene #1"));
+    expect(screen.getByLabelText("Jump to (sec):")).toHaveValue(0);
+
     const jumpInput = screen.getByLabelText("Jump to (sec):");
     fireEvent.change(jumpInput, { target: { value: "12.5" } });
     fireEvent.click(screen.getByText("Seek Player"));
@@ -72,4 +133,3 @@ describe("MediaLibraryView", () => {
     expect(fetchSpy).toHaveBeenCalled();
   });
 });
-

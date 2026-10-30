@@ -78,3 +78,9 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
 - **Implementation:** Created `pipeline_runner.py`, `backend/app/schemas/pipeline.py`, `backend/app/api/routes/jobs.py`, and updated `videos.py` & `main.py`. Added comprehensive integration test in `backend/tests/integration/test_pipeline_api.py`.
 - **Verification:** `pytest backend/tests/integration/test_pipeline_api.py -v` passed; all `11/11` backend tests passed in `3.04s`.
 - **Review (`ponytail-review`):** What this change does: Executes end-to-end media processing pipeline with job status tracking and RTF telemetry. Looks good. Ship. Checked session isolation, error rollback, and job progress reporting.
+
+### Feature 3.4: Interactive Transcript & Scene Timeline UI
+- **Plan:** Update `frontend/src/features/media-library/MediaLibraryView.tsx` and `api.ts` with "Process Video (ASR + Scenes)" action, interactive Transcript Timeline, and Scene cut strip that seek the HTML5 video player to exact start timestamps (`currentTime`).
+- **Implementation:** Added `fetchVideoTranscript`, `fetchVideoScenes`, `processVideo` in `api.ts`, updated `MediaLibraryView.tsx`, and expanded `frontend/src/test/MediaLibrary.test.tsx`.
+- **Verification:** `npm test` (`vitest run`) passed `2/2` test files (3 tests) in 6.37s; `npm run build` (`tsc -b && vite build`) passed in 1.38s.
+- **Review (`ponytail-review`):** What this change does: Connects Video Inspector to backend transcription and scene detection, enabling one-click playback jumping to transcript segments and scene cuts. Looks good. Ship. Checked zero mock data, timestamp clamping, and video ref null safety.

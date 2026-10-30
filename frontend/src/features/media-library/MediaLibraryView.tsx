@@ -5,10 +5,15 @@ import {
   deleteVideoIndex,
   fetchCollections,
   fetchVideos,
+  fetchVideoScenes,
+  fetchVideoTranscript,
   getVideoStreamUrl,
   getVideoThumbnailUrl,
   importVideos,
+  processVideo,
+  type TranscriptItem,
   type VideoItem,
+  type VideoSceneItem,
 } from "../../services/api";
 
 function formatDuration(seconds: number): string {
@@ -22,6 +27,10 @@ export function MediaLibraryView() {
   const [collections, setCollections] = useState<CollectionItem[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string>("");
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
+
+  const [transcript, setTranscript] = useState<TranscriptItem | null>(null);
+  const [scenes, setScenes] = useState<VideoSceneItem[]>([]);
+  const [processing, setProcessing] = useState<boolean>(false);
 
   const [importPath, setImportPath] = useState<string>("");
   const [newCollectionName, setNewCollectionName] = useState<string>("");
@@ -56,6 +65,22 @@ export function MediaLibraryView() {
   useEffect(() => {
     void loadLibrary(selectedCollection);
   }, [loadLibrary, selectedCollection]);
+
+  useEffect(() => {
+    if (!selectedVideo) {
+      setTranscript(null);
+      setScenes([]);
+      return;
+    }
+    void Promise.all([
+      fetchVideoTranscript(selectedVideo.id)
+        .then(setTranscript)
+        .catch(() => setTranscript(null)),
+      fetchVideoScenes(selectedVideo.id)
+        .then(setScenes)
+        .catch(() => setScenes([])),
+    ]);
+  }, [selectedVideo]);
 
   async function handleImport(e: FormEvent) {
     e.preventDefault();
@@ -99,6 +124,28 @@ export function MediaLibraryView() {
     }
   }
 
+  async function handleProcessVideo() {
+    if (!selectedVideo) return;
+    setProcessing(true);
+    setErrorMessage(null);
+    setStatusMessage(null);
+    try {
+      await processVideo(selectedVideo.id);
+      setStatusMessage("Video processing complete. Transcripts and scenes extracted.");
+      const [t, s] = await Promise.all([
+        fetchVideoTranscript(selectedVideo.id),
+        fetchVideoScenes(selectedVideo.id),
+      ]);
+      setTranscript(t);
+      setScenes(s);
+      await loadLibrary(selectedCollection);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Video processing failed");
+    } finally {
+      setProcessing(false);
+    }
+  }
+
   function handleTimestampJump(seconds: number) {
     const clamped = Math.max(0, seconds);
     setJumpSeconds(String(clamped));
@@ -115,7 +162,7 @@ export function MediaLibraryView() {
             Media Library &amp; Video Inspector
           </h2>
           <p className="text-sm text-slate-400">
-            Ingest local MP4/MOV/MKV/WebM files, inspect FFmpeg stream metadata, and seek via HTTP 206 Range streaming.
+            Ingest local MP4/MOV/MKV/WebM files, run Faster-Whisper ASR + scene detection, and seek via HTTP 206 Range streaming.
           </p>
         </div>
 
@@ -184,58 +231,144 @@ export function MediaLibraryView() {
       {selectedVideo && (
         <div
           data-testid="video-inspector-player"
-          className="bg-slate-900/70 border border-slate-800 rounded-lg p-5 grid grid-cols-1 lg:grid-cols-3 gap-6"
+          className="bg-slate-900/70 border border-slate-800 rounded-lg p-5 space-y-6"
         >
-          <div className="lg:col-span-2 space-y-3">
-            <video
-              ref={videoRef}
-              key={selectedVideo.id}
-              controls
-              preload="metadata"
-              src={getVideoStreamUrl(selectedVideo.id)}
-              className="w-full rounded bg-black aspect-video border border-slate-800"
-            />
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-2">
-                <label htmlFor="timestamp-jump-input" className="text-slate-400 font-mono">
-                  Jump to (sec):
-                </label>
-                <input
-                  id="timestamp-jump-input"
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  value={jumpSeconds}
-                  onChange={(e) => setJumpSeconds(e.target.value)}
-                  className="w-20 bg-slate-950 border border-slate-700 rounded px-2 py-1 font-mono text-slate-100"
-                />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-3">
+              <video
+                ref={videoRef}
+                key={selectedVideo.id}
+                controls
+                preload="metadata"
+                src={getVideoStreamUrl(selectedVideo.id)}
+                className="w-full rounded bg-black aspect-video border border-slate-800"
+              />
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <label htmlFor="timestamp-jump-input" className="text-slate-400 font-mono">
+                    Jump to (sec):
+                  </label>
+                  <input
+                    id="timestamp-jump-input"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    value={jumpSeconds}
+                    onChange={(e) => setJumpSeconds(e.target.value)}
+                    className="w-20 bg-slate-950 border border-slate-700 rounded px-2 py-1 font-mono text-slate-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleTimestampJump(Number(jumpSeconds) || 0)}
+                    className="px-2.5 py-1 rounded bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 font-mono"
+                  >
+                    Seek Player
+                  </button>
+                </div>
+                <span className="font-mono text-slate-500">
+                  SHA-256: {selectedVideo.file_hash.slice(0, 12)}...
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs font-mono">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-sans font-semibold text-white">
+                  {selectedVideo.filename}
+                </h3>
+              </div>
+              <p className="text-slate-400 break-all">{selectedVideo.file_path}</p>
+              <div className="border-t border-slate-800 pt-2 space-y-1 text-slate-300">
+                <div>Duration: {formatDuration(selectedVideo.duration)} ({selectedVideo.duration}s)</div>
+                <div>Resolution: {selectedVideo.width}x{selectedVideo.height}</div>
+                <div>Frame Rate: {selectedVideo.fps} fps</div>
+                <div>Codec / Format: {selectedVideo.codec} / {selectedVideo.format}</div>
+                <div>Size: {(selectedVideo.file_size / 1024).toFixed(1)} KB</div>
+                <div>Status: {selectedVideo.processing_status}</div>
+              </div>
+
+              <div className="pt-2">
                 <button
                   type="button"
-                  onClick={() => handleTimestampJump( Number(jumpSeconds) || 0 )}
-                  className="px-2.5 py-1 rounded bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 font-mono"
+                  onClick={() => void handleProcessVideo()}
+                  disabled={processing}
+                  className="w-full py-2 px-3 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-sans font-medium text-xs transition-colors"
                 >
-                  Seek Player
+                  {processing ? "Processing ASR & Scenes..." : "Process Video (ASR + Scenes)"}
                 </button>
               </div>
-              <span className="font-mono text-slate-500">
-                SHA-256: {selectedVideo.file_hash.slice(0, 12)}...
-              </span>
             </div>
           </div>
 
-          <div className="space-y-2 text-xs font-mono">
-            <h3 className="text-sm font-sans font-semibold text-white">
-              {selectedVideo.filename}
-            </h3>
-            <p className="text-slate-400 break-all">{selectedVideo.file_path}</p>
-            <div className="border-t border-slate-800 pt-2 space-y-1 text-slate-300">
-              <div>Duration: {formatDuration(selectedVideo.duration)} ({selectedVideo.duration}s)</div>
-              <div>Resolution: {selectedVideo.width}x{selectedVideo.height}</div>
-              <div>Frame Rate: {selectedVideo.fps} fps</div>
-              <div>Codec / Format: {selectedVideo.codec} / {selectedVideo.format}</div>
-              <div>Size: {(selectedVideo.file_size / 1024).toFixed(1)} KB</div>
-              <div>Status: {selectedVideo.processing_status}</div>
+          {/* Scene cut detection strip */}
+          <div className="border-t border-slate-800 pt-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                Visual Scene Cuts ({scenes.length})
+              </h4>
+              <span className="text-[11px] text-slate-500 font-mono">
+                Click scene to seek
+              </span>
             </div>
+            {scenes.length === 0 ? (
+              <p className="text-xs text-slate-500">
+                No scenes detected yet. Click &quot;Process Video&quot; above to run scene detection.
+              </p>
+            ) : (
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {scenes.map((scene) => (
+                  <button
+                    key={scene.id}
+                    type="button"
+                    onClick={() => handleTimestampJump(scene.start_time)}
+                    className="shrink-0 text-left bg-slate-950 border border-slate-800 hover:border-indigo-500/60 rounded p-2 text-xs font-mono transition-colors"
+                  >
+                    <div className="text-indigo-300 font-semibold">
+                      Scene #{scene.scene_index + 1}
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      {scene.start_time}s - {scene.end_time}s
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Clickable transcript segments */}
+          <div className="border-t border-slate-800 pt-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                Transcript Segments ({transcript?.segments.length ?? 0})
+              </h4>
+              {transcript && (
+                <span className="text-[11px] text-slate-400 font-mono">
+                  {transcript.language} · {transcript.model_name}
+                </span>
+              )}
+            </div>
+            {!transcript || transcript.segments.length === 0 ? (
+              <p className="text-xs text-slate-500">
+                No transcript available yet. Click &quot;Process Video&quot; above to transcribe.
+              </p>
+            ) : (
+              <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+                {transcript.segments.map((seg) => (
+                  <button
+                    key={seg.id}
+                    type="button"
+                    data-testid={`transcript-segment-${seg.id}`}
+                    onClick={() => handleTimestampJump(seg.start_time)}
+                    className="w-full text-left p-2 rounded bg-slate-950/60 border border-slate-800/80 hover:border-indigo-500/50 hover:bg-slate-900/60 flex items-start gap-3 transition-colors text-xs"
+                  >
+                    <span className="font-mono text-indigo-400 shrink-0 mt-0.5">
+                      [{seg.start_time.toFixed(1)}s - {seg.end_time.toFixed(1)}s]
+                    </span>
+                    <span className="text-slate-200">{seg.text}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -296,4 +429,3 @@ export function MediaLibraryView() {
     </div>
   );
 }
-

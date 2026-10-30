@@ -2,7 +2,7 @@
 
 Related notes: [[architecture]] | [[FLASH_EXECUTION_PLAYBOOK]] | [[DEVELOPMENT_LOG]] | [[TECHNICAL_DECISIONS]] | [[KNOWN_ISSUES]]
 
-## Current Milestone: Ready for Milestone 3 (See [[FLASH_EXECUTION_PLAYBOOK]])
+## Current Milestone: Milestone 3 — Whisper ASR, PySceneDetect & Background Job Runner (COMPLETED)
 
 ### Milestone 1 Checklist (COMPLETED)
 - [x] **Feature 1.1 (Obsidian Brain & Repo Root):** `.gitignore`, `.env.example`, `LICENSE` (Apache 2.0), `README.md`, `docs/architecture.md`, and Obsidian brain notes initialized.
@@ -16,12 +16,13 @@ Related notes: [[architecture]] | [[FLASH_EXECUTION_PLAYBOOK]] | [[DEVELOPMENT_L
 - [x] **Feature 2.3 (Import, Index Delete & HTTP Range Streaming API):** `POST /api/v1/videos/import`, `GET /api/v1/videos`, `DELETE /api/v1/videos/{id}/index`, `GET /api/v1/videos/{id}/stream` (HTTP 206 Range), and Collection endpoints.
 - [x] **Feature 2.4 (Media Library & Video Player UI):** Media Library grid, Import form, Collection filter/creator, and HTML5 Video Player with timestamp jump support (`vitest` `3/3` passed, `vite build` passed).
 
+### Milestone 3 Checklist (COMPLETED)
+- [x] **Feature 3.1:** Audio Extraction (`16kHz` mono WAV) & Scene Detection (`backend/app/processing/audio.py`, `scene_detection.py`)
+- [x] **Feature 3.2:** Transcription Abstraction & Faster-Whisper Adapter (`backend/app/ai/providers/transcription.py`, `transcription_service.py`)
+- [x] **Feature 3.3:** SQLite Background Task Runner & Telemetry (`backend/app/workers/pipeline_runner.py`, `/api/v1/videos/{id}/process`, `/api/v1/jobs`)
+- [x] **Feature 3.4:** Interactive Transcript & Scene Timeline UI (`MediaLibraryView.tsx`, seeking HTML5 video player to exact timestamps, `vitest` passed, `vite build` passed)
+
 ### Upcoming Milestones (Detailed in [[FLASH_EXECUTION_PLAYBOOK]])
-- [ ] **Milestone 3:** Whisper ASR, PySceneDetect & Background Job Runner
-  - [x] **Feature 3.1:** Audio Extraction (`16kHz` mono WAV) & Scene Detection (`backend/app/processing/audio.py`, `scene_detection.py`)
-  - [x] **Feature 3.2:** Transcription Abstraction & Faster-Whisper Adapter (`backend/app/ai/providers/transcription.py`, `transcription_service.py`)
-  - [x] **Feature 3.3:** SQLite Background Task Runner & Telemetry (`backend/app/workers/pipeline_runner.py`, `/api/v1/videos/{id}/process`, `/api/v1/jobs`)
-  - [ ] **Feature 3.4:** Interactive Transcript & Scene Timeline UI (`MediaLibraryView.tsx`)
 - [ ] **Milestone 4:** Two-Stage Hybrid RAG, Cross-Encoder ML Re-Ranker & Eval Harness
   - [ ] **Feature 4.1:** Timestamp-Preserving Chunker & Dual Index (`chunker.py`, `embeddings.py`, SQLite FTS5)
   - [ ] **Feature 4.2:** Stage-1 Hybrid RRF + Stage-2 Cross-Encoder Re-Ranking (`hybrid_search.py`, `cross_encoder_reranker.py`, `/api/v1/search/semantic`)

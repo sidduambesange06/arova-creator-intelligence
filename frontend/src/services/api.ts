@@ -37,6 +37,32 @@ export interface CollectionItem {
   video_count: number;
 }
 
+export interface TranscriptSegmentItem {
+  id: string;
+  start_time: number;
+  end_time: number;
+  text: string;
+  confidence: number;
+}
+
+export interface TranscriptItem {
+  id: string;
+  video_id: string;
+  language: string;
+  model_name: string;
+  full_text: string;
+  segments: TranscriptSegmentItem[];
+}
+
+export interface VideoSceneItem {
+  id: string;
+  video_id: string;
+  scene_index: number;
+  start_time: number;
+  end_time: number;
+  thumbnail_path: string | null;
+}
+
 const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 export async function fetchHealth(signal?: AbortSignal): Promise<HealthResponse> {
@@ -114,4 +140,40 @@ export function getVideoStreamUrl(videoId: string): string {
 
 export function getVideoThumbnailUrl(videoId: string): string {
   return `${API_BASE_URL}/api/v1/videos/${encodeURIComponent(videoId)}/thumbnail`;
+}
+
+export async function processVideo(
+  videoId: string
+): Promise<{ video_id: string; status: string; job_id?: string }> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/videos/${encodeURIComponent(videoId)}/process?sync=true`,
+    { method: "POST" }
+  );
+  if (!res.ok) {
+    throw new Error(`Video processing failed (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<{ video_id: string; status: string; job_id?: string }>;
+}
+
+export async function fetchVideoTranscript(
+  videoId: string
+): Promise<TranscriptItem | null> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/videos/${encodeURIComponent(videoId)}/transcript`
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`Failed to load transcript (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<TranscriptItem>;
+}
+
+export async function fetchVideoScenes(videoId: string): Promise<VideoSceneItem[]> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/videos/${encodeURIComponent(videoId)}/scenes`
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to load scenes (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<VideoSceneItem[]>;
 }
