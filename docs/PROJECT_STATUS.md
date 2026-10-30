@@ -19,7 +19,7 @@ Related notes: [[architecture]] | [[FLASH_EXECUTION_PLAYBOOK]] | [[DEVELOPMENT_L
 ### Upcoming Milestones (Detailed in [[FLASH_EXECUTION_PLAYBOOK]])
 - [ ] **Milestone 3:** Whisper ASR, PySceneDetect & Background Job Runner
   - [x] **Feature 3.1:** Audio Extraction (`16kHz` mono WAV) & Scene Detection (`backend/app/processing/audio.py`, `scene_detection.py`)
-  - [ ] **Feature 3.2:** Transcription Abstraction & Faster-Whisper Adapter (`backend/app/ai/providers/transcription.py`, `transcription_service.py`)
+  - [x] **Feature 3.2:** Transcription Abstraction & Faster-Whisper Adapter (`backend/app/ai/providers/transcription.py`, `transcription_service.py`)
   - [ ] **Feature 3.3:** SQLite Background Task Runner & Telemetry (`backend/app/workers/pipeline_runner.py`, `/api/v1/videos/{id}/process`, `/api/v1/jobs`)
   - [ ] **Feature 3.4:** Interactive Transcript & Scene Timeline UI (`MediaLibraryView.tsx`)
 - [ ] **Milestone 4:** Two-Stage Hybrid RAG, Cross-Encoder ML Re-Ranker & Eval Harness

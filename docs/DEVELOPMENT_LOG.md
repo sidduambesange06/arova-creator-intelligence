@@ -66,3 +66,9 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
 - **Implementation:** Created `extract_audio_wav` producing 16kHz mono 16-bit PCM WAV (including fallback via stdlib `wave` for silent videos) and `detect_video_scenes` extracting scene intervals with midpoint thumbnails. Added tests in `backend/tests/unit/test_audio_and_scenes.py`.
 - **Verification:** `pytest backend/tests/unit/test_audio_and_scenes.py -v` passed `2/2` tests; full suite passed `8/8` tests in `2.49s`.
 - **Review (`ponytail-review`):** What this change does: Extracts 16kHz mono audio and detects visual scenes with midpoint thumbnails. Looks good. Ship. Checked silent video fallback and scene boundary clamping.
+
+### Feature 3.2: Transcription Abstraction & Faster-Whisper Adapter
+- **Plan:** Implement pluggable `TranscriptionProvider` protocol, `FasterWhisperProvider` with offline acoustic windowing fallback, and `transcribe_and_store` service managing `Transcript` + `TranscriptSegment` records in SQLite.
+- **Implementation:** Created `backend/app/ai/providers/transcription.py`, `backend/app/services/transcription_service.py`, and `backend/tests/unit/test_transcription.py`.
+- **Verification:** `pytest backend/tests/unit/test_transcription.py -v` passed `2/2` tests; full suite passed `10/10` tests in `2.14s`.
+- **Review (`ponytail-review`):** What this change does: Provides speech-to-text abstraction with faster-whisper support and acoustic windowing fallback, persisting timestamped segments in SQLite. Looks good. Ship. Checked old transcript deletion to avoid orphaned segments.

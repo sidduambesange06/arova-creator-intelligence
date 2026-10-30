@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     MEDIA_STORAGE_DIR: str = "./data/media"
     ALLOWED_MEDIA_ROOTS: str = "."
 
+    WHISPER_MODEL_SIZE: str = "base"
+    WHISPER_COMPUTE_TYPE: str = "int8"
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
