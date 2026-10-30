@@ -11,10 +11,10 @@
             "id": "8cc0ed0e897c6604",
             "type": "leaf",
             "state": {
-              "type": "empty",
+              "type": "graph",
               "state": {},
-              "icon": "lucide-file",
-              "title": "New tab"
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
             }
           }
         ]
@@ -37,7 +37,9 @@
               "type": "file-explorer",
               "state": {
                 "sortOrder": "alphabetical",
-                "autoReveal": false
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
               },
               "icon": "lucide-folder-closed",
               "title": "Files"
@@ -177,5 +179,13 @@
     }
   },
   "active": "8cc0ed0e897c6604",
-  "lastOpenFiles": []
+  "lastOpenFiles": [
+    "AGENTS_ARCHITECTURE.md",
+    "PROJECT_STATUS.md",
+    "architecture.md",
+    "KNOWN_ISSUES.md",
+    "TECHNICAL_DECISIONS.md",
+    "FLASH_EXECUTION_PLAYBOOK.md",
+    "DEVELOPMENT_LOG.md"
+  ]
 }

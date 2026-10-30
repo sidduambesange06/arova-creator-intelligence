@@ -1,0 +1,68 @@
+{
+  "timestamp": "2026-10-30T16:47:52.641701+00:00",
+  "overall_status": "HEALTHY",
+  "total_checks": 7,
+  "passed_checks": 7,
+  "failed_checks": 0,
+  "total_duration_sec": 11.73,
+  "checks": [
+    {
+      "name": "Documentation & Ledger Sync",
+      "category": "Docs",
+      "passed": true,
+      "duration_ms": 1.59,
+      "details": "Verified 9 core documentation files. Missing: None.",
+      "warnings": []
+    },
+    {
+      "name": "Strict IP Boundary Scan (Apache 2.0)",
+      "category": "Compliance",
+      "passed": true,
+      "duration_ms": 243.4,
+      "details": "Scanned codebase for 10 commercial IP terms. Violations: None.",
+      "warnings": []
+    },
+    {
+      "name": "Security & Path-Traversal Guard",
+      "category": "Security",
+      "passed": true,
+      "duration_ms": 280.78,
+      "details": "Path traversal protection verified: blocked path outside allowed roots.; Allowed root verification passed.",
+      "warnings": []
+    },
+    {
+      "name": "Database & Schema Integrity",
+      "category": "Database",
+      "passed": true,
+      "duration_ms": 325.64,
+      "details": "SQLite PRAGMA integrity: ok, foreign_keys: 1. Found 9 tables. Missing: None.",
+      "warnings": []
+    },
+    {
+      "name": "Backend Pytest Suite",
+      "category": "Backend",
+      "passed": true,
+      "duration_ms": 3438.71,
+      "details": "Test summary: 11 passed, 1 warning in 2.68s =======================.",
+      "warnings": [
+        "Pytest reported deprecation warnings from test dependencies."
+      ]
+    },
+    {
+      "name": "Frontend Vitest & TypeScript Build",
+      "category": "Frontend",
+      "passed": true,
+      "duration_ms": 7440.8,
+      "details": "Vitest exit: 0, Build exit: 0. Vite production bundle generated successfully.",
+      "warnings": []
+    },
+    {
+      "name": "TinyFish Connector & Benchmark Fetcher",
+      "category": "Connectors",
+      "passed": true,
+      "duration_ms": 1.01,
+      "details": "TinyFish skill manifest present: True. Local sample fallback verified: test_manifest.json.",
+      "warnings": []
+    }
+  ]
+}

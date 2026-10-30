@@ -1,6 +1,6 @@
 # Project Status
 
-Related notes: [[architecture]] | [[FLASH_EXECUTION_PLAYBOOK]] | [[DEVELOPMENT_LOG]] | [[TECHNICAL_DECISIONS]] | [[KNOWN_ISSUES]]
+Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PLAYBOOK]] | [[DEVELOPMENT_LOG]] | [[TECHNICAL_DECISIONS]] | [[KNOWN_ISSUES]]
 
 ## Current Milestone: Milestone 3 — Whisper ASR, PySceneDetect & Background Job Runner (COMPLETED)
 
