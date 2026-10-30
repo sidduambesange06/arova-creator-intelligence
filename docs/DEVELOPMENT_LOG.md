@@ -103,3 +103,9 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
 - **Implementation:** Created `backend/app/ai/reranking/cross_encoder_reranker.py`, `backend/app/ai/retrieval/hybrid_search.py`, `backend/app/api/routes/search.py`, updated `main.py`, and added `backend/tests/unit/test_hybrid_rerank.py`.
 - **Verification:** `pytest backend/tests/unit/test_hybrid_rerank.py -v` passed `2/2` tests; all `16/16` backend tests passed in `2.85s`.
 - **Review (`ponytail-review`):** What this change does: Implements two-stage hybrid retrieval with RRF and cross-encoder re-ranking, tracking latency metrics for both stages. Looks good. Ship. Checked FTS query sanitization and RRF score ordering.
+
+### Feature 4.3: ML Evaluation Harness & Telemetry API
+- **Plan:** Create golden query-segment benchmark set (`sample_data/evaluation_golden_set.json`), implement IR metrics (`Recall@K`, `MRR@10`, `NDCG@10` in `backend/app/ai/evaluation/metrics.py`), build automated benchmark runner (`eval_harness.py`), and expose `/api/v1/ml/eval/run`, `/api/v1/ml/eval/report`, and `/api/v1/system/telemetry`.
+- **Implementation:** Created `metrics.py`, `eval_harness.py`, `ml_eval.py`, updated `main.py`, and added unit tests in `backend/tests/unit/test_eval_metrics.py`.
+- **Verification:** `pytest backend/tests/unit/test_eval_metrics.py -v` passed `2/2` tests; full suite passed `18/18` tests in `3.19s`.
+- **Review (`ponytail-review`):** What this change does: Provides rigorous IR benchmark evaluation measuring MRR, NDCG, Recall@K, and p50/p95 latency delta between Bi-Encoder retrieval and Cross-Encoder re-ranking. Looks good. Ship. Checked log2 discount math and empty set handling.

@@ -1,0 +1,128 @@
+{
+  "benchmark_name": "developer_video_rag_golden_v1",
+  "version": "1.0.0",
+  "corpus": [
+    {
+      "id": "chunk_01",
+      "video_id": "vid_dev_1",
+      "start_time": 0.0,
+      "end_time": 28.5,
+      "text": "In this tutorial we configure vector database indexing using ChromaDB and sentence transformers for dense semantic retrieval."
+    },
+    {
+      "id": "chunk_02",
+      "video_id": "vid_dev_1",
+      "start_time": 28.5,
+      "end_time": 56.0,
+      "text": "SQLite FTS5 full text search provides exact BM25 keyword matching for technical terms, names, and acronyms."
+    },
+    {
+      "id": "chunk_03",
+      "video_id": "vid_dev_1",
+      "start_time": 56.0,
+      "end_time": 85.0,
+      "text": "Reciprocal rank fusion merges dense vector similarity scores and lexical rank positions with a constant k of 60."
+    },
+    {
+      "id": "chunk_04",
+      "video_id": "vid_dev_2",
+      "start_time": 0.0,
+      "end_time": 25.0,
+      "text": "Cross-encoder models score query and candidate document pairs jointly using full cross-attention layers."
+    },
+    {
+      "id": "chunk_05",
+      "video_id": "vid_dev_2",
+      "start_time": 25.0,
+      "end_time": 52.0,
+      "text": "FFmpeg audio extraction normalizes sound tracks into 16kHz mono 16-bit PCM WAV for optimal speech recognition."
+    },
+    {
+      "id": "chunk_06",
+      "video_id": "vid_dev_2",
+      "start_time": 52.0,
+      "end_time": 80.0,
+      "text": "PySceneDetect performs content-aware visual scene cut detection by comparing frame color histogram deltas."
+    },
+    {
+      "id": "chunk_07",
+      "video_id": "vid_dev_3",
+      "start_time": 0.0,
+      "end_time": 30.0,
+      "text": "The Model Context Protocol MCP allows Claude Desktop and Cursor to query local tools and database indexes."
+    },
+    {
+      "id": "chunk_08",
+      "video_id": "vid_dev_3",
+      "start_time": 30.0,
+      "end_time": 60.0,
+      "text": "HTTP 206 partial content streaming supports HTML5 video range requests jumping to exact timestamps without downloading whole files."
+    },
+    {
+      "id": "chunk_09",
+      "video_id": "vid_dev_3",
+      "start_time": 60.0,
+      "end_time": 90.0,
+      "text": "Evaluating information retrieval systems requires MRR at 10, NDCG at 10, and Recall at K metrics."
+    },
+    {
+      "id": "chunk_10",
+      "video_id": "vid_dev_3",
+      "start_time": 90.0,
+      "end_time": 120.0,
+      "text": "Faster-Whisper runs CTranslate2 quantized int8 and fp16 automatic speech recognition on local CPU or GPU."
+    }
+  ],
+  "queries": [
+    {
+      "query_id": "q1",
+      "query": "vector database indexing dense retrieval",
+      "relevant_ids": ["chunk_01"]
+    },
+    {
+      "query_id": "q2",
+      "query": "SQLite FTS5 full text BM25 keyword matching",
+      "relevant_ids": ["chunk_02"]
+    },
+    {
+      "query_id": "q3",
+      "query": "reciprocal rank fusion RRF merging scores",
+      "relevant_ids": ["chunk_03"]
+    },
+    {
+      "query_id": "q4",
+      "query": "cross-encoder re-ranking cross-attention model",
+      "relevant_ids": ["chunk_04"]
+    },
+    {
+      "query_id": "q5",
+      "query": "FFmpeg audio extraction 16kHz mono WAV",
+      "relevant_ids": ["chunk_05"]
+    },
+    {
+      "query_id": "q6",
+      "query": "PySceneDetect visual scene cut detection",
+      "relevant_ids": ["chunk_06"]
+    },
+    {
+      "query_id": "q7",
+      "query": "Model Context Protocol MCP Claude Desktop Cursor",
+      "relevant_ids": ["chunk_07"]
+    },
+    {
+      "query_id": "q8",
+      "query": "HTTP 206 range streaming video playback seek timestamp",
+      "relevant_ids": ["chunk_08"]
+    },
+    {
+      "query_id": "q9",
+      "query": "evaluating retrieval MRR at 10 NDCG at 10 Recall at K",
+      "relevant_ids": ["chunk_09"]
+    },
+    {
+      "query_id": "q10",
+      "query": "Faster-Whisper CTranslate2 speech recognition",
+      "relevant_ids": ["chunk_10"]
+    }
+  ]
+}

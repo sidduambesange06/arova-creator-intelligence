@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.collections import router as collections_router
 from app.api.routes.jobs import router as jobs_router
+from app.api.routes.ml_eval import router as ml_eval_router
 from app.api.routes.search import router as search_router
 from app.api.routes.videos import router as videos_router
 from app.core.config import settings
@@ -31,6 +32,7 @@ app.include_router(videos_router)
 app.include_router(collections_router)
 app.include_router(jobs_router)
 app.include_router(search_router)
+app.include_router(ml_eval_router)
 
 
 @app.get("/api/v1/health")
