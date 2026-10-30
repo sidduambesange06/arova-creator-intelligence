@@ -1,0 +1,19 @@
+{
+  "arova-dev-factor-gate": {
+    "enabled": true,
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "python scripts/pre_invocation_gate.py",
+        "timeout": 5
+      }
+    ],
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "python scripts/pre_invocation_gate.py",
+        "timeout": 5
+      }
+    ]
+  }
+}
