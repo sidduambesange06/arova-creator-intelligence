@@ -139,7 +139,7 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
 ---
 
 ### Features 5.1 & 5.2: Official Python MCP Server & MCP Settings/Inspector UI
-- **Date/Commit:** Pending commit
+- **Date/Commit:** 2026-10-30 (`fc7e1e6`)
 - **Scope & Plan:** Implement official Model Context Protocol (MCP) STDIO server with all 8 read-only tools backed by local services; build MCP Inspector UI with copyable client snippets for Claude, Cursor, and Antigravity; test all 8 tools.
 - **Implemented:**
   - `mcp_server/tools/video_tools.py`: 8 tools (`list_videos`, `get_video_metadata`, `search_video_content`, `search_transcripts`, `find_video_clips`, `summarize_video`, `get_video_chapters`, `get_media_library_stats`).
@@ -150,3 +150,17 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - `backend/app/api/routes/videos.py` & `media_service.py`: Added `GET /api/v1/videos/stats/summary`.
 - **Test Output:** `Pytest: 21 passed in 3.55s. Vitest: 6 passed (6). Vite build: passed.`
 - **Review (`ponytail-review`):** Zero mock data. 100% compliant with Model Context Protocol standards. Direct database and hybrid search service integration without unneeded abstraction layers.
+
+---
+
+### Feature 5.3: Docker, GitHub Actions CI, Docs & Public Release
+- **Date/Commit:** Pending commit
+- **Scope & Plan:** Multi-stage production `Dockerfile`, `docker-compose.yml`, GitHub Actions workflow `.github/workflows/ci.yml`, `docs/installation.md`, and `docs/mcp-guide.md`.
+- **Implemented:**
+  - `Dockerfile`: Multi-stage build (Node 20 Alpine frontend builder -> Python 3.11 slim runtime with FFmpeg and curl).
+  - `docker-compose.yml`: Local orchestrator mounting persistent volume `./data` and read-only media `./media`.
+  - `.github/workflows/ci.yml`: Full automated matrix pipeline testing backend, frontend, and system health audit.
+  - `docs/installation.md`: Comprehensive local and Docker installation guide.
+  - `docs/mcp-guide.md`: Detailed tool parameters, protocol explanation, and agent configuration guide.
+- **Test Output:** System Health Audit: 7/7 checks passed in 12s.
+- **Review (`ponytail-review`):** What this change does: Packages the entire engine for production, CI, and external developer adoption. Zero dead code or unneeded layers. All milestones 100% complete.

@@ -2,7 +2,7 @@
 
 Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PLAYBOOK]] | [[DEVELOPMENT_LOG]] | [[TECHNICAL_DECISIONS]] | [[KNOWN_ISSUES]]
 
-## Current Milestone: Milestone 5 — Official MCP Server, Docker & Public v1.0 Release
+## Current Milestone: Milestone 5 — Official MCP Server, Docker & Public v1.0 Release (COMPLETED)
 
 ### Milestone 1 Checklist (COMPLETED)
 - [x] **Feature 1.1 (Obsidian Brain & Repo Root):** `.gitignore`, `.env.example`, `LICENSE` (Apache 2.0), `README.md`, `docs/architecture.md`, and Obsidian brain notes initialized.
@@ -29,8 +29,8 @@ Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PL
 - [x] **Feature 4.4:** AI Clip Finder & Grounded Summariser (`summary_service.py`, `/api/v1/search/clips`, `/api/v1/ai/summarize`)
 - [x] **Feature 4.5:** AI Search & Benchmark UI (`HybridSearchView.tsx`, `vitest` `5/5` passed, `vite build` passed)
 
-### Milestone 5 Checklist (IN-PROGRESS)
+### Milestone 5 Checklist (COMPLETED)
 - [x] **Feature 5.1:** Official Python MCP Server (`mcp_server/server.py`, `mcp_server/tools/video_tools.py` — 8 read-only tools verified)
 - [x] **Feature 5.2:** MCP Inspector & Settings UI + MCP Unit Tests (`McpConfigView.tsx`, `mcp_server/tests/test_mcp_tools.py`, `vitest` `6/6` passed, `vite build` passed)
-- [ ] **Feature 5.3:** Docker, CI & Final Ponytail Audit (`Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml`, `installation.md`, `mcp-guide.md`)
+- [x] **Feature 5.3:** Docker, CI & Final Ponytail Audit (`Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml`, `installation.md`, `mcp-guide.md`)
 
