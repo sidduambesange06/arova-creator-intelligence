@@ -97,3 +97,9 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
 - **Implementation:** Created `backend/app/ai/retrieval/chunker.py`, `backend/app/ai/providers/embeddings.py`, hooked `index_video_chunks` into `run_video_pipeline`, and added unit tests in `backend/tests/unit/test_chunker_and_index.py`.
 - **Verification:** `pytest backend/tests/unit/test_chunker_and_index.py -v` passed `3/3` tests; full suite passed `14/14` tests in `3.02s`.
 - **Review (`ponytail-review`):** What this change does: Groups transcript segments into timestamped chunks and indexes them simultaneously in SQLite FTS5 for BM25 and vector disk storage for dense search. Looks good. Ship. Checked vector L2-normalization and FTS5 table creation.
+
+### Feature 4.2: Stage-1 Hybrid RRF + Stage-2 Cross-Encoder Re-Ranking
+- **Plan:** Merge dense vector similarity and SQLite FTS5 lexical rankings using Reciprocal Rank Fusion (RRF: $\sum \frac{1}{60 + \text{rank}}$), re-score top-20 candidates using Cross-Encoder joint attention (`ms-marco-MiniLM-L-6-v2`), and expose `/api/v1/search/semantic` and `/api/v1/search/transcripts`.
+- **Implementation:** Created `backend/app/ai/reranking/cross_encoder_reranker.py`, `backend/app/ai/retrieval/hybrid_search.py`, `backend/app/api/routes/search.py`, updated `main.py`, and added `backend/tests/unit/test_hybrid_rerank.py`.
+- **Verification:** `pytest backend/tests/unit/test_hybrid_rerank.py -v` passed `2/2` tests; all `16/16` backend tests passed in `2.85s`.
+- **Review (`ponytail-review`):** What this change does: Implements two-stage hybrid retrieval with RRF and cross-encoder re-ranking, tracking latency metrics for both stages. Looks good. Ship. Checked FTS query sanitization and RRF score ordering.
