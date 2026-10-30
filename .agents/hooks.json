@@ -4,14 +4,14 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "python scripts/pre_invocation_gate.py",
+        "command": "..\\.venv\\Scripts\\python.exe scripts/pre_invocation_gate.py",
         "timeout": 5
       }
     ],
     "PreInvocation": [
       {
         "type": "command",
-        "command": "python scripts/pre_invocation_gate.py",
+        "command": "..\\.venv\\Scripts\\python.exe scripts/pre_invocation_gate.py",
         "timeout": 5
       }
     ]

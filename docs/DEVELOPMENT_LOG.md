@@ -53,3 +53,8 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
 - **Implementation:** Updated `frontend/src/services/api.ts`, `frontend/src/features/media-library/MediaLibraryView.tsx`, `frontend/src/App.tsx`, and added `frontend/src/test/MediaLibrary.test.tsx`.
 - **Verification:** `npm test` (`vitest run`) -> `2 test files, 3 passed in 2.04s`; `npm run build` (`tsc -b && vite build`) -> `built in 1.11s`.
 - **Review (`ponytail-review`):** What this change does: Connects the React inspector to `/api/v1/videos` and `/api/v1/collections` with HTTP 206 video playback and timestamp seeking. Looks good. Ship. Checked that zero mock data or dead buttons exist.
+
+### Environment & IDE Python Interpreter Fix
+- **Plan:** Fix IDE Python interpreter and `from app...` import resolution when opening `backend/` files from the workspace root; create and activate `.venv` and `.env`.
+- **Implementation:** Created root `.venv` synced with `backend/uv.lock`, added `arova_backend.pth` into `.venv/Lib/site-packages`, created `.env` and `backend/.env`, and added `.vscode/settings.json` + `pyrightconfig.json`.
+- **Verification:** Activated `.venv\Scripts\Activate.ps1`, verified `import fastapi, sqlalchemy, pydantic, imageio_ffmpeg, app.main`, and ran `pytest -v` (`6/6` passed).

@@ -1,0 +1,8 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "include": ["backend/app", "backend/tests", ".agents/scripts"],
+  "extraPaths": ["backend"],
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "standard"
+}
