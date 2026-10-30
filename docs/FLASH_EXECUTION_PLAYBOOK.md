@@ -224,3 +224,4 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[DEVELOPMENT_LOG]] | [[T
   - Create `Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml`, `docs/installation.md`, and `docs/mcp-guide.md`.
   - Run full backend + MCP pytest suite and frontend vitest + production build.
   - Run final `ponytail-audit` to verify zero dead code, zero mock data, and 100% completion in `docs/PROJECT_STATUS.md`.
+

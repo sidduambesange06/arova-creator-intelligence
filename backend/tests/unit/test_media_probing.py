@@ -68,3 +68,4 @@ def test_ffmpeg_metadata_probe_and_thumbnail(tmp_path: Path) -> None:
     )
     assert thumb.is_file()
     assert thumb.stat().st_size > 100
+

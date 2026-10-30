@@ -109,3 +109,4 @@ def probe_video_metadata(video_path: str | Path) -> VideoMetadata:
         format=ext_format,
         file_size=file_size,
     )
+

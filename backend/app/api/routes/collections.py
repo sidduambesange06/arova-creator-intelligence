@@ -46,3 +46,4 @@ def add_video_to_collection_endpoint(
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+

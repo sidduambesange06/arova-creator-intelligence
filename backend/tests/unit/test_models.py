@@ -55,3 +55,4 @@ def test_sqlite_schema_and_cascade_delete() -> None:
         assert db.query(Collection).filter_by(id=col.id).count() == 1
 
     Base.metadata.drop_all(bind=test_engine)
+

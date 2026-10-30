@@ -18,3 +18,4 @@ open-source video metadata, or web specifications while keeping `arova-creator-i
    - If `TINYFISH_API_KEY` is configured in `.env`, invoke `https://mino.ai/v1/automation/run-sse` (TinyFish Web Agent endpoint) with `{ "url": "<target_url>", "goal": "<extraction_goal>" }`.
    - If `TINYFISH_API_KEY` is not set, fall back cleanly to built-in `search_web` or deterministic local benchmark fixtures in `sample_data/`.
 3. **Log Findings:** Record any external benchmark sources in `docs/TECHNICAL_DECISIONS.md`.
+

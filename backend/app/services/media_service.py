@@ -206,3 +206,4 @@ def add_video_to_collection(db: Session, collection_id: str, video_id: str) -> C
         created_at=col.created_at,
         video_count=len(col.videos),
     )
+

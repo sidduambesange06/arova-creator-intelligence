@@ -182,3 +182,4 @@ class ProcessingJob(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     video: Mapped["Video"] = relationship(back_populates="jobs")
+

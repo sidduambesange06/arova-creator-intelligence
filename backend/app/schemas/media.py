@@ -49,3 +49,4 @@ class CollectionOut(BaseModel):
     description: str | None
     created_at: datetime
     video_count: int = 0
+

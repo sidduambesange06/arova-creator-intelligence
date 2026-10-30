@@ -58,3 +58,11 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
 - **Plan:** Fix IDE Python interpreter and `from app...` import resolution when opening `backend/` files from the workspace root; create and activate `.venv` and `.env`.
 - **Implementation:** Created root `.venv` synced with `backend/uv.lock`, added `arova_backend.pth` into `.venv/Lib/site-packages`, created `.env` and `backend/.env`, and added `.vscode/settings.json` + `pyrightconfig.json`.
 - **Verification:** Activated `.venv\Scripts\Activate.ps1`, verified `import fastapi, sqlalchemy, pydantic, imageio_ffmpeg, app.main`, and ran `pytest -v` (`6/6` passed).
+
+## 2026-10-30 — Milestone 3 Execution
+
+### Feature 3.1: Audio Extraction (16kHz Mono WAV) & Scene Detection
+- **Plan:** Implement `backend/app/processing/audio.py` (`extract_audio_wav` with silent video fallback) and `backend/app/processing/scene_detection.py` (`detect_video_scenes` via ffmpeg showinfo filter with midpoint thumbnails) per `docs/FLASH_EXECUTION_PLAYBOOK.md`.
+- **Implementation:** Created `extract_audio_wav` producing 16kHz mono 16-bit PCM WAV (including fallback via stdlib `wave` for silent videos) and `detect_video_scenes` extracting scene intervals with midpoint thumbnails. Added tests in `backend/tests/unit/test_audio_and_scenes.py`.
+- **Verification:** `pytest backend/tests/unit/test_audio_and_scenes.py -v` passed `2/2` tests; full suite passed `8/8` tests in `2.49s`.
+- **Review (`ponytail-review`):** What this change does: Extracts 16kHz mono audio and detects visual scenes with midpoint thumbnails. Looks good. Ship. Checked silent video fallback and scene boundary clamping.

@@ -72,3 +72,4 @@ describe("MediaLibraryView", () => {
     expect(fetchSpy).toHaveBeenCalled();
   });
 });
+

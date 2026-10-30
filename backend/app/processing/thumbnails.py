@@ -35,3 +35,4 @@ def generate_video_thumbnail(
     if not target.is_file() or target.stat().st_size == 0:
         raise RuntimeError(f"Thumbnail generation failed for {src.name}")
     return target
+
