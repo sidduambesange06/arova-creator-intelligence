@@ -27,3 +27,11 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - Frontend tests: `npm test` (`vitest run`) -> `1 passed (2 tests) in 2.00s`
   - Frontend build: `npm run build` (`tsc -b && vite build`) -> `built in 1.36s`
 - **Review (`ponytail-review`):** Looks good. Ship. Checked all 18 created source/config/doc files; zero commercial Arova Creator OS IP, zero mock data, zero dead files.
+
+## 2026-10-30 — Milestone 2 Execution
+
+### Feature 2.1: SQLite + SQLAlchemy Schema & Alembic Migration
+- **Plan:** Implement SQLAlchemy 2.0 ORM models (`backend/app/models/entities.py`), SQLite session management with `PRAGMA foreign_keys=ON` (`backend/app/database/session.py`), Alembic migration (`0001_initial_schema.py`), and cascade delete tests (`backend/tests/unit/test_models.py`).
+- **Implementation:** Created all 9 relational tables matching Section 7 of the specification, wired `alembic.ini` + `migrations/env.py`, and bundled `imageio-ffmpeg` so FFmpeg binary resolution works out-of-the-box even when system `PATH` lacks `ffmpeg`.
+- **Verification:** `uv run alembic upgrade head` succeeded; `uv run pytest -v` passed `3/3` tests in `0.94s`.
+- **Review (`ponytail-review`):** What this change does: Adds SQLite database engine, declarative models with `ON DELETE CASCADE`, and initial Alembic migration. Looks good. Ship. Checked foreign key enforcement and cascade orphan cleanup.
