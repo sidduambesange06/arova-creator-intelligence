@@ -35,3 +35,9 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
 - **Implementation:** Created all 9 relational tables matching Section 7 of the specification, wired `alembic.ini` + `migrations/env.py`, and bundled `imageio-ffmpeg` so FFmpeg binary resolution works out-of-the-box even when system `PATH` lacks `ffmpeg`.
 - **Verification:** `uv run alembic upgrade head` succeeded; `uv run pytest -v` passed `3/3` tests in `0.94s`.
 - **Review (`ponytail-review`):** What this change does: Adds SQLite database engine, declarative models with `ON DELETE CASCADE`, and initial Alembic migration. Looks good. Ship. Checked foreign key enforcement and cascade orphan cleanup.
+
+### Feature 2.2: Safe File Validator, FFmpeg Metadata Prober & Thumbnail Generator
+- **Plan:** Implement path-traversal-safe file discovery and SHA-256 hashing (`backend/app/core/security.py`), FFmpeg/FFprobe metadata extraction (`backend/app/processing/metadata.py`), and keyframe JPEG thumbnail generation (`backend/app/processing/thumbnails.py`).
+- **Implementation:** Built `validate_media_path`, `discover_video_files`, `compute_sha256`, `probe_video_metadata`, and `generate_video_thumbnail`. Tested against a real H.264 MP4 synthesized via `ffmpeg` lavfi `testsrc` in `backend/tests/unit/test_media_probing.py`.
+- **Verification:** `uv run pytest -v` -> `5 passed in 1.72s`.
+- **Review (`ponytail-review`):** What this change does: Validates local paths against `ALLOWED_MEDIA_ROOTS`, computes SHA-256 hashes, probes video streams, and extracts keyframe thumbnails. Looks good. Ship. Checked path-traversal rejection and subprocess timeouts.
