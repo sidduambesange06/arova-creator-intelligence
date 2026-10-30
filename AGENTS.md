@@ -27,3 +27,8 @@ These workspace rules run automatically on **every coding or command task** from
 ## 5. Atomic Git Commit After Every Feature
 - Execute one feature at a time (`Plan -> Minimal Implementation -> Automated Tests -> Ponytail Review -> Obsidian docs/ Update -> Git Commit`).
 - Create a clean, atomic `git commit` immediately after each feature passes its automated tests (`pytest` / `vitest`).
+
+## 6. Argon-Level Blueprint Enforcement (`docs/FLASH_EXECUTION_PLAYBOOK.md`)
+- Before implementing any feature in Milestone 3, Milestone 4, or Milestone 5, **always** read `docs/FLASH_EXECUTION_PLAYBOOK.md` and follow its exact file paths, function signatures, mathematical formulas (RRF, MRR@10, NDCG@10, Recall@K), and test cases.
+- Whenever `backend/pyproject.toml` changes, sync both `backend/.venv` and root `.venv` as documented in `docs/FLASH_EXECUTION_PLAYBOOK.md`.
+

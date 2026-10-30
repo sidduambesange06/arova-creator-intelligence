@@ -1,8 +1,8 @@
 # Project Status
 
-Related notes: [[architecture]] | [[DEVELOPMENT_LOG]] | [[TECHNICAL_DECISIONS]] | [[KNOWN_ISSUES]]
+Related notes: [[architecture]] | [[FLASH_EXECUTION_PLAYBOOK]] | [[DEVELOPMENT_LOG]] | [[TECHNICAL_DECISIONS]] | [[KNOWN_ISSUES]]
 
-## Current Milestone: Milestone 2 — Media Ingestion, FFmpeg Pipeline & Video Inspector UI (COMPLETED)
+## Current Milestone: Ready for Milestone 3 (See [[FLASH_EXECUTION_PLAYBOOK]])
 
 ### Milestone 1 Checklist (COMPLETED)
 - [x] **Feature 1.1 (Obsidian Brain & Repo Root):** `.gitignore`, `.env.example`, `LICENSE` (Apache 2.0), `README.md`, `docs/architecture.md`, and Obsidian brain notes initialized.
@@ -16,8 +16,20 @@ Related notes: [[architecture]] | [[DEVELOPMENT_LOG]] | [[TECHNICAL_DECISIONS]] 
 - [x] **Feature 2.3 (Import, Index Delete & HTTP Range Streaming API):** `POST /api/v1/videos/import`, `GET /api/v1/videos`, `DELETE /api/v1/videos/{id}/index`, `GET /api/v1/videos/{id}/stream` (HTTP 206 Range), and Collection endpoints.
 - [x] **Feature 2.4 (Media Library & Video Player UI):** Media Library grid, Import form, Collection filter/creator, and HTML5 Video Player with timestamp jump support (`vitest` `3/3` passed, `vite build` passed).
 
-### Upcoming Milestones
-- [ ] **Milestone 3:** Whisper ASR, PySceneDetect & Background Job Runner (Features 3.1–3.4)
-- [ ] **Milestone 4:** Two-Stage Hybrid RAG, Cross-Encoder ML Re-Ranker & Eval Harness (Features 4.1–4.5)
-- [ ] **Milestone 5:** Official MCP Server, Docker & Public v1.0 Release (Features 5.1–5.3)
+### Upcoming Milestones (Detailed in [[FLASH_EXECUTION_PLAYBOOK]])
+- [ ] **Milestone 3:** Whisper ASR, PySceneDetect & Background Job Runner
+  - [ ] **Feature 3.1:** Audio Extraction (`16kHz` mono WAV) & Scene Detection (`backend/app/processing/audio.py`, `scene_detection.py`)
+  - [ ] **Feature 3.2:** Transcription Abstraction & Faster-Whisper Adapter (`backend/app/ai/providers/transcription.py`, `transcription_service.py`)
+  - [ ] **Feature 3.3:** SQLite Background Task Runner & Telemetry (`backend/app/workers/pipeline_runner.py`, `/api/v1/videos/{id}/process`, `/api/v1/jobs`)
+  - [ ] **Feature 3.4:** Interactive Transcript & Scene Timeline UI (`MediaLibraryView.tsx`)
+- [ ] **Milestone 4:** Two-Stage Hybrid RAG, Cross-Encoder ML Re-Ranker & Eval Harness
+  - [ ] **Feature 4.1:** Timestamp-Preserving Chunker & Dual Index (`chunker.py`, `embeddings.py`, SQLite FTS5)
+  - [ ] **Feature 4.2:** Stage-1 Hybrid RRF + Stage-2 Cross-Encoder Re-Ranking (`hybrid_search.py`, `cross_encoder_reranker.py`, `/api/v1/search/semantic`)
+  - [ ] **Feature 4.3:** ML Evaluation Harness & Telemetry API (`metrics.py`, `eval_harness.py`, `sample_data/evaluation_golden_set.json`, `/api/v1/ml/eval/run`)
+  - [ ] **Feature 4.4:** AI Clip Finder & Grounded Summariser (`summary_service.py`, `/api/v1/search/clips`, `/api/v1/ai/summarize`)
+  - [ ] **Feature 4.5:** AI Search & Benchmark UI (`HybridSearchView.tsx`)
+- [ ] **Milestone 5:** Official MCP Server, Docker & Public v1.0 Release
+  - [ ] **Feature 5.1:** Official Python MCP Server (`mcp_server/server.py`, `mcp_server/tools/video_tools.py` — 8 read-only tools)
+  - [ ] **Feature 5.2:** MCP Inspector & Settings UI + MCP Unit Tests (`McpConfigView.tsx`, `mcp_server/tests/test_mcp_tools.py`)
+  - [ ] **Feature 5.3:** Docker, CI & Final Ponytail Audit (`Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml`, `installation.md`, `mcp-guide.md`)
 
