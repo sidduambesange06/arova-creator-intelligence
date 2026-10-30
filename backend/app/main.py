@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.collections import router as collections_router
+from app.api.routes.jobs import router as jobs_router
 from app.api.routes.videos import router as videos_router
 from app.core.config import settings
 from app.core.logging import configure_logging
@@ -27,6 +28,7 @@ app.add_middleware(
 
 app.include_router(videos_router)
 app.include_router(collections_router)
+app.include_router(jobs_router)
 
 
 @app.get("/api/v1/health")

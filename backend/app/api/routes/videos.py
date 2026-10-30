@@ -2,13 +2,16 @@ from collections.abc import Iterator
 import mimetypes
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
+from app.models.entities import Transcript, Video, VideoScene
 from app.schemas.media import VideoImportRequest, VideoImportResponse, VideoOut
+from app.schemas.pipeline import TranscriptOut, TranscriptSegmentOut, VideoSceneOut
 from app.services import media_service
+from app.workers.pipeline_runner import run_video_pipeline
 
 router = APIRouter(prefix="/api/v1/videos", tags=["videos"])
 
@@ -68,6 +71,57 @@ def delete_video_index_endpoint(
         return media_service.delete_video_index(db=db, video_id=video_id)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/{video_id}/process")
+def process_video_endpoint(
+    video_id: str,
+    background_tasks: BackgroundTasks,
+    sync: bool = Query(default=False),
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    video = db.query(Video).filter_by(id=video_id).first()
+    if not video:
+        raise HTTPException(status_code=404, detail=f"Video {video_id} not found")
+
+    if sync:
+        job_id = run_video_pipeline(video_id=video_id, db=db)
+        return {"video_id": video_id, "status": "completed", "job_id": job_id}
+
+    background_tasks.add_task(run_video_pipeline, video_id=video_id)
+    return {"video_id": video_id, "status": "scheduled"}
+
+
+@router.get("/{video_id}/transcript", response_model=TranscriptOut)
+def get_video_transcript_endpoint(
+    video_id: str,
+    db: Session = Depends(get_db),
+) -> TranscriptOut:
+    transcript = db.query(Transcript).filter_by(video_id=video_id).first()
+    if not transcript:
+        raise HTTPException(status_code=404, detail=f"No transcript found for video {video_id}")
+    return TranscriptOut(
+        id=transcript.id,
+        video_id=transcript.video_id,
+        language=transcript.language,
+        model_name=transcript.model_name,
+        full_text=transcript.full_text,
+        segments=[TranscriptSegmentOut.model_validate(s) for s in transcript.segments],
+    )
+
+
+@router.get("/{video_id}/scenes", response_model=list[VideoSceneOut])
+def get_video_scenes_endpoint(
+    video_id: str,
+    db: Session = Depends(get_db),
+) -> list[VideoSceneOut]:
+    scenes = (
+        db.query(VideoScene)
+        .filter_by(video_id=video_id)
+        .order_by(VideoScene.scene_index.asc())
+        .all()
+    )
+    return [VideoSceneOut.model_validate(s) for s in scenes]
 
 
 def _iter_file_range(file_path: Path, start: int, end: int, chunk_size: int = 64 * 1024) -> Iterator[bytes]:

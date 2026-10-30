@@ -72,3 +72,9 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
 - **Implementation:** Created `backend/app/ai/providers/transcription.py`, `backend/app/services/transcription_service.py`, and `backend/tests/unit/test_transcription.py`.
 - **Verification:** `pytest backend/tests/unit/test_transcription.py -v` passed `2/2` tests; full suite passed `10/10` tests in `2.14s`.
 - **Review (`ponytail-review`):** What this change does: Provides speech-to-text abstraction with faster-whisper support and acoustic windowing fallback, persisting timestamped segments in SQLite. Looks good. Ship. Checked old transcript deletion to avoid orphaned segments.
+
+### Feature 3.3: SQLite Background Task Runner & Telemetry (RTF)
+- **Plan:** Build `backend/app/workers/pipeline_runner.py` executing Scene cut detection -> Audio extraction -> Whisper transcription with progress checkpoints (5% -> 15% -> 50% -> 80% -> 100%), tracking Real-Time Factor (RTF) in thread-safe `WorkerTelemetry`, and exposing `/api/v1/videos/{video_id}/process`, `/api/v1/videos/{video_id}/transcript`, `/api/v1/videos/{video_id}/scenes`, and `/api/v1/jobs`.
+- **Implementation:** Created `pipeline_runner.py`, `backend/app/schemas/pipeline.py`, `backend/app/api/routes/jobs.py`, and updated `videos.py` & `main.py`. Added comprehensive integration test in `backend/tests/integration/test_pipeline_api.py`.
+- **Verification:** `pytest backend/tests/integration/test_pipeline_api.py -v` passed; all `11/11` backend tests passed in `3.04s`.
+- **Review (`ponytail-review`):** What this change does: Executes end-to-end media processing pipeline with job status tracking and RTF telemetry. Looks good. Ship. Checked session isolation, error rollback, and job progress reporting.
