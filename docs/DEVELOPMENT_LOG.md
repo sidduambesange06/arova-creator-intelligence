@@ -47,3 +47,9 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
 - **Implementation:** Created `backend/app/schemas/media.py`, `backend/app/services/media_service.py`, `backend/app/api/routes/videos.py`, `backend/app/api/routes/collections.py`, and integration tests in `backend/tests/integration/test_videos_api.py`.
 - **Verification:** `uv run pytest -v` -> `6 passed in 1.56s`. Verified that `DELETE /api/v1/videos/{id}/index` removes DB + thumbnail records while preserving the user's original source MP4 file on disk.
 - **Review (`ponytail-review`):** What this change does: Exposes video ingestion, collection management, HTTP 206 streaming, and safe index removal over `/api/v1`. Looks good. Ship. Checked byte-range boundary checks (`416` on invalid ranges) and source file preservation.
+
+### Feature 2.4: Media Library & Video Player UI
+- **Plan:** Build `MediaLibraryView.tsx` with local file/folder import, collection filter & creator, indexed video cards with real thumbnails and FFmpeg metadata, safe index removal button, and HTML5 video player with exact timestamp seeking (`currentTime`).
+- **Implementation:** Updated `frontend/src/services/api.ts`, `frontend/src/features/media-library/MediaLibraryView.tsx`, `frontend/src/App.tsx`, and added `frontend/src/test/MediaLibrary.test.tsx`.
+- **Verification:** `npm test` (`vitest run`) -> `2 test files, 3 passed in 2.04s`; `npm run build` (`tsc -b && vite build`) -> `built in 1.11s`.
+- **Review (`ponytail-review`):** What this change does: Connects the React inspector to `/api/v1/videos` and `/api/v1/collections` with HTTP 206 video playback and timestamp seeking. Looks good. Ship. Checked that zero mock data or dead buttons exist.
