@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 from sqlalchemy.orm import Session
@@ -206,4 +207,25 @@ def add_video_to_collection(db: Session, collection_id: str, video_id: str) -> C
         created_at=col.created_at,
         video_count=len(col.videos),
     )
+
+
+def get_library_stats(db: Session) -> dict[str, Any]:
+    from sqlalchemy import func
+    from app.models.entities import Transcript, VideoScene
+
+    total_videos = db.query(func.count(Video.id)).scalar() or 0
+    total_duration = db.query(func.sum(Video.duration)).scalar() or 0.0
+    total_collections = db.query(func.count(Collection.id)).scalar() or 0
+    total_transcripts = db.query(func.count(Transcript.id)).scalar() or 0
+    total_scenes = db.query(func.count(VideoScene.id)).scalar() or 0
+
+    return {
+        "total_videos": total_videos,
+        "total_duration_sec": round(float(total_duration), 2),
+        "total_collections": total_collections,
+        "total_transcripts_indexed": total_transcripts,
+        "total_scene_cuts": total_scenes,
+        "engine": "Arova Creator Intelligence v0.1.0 (Local-First)",
+    }
+
 

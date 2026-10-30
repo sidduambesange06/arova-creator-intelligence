@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { MediaLibraryView } from "./features/media-library/MediaLibraryView";
+import { McpConfigView } from "./features/settings/McpConfigView";
 import { HybridSearchView } from "./features/video-search/HybridSearchView";
 import { fetchHealth, type HealthResponse } from "./services/api";
 
@@ -197,6 +198,8 @@ export function App() {
           <MediaLibraryView />
         ) : activeSection === "hybrid-search" ? (
           <HybridSearchView />
+        ) : activeSection === "mcp-config" ? (
+          <McpConfigView />
         ) : (
           <section className="border border-slate-800 bg-slate-900/40 rounded-lg p-6">
             <h2 className="text-lg font-semibold text-white">

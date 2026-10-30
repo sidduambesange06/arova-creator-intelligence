@@ -126,7 +126,7 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
 ---
 
 ### Feature 4.5: AI Search & ML Benchmark UI
-- **Date/Commit:** Pending commit
+- **Date/Commit:** 2026-10-30 (`0f3ee5a`)
 - **Scope & Plan:** Build `HybridSearchView.tsx` connected to `POST /api/v1/search/semantic` and `POST /api/v1/ml/eval/run`; render real candidate video chunks with exact timestamp jump previews and ML ranking metrics table (MRR@10, NDCG@10, Recall@K, Latency delta).
 - **Implemented:**
   - `frontend/src/services/api.ts`: Added `searchSemantic`, `runEvalBenchmark`, `fetchLatestEvalReport` and typed interfaces.
@@ -135,3 +135,18 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - `frontend/src/test/HybridSearch.test.tsx`: Vitest tests for semantic query submission and ML benchmark report visualization.
 - **Test Output:** `Vitest: 5 passed (5), Vite build: 34 modules transformed, 0 errors.`
 - **Review (`ponytail-review`):** What this change does: Connects hybrid RAG search and evaluation harness to frontend with zero mock data. Real video seeking, real benchmark metrics rendering. Minimal, clean code.
+
+---
+
+### Features 5.1 & 5.2: Official Python MCP Server & MCP Settings/Inspector UI
+- **Date/Commit:** Pending commit
+- **Scope & Plan:** Implement official Model Context Protocol (MCP) STDIO server with all 8 read-only tools backed by local services; build MCP Inspector UI with copyable client snippets for Claude, Cursor, and Antigravity; test all 8 tools.
+- **Implemented:**
+  - `mcp_server/tools/video_tools.py`: 8 tools (`list_videos`, `get_video_metadata`, `search_video_content`, `search_transcripts`, `find_video_clips`, `summarize_video`, `get_video_chapters`, `get_media_library_stats`).
+  - `mcp_server/server.py`: STDIO MCP server entrypoint using `mcp.server.mcpserver.MCPServer`.
+  - `mcp_server/tests/test_mcp_tools.py`: Comprehensive test validating all 8 tools with indexed video.
+  - `frontend/src/features/settings/McpConfigView.tsx`: MCP Inspector UI displaying live library metrics, tool schemas, and copyable configs for Claude Desktop, Cursor, and Gemini Antigravity.
+  - `frontend/src/test/McpConfig.test.tsx`: Vitest test verifying stats rendering, tool listing, and client tab toggling.
+  - `backend/app/api/routes/videos.py` & `media_service.py`: Added `GET /api/v1/videos/stats/summary`.
+- **Test Output:** `Pytest: 21 passed in 3.55s. Vitest: 6 passed (6). Vite build: passed.`
+- **Review (`ponytail-review`):** Zero mock data. 100% compliant with Model Context Protocol standards. Direct database and hybrid search service integration without unneeded abstraction layers.

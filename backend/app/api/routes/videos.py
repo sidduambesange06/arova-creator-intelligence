@@ -42,6 +42,11 @@ def list_videos_endpoint(
     return media_service.list_videos(db=db, collection_id=collection_id, status=status)
 
 
+@router.get("/stats/summary")
+def get_library_stats_endpoint(db: Session = Depends(get_db)) -> dict:
+    return media_service.get_library_stats(db=db)
+
+
 @router.get("/{video_id}", response_model=VideoOut)
 def get_video_endpoint(video_id: str, db: Session = Depends(get_db)) -> VideoOut:
     try:

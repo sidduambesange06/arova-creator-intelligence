@@ -260,3 +260,20 @@ export async function fetchLatestEvalReport(): Promise<EvalBenchmarkReport | nul
   }
   return res.json() as Promise<EvalBenchmarkReport>;
 }
+
+export interface MediaLibraryStats {
+  total_videos: number;
+  total_duration_sec: number;
+  total_collections: number;
+  total_transcripts_indexed: number;
+  total_scene_cuts: number;
+  engine: string;
+}
+
+export async function fetchMediaLibraryStats(): Promise<MediaLibraryStats> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/videos/stats/summary`);
+  if (!res.ok) {
+    throw new Error(`Failed to load media stats (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<MediaLibraryStats>;
+}

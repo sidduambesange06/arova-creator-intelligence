@@ -29,9 +29,8 @@ Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PL
 - [x] **Feature 4.4:** AI Clip Finder & Grounded Summariser (`summary_service.py`, `/api/v1/search/clips`, `/api/v1/ai/summarize`)
 - [x] **Feature 4.5:** AI Search & Benchmark UI (`HybridSearchView.tsx`, `vitest` `5/5` passed, `vite build` passed)
 
-### Upcoming Milestones (Detailed in [[FLASH_EXECUTION_PLAYBOOK]])
-- [ ] **Milestone 5:** Official MCP Server, Docker & Public v1.0 Release
-  - [ ] **Feature 5.1:** Official Python MCP Server (`mcp_server/server.py`, `mcp_server/tools/video_tools.py` — 8 read-only tools)
-  - [ ] **Feature 5.2:** MCP Inspector & Settings UI + MCP Unit Tests (`McpConfigView.tsx`, `mcp_server/tests/test_mcp_tools.py`)
-  - [ ] **Feature 5.3:** Docker, CI & Final Ponytail Audit (`Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml`, `installation.md`, `mcp-guide.md`)
+### Milestone 5 Checklist (IN-PROGRESS)
+- [x] **Feature 5.1:** Official Python MCP Server (`mcp_server/server.py`, `mcp_server/tools/video_tools.py` — 8 read-only tools verified)
+- [x] **Feature 5.2:** MCP Inspector & Settings UI + MCP Unit Tests (`McpConfigView.tsx`, `mcp_server/tests/test_mcp_tools.py`, `vitest` `6/6` passed, `vite build` passed)
+- [ ] **Feature 5.3:** Docker, CI & Final Ponytail Audit (`Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml`, `installation.md`, `mcp-guide.md`)
 

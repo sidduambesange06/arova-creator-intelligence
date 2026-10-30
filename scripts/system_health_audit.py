@@ -244,7 +244,7 @@ def check_database_integrity() -> CheckResult:
 def check_backend_tests() -> CheckResult:
     t0 = time.perf_counter()
     python_exe = _get_python_exe()
-    cmd = [python_exe, "-m", "pytest", "backend/tests", "-v", "--tb=short"]
+    cmd = [python_exe, "-m", "pytest", "backend/tests", "mcp_server/tests", "-v", "--tb=short"]
     proc = subprocess.run(cmd, cwd=str(ROOT_DIR), capture_output=True, text=True, timeout=120)
     elapsed = (time.perf_counter() - t0) * 1000.0
 
