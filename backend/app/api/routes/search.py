@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+from typing import Any
+import json
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -10,8 +12,9 @@ from app.ai.retrieval.hybrid_search import (
 )
 from app.database.session import get_db
 from app.models.entities import TranscriptSegment, Video
+from app.services.summary_service import find_video_clips, generate_video_summary
 
-router = APIRouter(prefix="/api/v1/search", tags=["search"])
+router = APIRouter(prefix="/api/v1", tags=["search-and-ai"])
 
 
 class SemanticSearchRequest(BaseModel):
@@ -37,7 +40,39 @@ class TranscriptSearchResult(BaseModel):
     confidence: float
 
 
-@router.post("/semantic", response_model=HybridSearchResponse)
+class ClipSearchRequest(BaseModel):
+    query: str = Field(..., min_length=1)
+    min_duration: float = Field(default=5.0, ge=1.0)
+    max_duration: float = Field(default=60.0, le=300.0)
+    top_k: int = Field(default=5, ge=1, le=20)
+    video_id: str | None = None
+
+
+class ClipResultItem(BaseModel):
+    video_id: str
+    filename: str
+    start_time: float
+    end_time: float
+    duration: float
+    transcript_snippet: str
+    relevance_score: float
+    rationale: str
+
+
+class SummarizeRequest(BaseModel):
+    video_id: str
+    api_key: str | None = None
+
+
+class SummarizeResponse(BaseModel):
+    video_id: str
+    summary: str
+    topics: list[str]
+    chapters: list[dict[str, Any]]
+    model_name: str
+
+
+@router.post("/search/semantic", response_model=HybridSearchResponse)
 def search_semantic(
     payload: SemanticSearchRequest,
     db: Session = Depends(get_db),
@@ -51,7 +86,7 @@ def search_semantic(
     )
 
 
-@router.post("/transcripts", response_model=list[TranscriptSearchResult])
+@router.post("/search/transcripts", response_model=list[TranscriptSearchResult])
 def search_transcripts(
     payload: TranscriptSearchRequest,
     db: Session = Depends(get_db),
@@ -78,3 +113,44 @@ def search_transcripts(
         )
         for seg, filename in rows
     ]
+
+
+@router.post("/search/clips", response_model=list[ClipResultItem])
+def search_clips(
+    payload: ClipSearchRequest,
+    db: Session = Depends(get_db),
+) -> list[ClipResultItem]:
+    clips = find_video_clips(
+        db=db,
+        query=payload.query,
+        min_duration=payload.min_duration,
+        max_duration=payload.max_duration,
+        top_k=payload.top_k,
+        video_id=payload.video_id,
+    )
+    return [ClipResultItem(**c) for c in clips]
+
+
+@router.post("/ai/summarize", response_model=SummarizeResponse)
+def summarize_video(
+    payload: SummarizeRequest,
+    db: Session = Depends(get_db),
+) -> SummarizeResponse:
+    try:
+        summary_obj = generate_video_summary(
+            db=db,
+            video_id=payload.video_id,
+            api_key=payload.api_key,
+        )
+        return SummarizeResponse(
+            video_id=summary_obj.video_id,
+            summary=summary_obj.summary_text,
+            topics=json.loads(summary_obj.topics_json),
+            chapters=json.loads(summary_obj.chapters_json),
+            model_name=summary_obj.model_name,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+

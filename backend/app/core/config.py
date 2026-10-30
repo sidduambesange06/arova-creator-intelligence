@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     WHISPER_MODEL_SIZE: str = "base"
     WHISPER_COMPUTE_TYPE: str = "int8"
 
+    GEMINI_API_KEY: str | None = None
+    OPENAI_API_KEY: str | None = None
+    TINYFISH_API_KEY: str | None = None
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]

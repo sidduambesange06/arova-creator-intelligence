@@ -109,3 +109,16 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
 - **Implementation:** Created `metrics.py`, `eval_harness.py`, `ml_eval.py`, updated `main.py`, and added unit tests in `backend/tests/unit/test_eval_metrics.py`.
 - **Verification:** `pytest backend/tests/unit/test_eval_metrics.py -v` passed `2/2` tests; full suite passed `18/18` tests in `3.19s`.
 - **Review (`ponytail-review`):** What this change does: Provides rigorous IR benchmark evaluation measuring MRR, NDCG, Recall@K, and p50/p95 latency delta between Bi-Encoder retrieval and Cross-Encoder re-ranking. Looks good. Ship. Checked log2 discount math and empty set handling.
+
+---
+
+### Feature 4.4: AI Clip Finder & Grounded Video Summariser
+- **Date/Commit:** Pending commit
+- **Scope & Plan:** Expose `POST /api/v1/search/clips` with duration constraints and relevance rationale; implement `POST /api/v1/ai/summarize` for grounded topic and chapter synthesis from transcript segments with optional Gemini Flash / local fallback.
+- **Implemented:**
+  - `backend/app/services/summary_service.py`: `find_video_clips` adhering to `[min_duration, max_duration]` and ranking by relevance; `generate_video_summary` caching `VideoSummary` rows in SQLite, parsing temporal chapters and topics.
+  - `backend/app/core/config.py`: Added `GEMINI_API_KEY`, `OPENAI_API_KEY`, `TINYFISH_API_KEY` settings.
+  - `backend/app/api/routes/search.py`: Mounted `/api/v1/search/clips` and `/api/v1/ai/summarize`.
+  - `backend/tests/integration/test_clips_and_summary.py`: Full integration test validating bounds, rationale, grounded extractive summary, chapters, and DB caching.
+- **Test Output:** `20 passed, 1 warning in 3.20s`
+- **Review (`ponytail-review`):** Clean implementation with zero mock data. Respects local-first fallback when API keys are absent. Grounded strictly in transcript segments.

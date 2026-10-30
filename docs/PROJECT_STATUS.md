@@ -27,7 +27,7 @@ Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PL
   - [x] **Feature 4.1:** Timestamp-Preserving Chunker & Dual Index (`chunker.py`, `embeddings.py`, SQLite FTS5)
   - [x] **Feature 4.2:** Stage-1 Hybrid RRF + Stage-2 Cross-Encoder Re-Ranking (`hybrid_search.py`, `cross_encoder_reranker.py`, `/api/v1/search/semantic`)
   - [x] **Feature 4.3:** ML Evaluation Harness & Telemetry API (`metrics.py`, `eval_harness.py`, `sample_data/evaluation_golden_set.json`, `/api/v1/ml/eval/run`)
-  - [ ] **Feature 4.4:** AI Clip Finder & Grounded Summariser (`summary_service.py`, `/api/v1/search/clips`, `/api/v1/ai/summarize`)
+  - [x] **Feature 4.4:** AI Clip Finder & Grounded Summariser (`summary_service.py`, `/api/v1/search/clips`, `/api/v1/ai/summarize`)
   - [ ] **Feature 4.5:** AI Search & Benchmark UI (`HybridSearchView.tsx`)
 - [ ] **Milestone 5:** Official MCP Server, Docker & Public v1.0 Release
   - [ ] **Feature 5.1:** Official Python MCP Server (`mcp_server/server.py`, `mcp_server/tools/video_tools.py` — 8 read-only tools)
