@@ -77,31 +77,65 @@ export function App() {
           </nav>
         </div>
 
-        <div
-          data-testid="health-badge"
-          className="border border-slate-800 rounded-md p-3 bg-slate-950/80 text-xs space-y-1"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-slate-400 font-medium">API Status</span>
-            <span className="inline-flex items-center gap-1.5 font-mono">
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  checking
-                    ? "bg-amber-400"
-                    : isOnline
-                      ? "bg-emerald-400"
-                      : "bg-rose-500"
-                }`}
-              />
-              {checking ? "checking" : isOnline ? "online" : "offline"}
-            </span>
-          </div>
-          {health && (
-            <p className="text-slate-500 font-mono truncate">
-              v{health.version} ({health.environment})
+        <div className="space-y-2">
+          <div
+            data-testid="obsidian-badge"
+            className="border border-purple-900/40 rounded-md p-3 bg-purple-950/20 text-xs space-y-1"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-purple-300 font-medium">Obsidian Brain</span>
+              <span className="inline-flex items-center gap-1.5 font-mono text-emerald-400">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                connected
+              </span>
+            </div>
+            <p className="text-[11px] text-purple-400/80 font-mono truncate">
+              vault: docs/ (wikilinks active)
             </p>
-          )}
-          {error && <p className="text-rose-400 truncate">{error}</p>}
+          </div>
+
+          <div
+            data-testid="ponytail-badge"
+            className="border border-amber-900/40 rounded-md p-3 bg-amber-950/20 text-xs space-y-1"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-amber-300 font-medium">Ponytail Mode</span>
+              <span className="inline-flex items-center gap-1.5 font-mono text-emerald-400">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                active
+              </span>
+            </div>
+            <p className="text-[11px] text-amber-400/80 font-mono truncate">
+              anti-bluff · zero mock data
+            </p>
+          </div>
+
+          <div
+            data-testid="health-badge"
+            className="border border-slate-800 rounded-md p-3 bg-slate-950/80 text-xs space-y-1"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400 font-medium">API Status</span>
+              <span className="inline-flex items-center gap-1.5 font-mono">
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    checking
+                      ? "bg-amber-400"
+                      : isOnline
+                        ? "bg-emerald-400"
+                        : "bg-rose-500"
+                  }`}
+                />
+                {checking ? "checking" : isOnline ? "online" : "offline"}
+              </span>
+            </div>
+            {health && (
+              <p className="text-slate-500 font-mono truncate">
+                v{health.version} ({health.environment})
+              </p>
+            )}
+            {error && <p className="text-rose-400 truncate">{error}</p>}
+          </div>
         </div>
       </aside>
 
