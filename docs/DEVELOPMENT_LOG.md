@@ -89,3 +89,11 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
 - **Plan:** Build comprehensive automated testing system `scripts/system_health_audit.py` testing documentation sync, Apache 2.0 IP boundaries, path traversal security, SQLite integrity, Pytest suite, Vitest & Vite builds, and TinyFish connector. Define 5 specialized subagents for task division (`media-pipeline-engineer`, `ml-rag-engineer`, `frontend-inspector-engineer`, `mcp-protocol-engineer`, `qa-audit-sentinel`).
 - **Implementation:** Created `scripts/system_health_audit.py`, generated `reports/LATEST_HEALTH_REPORT.md` and `reports/health_report_latest.json`. Defined all 5 subagents via `define_subagent` and documented division of labor in `docs/AGENTS_ARCHITECTURE.md`.
 - **Verification:** Ran `python scripts/system_health_audit.py` -> `7/7 checks PASSED in 11.73s` (Status: HEALTHY).
+
+## 2026-10-30 — Milestone 4 Execution
+
+### Feature 4.1: Timestamp-Preserving Chunker & Dual Index (SQLite FTS5 + Dense Vectors)
+- **Plan:** Group transcript segments into 30s overlapping windows (5s overlap) preserving exact `[start_time, end_time]`, generate 384-d dense embeddings (`all-MiniLM-L6-v2`), and dual-index into SQLite `transcript_chunks_fts` (FTS5) and persistent vector disk store (`./data/vectors`). Hook indexing into `pipeline_runner.py`.
+- **Implementation:** Created `backend/app/ai/retrieval/chunker.py`, `backend/app/ai/providers/embeddings.py`, hooked `index_video_chunks` into `run_video_pipeline`, and added unit tests in `backend/tests/unit/test_chunker_and_index.py`.
+- **Verification:** `pytest backend/tests/unit/test_chunker_and_index.py -v` passed `3/3` tests; full suite passed `14/14` tests in `3.02s`.
+- **Review (`ponytail-review`):** What this change does: Groups transcript segments into timestamped chunks and indexes them simultaneously in SQLite FTS5 for BM25 and vector disk storage for dense search. Looks good. Ship. Checked vector L2-normalization and FTS5 table creation.

@@ -48,3 +48,4 @@ def transcribe_and_store(
     db.commit()
     db.refresh(transcript)
     return transcript
+

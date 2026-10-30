@@ -114,3 +114,4 @@ def test_video_processing_pipeline_and_jobs_api(client: TestClient, tmp_path: Pa
     tel_res = client.get("/api/v1/jobs/telemetry/stats")
     assert tel_res.status_code == 200
     assert tel_res.json()["jobs_completed"] >= 1
+

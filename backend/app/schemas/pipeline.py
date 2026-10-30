@@ -45,3 +45,4 @@ class ProcessingJobOut(BaseModel):
     error_message: str | None
     created_at: datetime
     completed_at: datetime | None
+

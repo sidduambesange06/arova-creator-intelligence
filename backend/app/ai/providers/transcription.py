@@ -113,3 +113,4 @@ class FasterWhisperProvider:
             full_text=full_text,
             segments=segments,
         )
+

@@ -78,3 +78,4 @@ def test_faster_whisper_provider_offline_fallback(tmp_path: Path) -> None:
     assert res.segments[0].start_time == 0.0
     assert res.segments[0].end_time > 0.0
     assert len(res.full_text) > 0
+

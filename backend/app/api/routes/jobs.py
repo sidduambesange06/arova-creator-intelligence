@@ -34,3 +34,4 @@ def get_telemetry_stats() -> dict[str, float | int]:
         "total_audio_sec": tel.total_audio_sec,
         "total_proc_sec": tel.total_proc_sec,
     }
+

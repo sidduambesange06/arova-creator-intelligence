@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.ai.providers.embeddings import index_video_chunks
 from app.ai.providers.transcription import TranscriptionProvider
 from app.database.session import SessionLocal
 from app.models.entities import ProcessingJob, Video, VideoScene
@@ -107,7 +108,16 @@ def _execute_pipeline(
             provider=provider,
         )
 
-        # Step 4 (Complete)
+        # Step 4 (Index Timestamp Windows for Hybrid RAG)
+        job.progress = 90.0
+        db.commit()
+        index_video_chunks(
+            db=db,
+            video_id=video.id,
+            storage_dir=media_storage_dir,
+        )
+
+        # Step 5 (Complete)
         elapsed = time.perf_counter() - start_time
         rtf = round(elapsed / max(video.duration, 0.1), 3)
 
