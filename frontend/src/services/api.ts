@@ -177,3 +177,86 @@ export async function fetchVideoScenes(videoId: string): Promise<VideoSceneItem[
   }
   return res.json() as Promise<VideoSceneItem[]>;
 }
+
+export interface SearchResultItem {
+  embedding_id: string;
+  video_id: string;
+  filename: string;
+  chunk_text: string;
+  start_time: number;
+  end_time: number;
+  stage1_score: number;
+  rerank_score: number;
+  rank: number;
+}
+
+export interface HybridSearchResponse {
+  query: string;
+  total_results: number;
+  stage1_ms: number;
+  stage2_rerank_ms: number;
+  total_ms: number;
+  results: SearchResultItem[];
+}
+
+export interface RankingMetrics {
+  recall_at_1: number;
+  recall_at_3: number;
+  recall_at_5: number;
+  recall_at_10: number;
+  mrr_at_10: number;
+  ndcg_at_10: number;
+}
+
+export interface EvalBenchmarkReport {
+  num_queries: number;
+  stage1_biencoder_metrics: RankingMetrics;
+  stage2_crossencoder_metrics: RankingMetrics;
+  stage1_latency_ms: { p50: number; p95: number };
+  stage2_latency_ms: { p50: number; p95: number };
+  improvement_mrr_percent: number;
+  improvement_ndcg_percent: number;
+  notes: string;
+}
+
+export async function searchSemantic(
+  query: string,
+  useReranker: boolean = true,
+  topK: number = 10,
+  videoId?: string
+): Promise<HybridSearchResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/search/semantic`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query,
+      top_k: topK,
+      use_reranker: useReranker,
+      video_id: videoId || null,
+    }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Search failed (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<HybridSearchResponse>;
+}
+
+export async function runEvalBenchmark(): Promise<EvalBenchmarkReport> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/ml/eval/run`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    throw new Error(`Evaluation benchmark failed (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<EvalBenchmarkReport>;
+}
+
+export async function fetchLatestEvalReport(): Promise<EvalBenchmarkReport | null> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/ml/eval/report`);
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`Failed to fetch eval report (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<EvalBenchmarkReport>;
+}

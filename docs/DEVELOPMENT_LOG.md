@@ -113,7 +113,7 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
 ---
 
 ### Feature 4.4: AI Clip Finder & Grounded Video Summariser
-- **Date/Commit:** Pending commit
+- **Date/Commit:** 2026-10-30 (`58652e1`)
 - **Scope & Plan:** Expose `POST /api/v1/search/clips` with duration constraints and relevance rationale; implement `POST /api/v1/ai/summarize` for grounded topic and chapter synthesis from transcript segments with optional Gemini Flash / local fallback.
 - **Implemented:**
   - `backend/app/services/summary_service.py`: `find_video_clips` adhering to `[min_duration, max_duration]` and ranking by relevance; `generate_video_summary` caching `VideoSummary` rows in SQLite, parsing temporal chapters and topics.
@@ -122,3 +122,16 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - `backend/tests/integration/test_clips_and_summary.py`: Full integration test validating bounds, rationale, grounded extractive summary, chapters, and DB caching.
 - **Test Output:** `20 passed, 1 warning in 3.20s`
 - **Review (`ponytail-review`):** Clean implementation with zero mock data. Respects local-first fallback when API keys are absent. Grounded strictly in transcript segments.
+
+---
+
+### Feature 4.5: AI Search & ML Benchmark UI
+- **Date/Commit:** Pending commit
+- **Scope & Plan:** Build `HybridSearchView.tsx` connected to `POST /api/v1/search/semantic` and `POST /api/v1/ml/eval/run`; render real candidate video chunks with exact timestamp jump previews and ML ranking metrics table (MRR@10, NDCG@10, Recall@K, Latency delta).
+- **Implemented:**
+  - `frontend/src/services/api.ts`: Added `searchSemantic`, `runEvalBenchmark`, `fetchLatestEvalReport` and typed interfaces.
+  - `frontend/src/features/video-search/HybridSearchView.tsx`: Full interactive search UI with Stage-2 Cross-Encoder toggle, latency breakdown, instant preview player, and golden evaluation benchmark table.
+  - `frontend/src/App.tsx`: Mounted under `"hybrid-search"`.
+  - `frontend/src/test/HybridSearch.test.tsx`: Vitest tests for semantic query submission and ML benchmark report visualization.
+- **Test Output:** `Vitest: 5 passed (5), Vite build: 34 modules transformed, 0 errors.`
+- **Review (`ponytail-review`):** What this change does: Connects hybrid RAG search and evaluation harness to frontend with zero mock data. Real video seeking, real benchmark metrics rendering. Minimal, clean code.
