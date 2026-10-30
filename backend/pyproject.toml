@@ -1,0 +1,24 @@
+[project]
+name = "arova-creator-intelligence"
+version = "0.1.0"
+description = "Local-first video indexing, two-stage hybrid RAG, and MCP engine for AI agents and developers."
+readme = "../README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+    "httpx>=0.28.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
