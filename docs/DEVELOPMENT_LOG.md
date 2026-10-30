@@ -41,3 +41,9 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
 - **Implementation:** Built `validate_media_path`, `discover_video_files`, `compute_sha256`, `probe_video_metadata`, and `generate_video_thumbnail`. Tested against a real H.264 MP4 synthesized via `ffmpeg` lavfi `testsrc` in `backend/tests/unit/test_media_probing.py`.
 - **Verification:** `uv run pytest -v` -> `5 passed in 1.72s`.
 - **Review (`ponytail-review`):** What this change does: Validates local paths against `ALLOWED_MEDIA_ROOTS`, computes SHA-256 hashes, probes video streams, and extracts keyframe thumbnails. Looks good. Ship. Checked path-traversal rejection and subprocess timeouts.
+
+### Feature 2.3: Import, Index Delete & HTTP Range Streaming API
+- **Plan:** Build shared `media_service.py` and FastAPI routers (`videos.py`, `collections.py`) supporting local video import/deduplication, collection management, HTTP 206 byte-range video streaming, thumbnail serving, and safe index deletion.
+- **Implementation:** Created `backend/app/schemas/media.py`, `backend/app/services/media_service.py`, `backend/app/api/routes/videos.py`, `backend/app/api/routes/collections.py`, and integration tests in `backend/tests/integration/test_videos_api.py`.
+- **Verification:** `uv run pytest -v` -> `6 passed in 1.56s`. Verified that `DELETE /api/v1/videos/{id}/index` removes DB + thumbnail records while preserving the user's original source MP4 file on disk.
+- **Review (`ponytail-review`):** What this change does: Exposes video ingestion, collection management, HTTP 206 streaming, and safe index removal over `/api/v1`. Looks good. Ship. Checked byte-range boundary checks (`416` on invalid ranges) and source file preservation.

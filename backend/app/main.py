@@ -2,10 +2,14 @@ from datetime import datetime, timezone
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.collections import router as collections_router
+from app.api.routes.videos import router as videos_router
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.database.session import init_db
 
 logger = configure_logging(settings.LOG_LEVEL)
+init_db()
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -21,6 +25,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(videos_router)
+app.include_router(collections_router)
+
 
 @app.get("/api/v1/health")
 def get_health() -> dict[str, str]:
@@ -32,4 +39,3 @@ def get_health() -> dict[str, str]:
         "environment": settings.ENVIRONMENT,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
-
