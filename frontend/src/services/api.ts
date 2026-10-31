@@ -188,6 +188,7 @@ export interface SearchResultItem {
   stage1_score: number;
   rerank_score: number;
   rank: number;
+  match_channel?: "speech" | "visual" | "multimodal";
 }
 
 export interface HybridSearchResponse {

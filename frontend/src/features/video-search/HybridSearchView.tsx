@@ -332,6 +332,19 @@ export function HybridSearchView() {
                       <span className="px-2.5 py-0.5 rounded-full bg-indigo-950/80 border border-indigo-800/60 text-[11px] font-mono text-indigo-300">
                         [{item.start_time.toFixed(1)}s - {item.end_time.toFixed(1)}s]
                       </span>
+                      {item.match_channel === "visual" ? (
+                        <span className="px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-800/60 text-[10px] font-mono text-cyan-300">
+                          🖥️ Visual Screen Match
+                        </span>
+                      ) : item.match_channel === "multimodal" ? (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-800/60 text-[10px] font-mono text-emerald-300">
+                          ⚡ Multimodal Match
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-400">
+                          🎙️ Speech Match
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-3">

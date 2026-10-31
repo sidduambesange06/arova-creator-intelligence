@@ -70,6 +70,8 @@ def _execute_pipeline(
         job.progress = 15.0
         db.commit()
 
+        from app.processing.visual_text import extract_visual_text_from_frame
+
         scenes = detect_video_scenes(
             video_path=video.file_path,
             video_id=video.id,
@@ -78,6 +80,7 @@ def _execute_pipeline(
         )
         db.query(VideoScene).filter_by(video_id=video.id).delete()
         for s in scenes:
+            vis_text = extract_visual_text_from_frame(s.thumbnail_path)
             db.add(
                 VideoScene(
                     id=str(uuid4()),
@@ -86,6 +89,7 @@ def _execute_pipeline(
                     start_time=s.start_time,
                     end_time=s.end_time,
                     thumbnail_path=s.thumbnail_path,
+                    description=vis_text or None,
                 )
             )
 

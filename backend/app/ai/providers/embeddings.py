@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.ai.retrieval.chunker import build_timestamp_windows
 from app.core.config import settings
-from app.models.entities import EmbeddingRecord, Transcript
+from app.models.entities import EmbeddingRecord, Transcript, VideoScene
 
 
 class EmbeddingProvider(Protocol):
@@ -132,12 +132,15 @@ def index_video_chunks(
     if not transcript or not transcript.segments:
         return []
 
-    # 3. Build timestamp-preserving windows
-    chunks = build_timestamp_windows(transcript.segments, video_id=video_id)
+    # 3. Retrieve video scenes to fuse on-screen visual text
+    scenes = db.query(VideoScene).filter_by(video_id=video_id).order_by(VideoScene.start_time.asc()).all()
+
+    # 4. Build timestamp-preserving windows with multimodal context
+    chunks = build_timestamp_windows(transcript.segments, video_id=video_id, scenes=scenes)
     if not chunks:
         return []
 
-    # 4. Generate dense embeddings
+    # 5. Generate dense embeddings
     embedder = provider or LocalMiniLMEmbeddingProvider()
     texts = [c.chunk_text for c in chunks]
     vectors = embedder.embed_batch(texts)

@@ -123,6 +123,7 @@ def search_video_content(
                 "stage1_score": round(r.stage1_score, 4),
                 "rerank_score": round(r.rerank_score, 4),
                 "rank": r.rank,
+                "match_channel": getattr(r, "match_channel", "speech"),
             }
             for r in resp.results
         ]

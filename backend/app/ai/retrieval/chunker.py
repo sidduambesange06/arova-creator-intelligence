@@ -16,6 +16,7 @@ def build_timestamp_windows(
     video_id: str,
     window_sec: float = 30.0,
     overlap_sec: float = 5.0,
+    scenes: list[Any] | None = None,
 ) -> list[TranscriptChunk]:
     if not segments:
         return []
@@ -62,6 +63,18 @@ def build_timestamp_windows(
         c_start = round(current_window[0]["start"], 3)
         c_end = round(current_window[-1]["end"], 3)
         c_ids = [s["id"] for s in current_window if s["id"]]
+
+        # Fuse on-screen visual text from overlapping scenes
+        if scenes:
+            vis_snippets = []
+            for sc in scenes:
+                sc_start = float(getattr(sc, "start_time", 0.0) if not isinstance(sc, dict) else sc.get("start_time", 0.0))
+                sc_end = float(getattr(sc, "end_time", 0.0) if not isinstance(sc, dict) else sc.get("end_time", 0.0))
+                desc = str(getattr(sc, "description", "") if not isinstance(sc, dict) else sc.get("description", "") or "").strip()
+                if desc and sc_start <= c_end and sc_end >= c_start and desc not in vis_snippets:
+                    vis_snippets.append(desc)
+            if vis_snippets:
+                chunk_text = f"{chunk_text}\n[On-Screen Visual Text]: {' | '.join(vis_snippets)}"
 
         chunks.append(
             TranscriptChunk(

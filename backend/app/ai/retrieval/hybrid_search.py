@@ -26,6 +26,7 @@ class SearchResultItem:
     stage1_score: float
     rerank_score: float
     rank: int
+    match_channel: str = "speech"
 
 
 @dataclass
@@ -175,7 +176,23 @@ def run_hybrid_search(
         final_list = candidates[:top_k]
 
     results: list[SearchResultItem] = []
+    query_words = set(re.findall(r"\w+", q_clean.lower()))
     for rank, item in enumerate(final_list, start=1):
+        txt = item["chunk_text"]
+        match_chan = "speech"
+        if "[On-Screen Visual Text]:" in txt:
+            parts = txt.split("[On-Screen Visual Text]:")
+            speech_part = parts[0].lower()
+            vis_part = parts[1].lower() if len(parts) > 1 else ""
+            m_vis = any(w in vis_part for w in query_words)
+            m_speech = any(w in speech_part for w in query_words)
+            if m_vis and m_speech:
+                match_chan = "multimodal"
+            elif m_vis:
+                match_chan = "visual"
+            else:
+                match_chan = "speech"
+
         results.append(
             SearchResultItem(
                 embedding_id=item["embedding_id"],
@@ -187,6 +204,7 @@ def run_hybrid_search(
                 stage1_score=item["stage1_score"],
                 rerank_score=item["rerank_score"],
                 rank=rank,
+                match_channel=match_chan,
             )
         )
 
