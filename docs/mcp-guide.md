@@ -6,9 +6,9 @@ The Arova Creator Intelligence engine exposes an official **Model Context Protoc
 
 ---
 
-## Registered MCP Tools (8 Read-Only Tools)
+## Registered MCP Tools (9 Tools)
 
-All tools are strictly read-only and backed directly by local database and ML reranker services:
+All tools are backed directly by local database, FFmpeg, and ML reranker services:
 
 | Tool Name | Parameters | Description |
 |---|---|---|
@@ -20,6 +20,8 @@ All tools are strictly read-only and backed directly by local database and ML re
 | `summarize_video` | `video_id: string` | Grounded summary, topic list, and chapters synthesized from transcript segments. |
 | `get_video_chapters` | `video_id: string` | Timestamped chapter markers and section headings. |
 | `get_media_library_stats` | *none* | Total videos, total duration, transcripts indexed, and scene cut count. |
+| `export_video_clip` | `video_id: string`, `start_time: number`, `end_time: number` | Export a lossless trimmed subclip between timestamps using FFmpeg `-c copy`. |
+
 
 ---
 

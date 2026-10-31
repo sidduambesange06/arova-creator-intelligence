@@ -16,7 +16,7 @@ describe("McpConfigView", () => {
     vi.restoreAllMocks();
   });
 
-  it("loads media library stats, displays all 8 MCP tools, and toggles client config snippets", async () => {
+  it("loads media library stats, displays all MCP tools, and toggles client config snippets", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url = String(input);
       if (url.includes("/api/v1/videos/stats/summary")) {
@@ -48,6 +48,7 @@ describe("McpConfigView", () => {
       "summarize_video",
       "get_video_chapters",
       "get_media_library_stats",
+      "export_video_clip",
     ];
     for (const tool of tools) {
       expect(screen.getByTestId(`mcp-tool-${tool}`)).toBeInTheDocument();

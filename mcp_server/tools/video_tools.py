@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.ai.retrieval.hybrid_search import run_hybrid_search
 from app.database.session import SessionLocal
+from app.processing.clip_export import export_subclip
 from app.models.entities import (
     Collection,
     CollectionVideo,
@@ -238,4 +239,35 @@ def get_media_library_stats(db: Session | None = None) -> dict[str, Any]:
     finally:
         if db is None:
             session.close()
+
+
+def export_video_clip(
+    video_id: str,
+    start_time: float,
+    end_time: float,
+    db: Session | None = None,
+) -> dict[str, Any]:
+    """Export a lossless trimmed subclip from an indexed video given start and end timestamps."""
+    session = db or SessionLocal()
+    try:
+        video = session.query(Video).filter_by(id=video_id).first()
+        if not video:
+            raise ValueError(f"Video '{video_id}' not found in library")
+        if start_time < 0 or end_time <= start_time:
+            raise ValueError(f"Invalid clip bounds: start={start_time}, end={end_time}")
+
+        clip_path = export_subclip(video.file_path, start_time, end_time)
+        return {
+            "video_id": video.id,
+            "clip_filename": clip_path.name,
+            "clip_path": str(clip_path),
+            "start_time": start_time,
+            "end_time": end_time,
+            "duration": round(end_time - start_time, 2),
+            "file_size": clip_path.stat().st_size,
+        }
+    finally:
+        if db is None:
+            session.close()
+
 

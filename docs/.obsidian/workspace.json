@@ -11,10 +11,14 @@
             "id": "8cc0ed0e897c6604",
             "type": "leaf",
             "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
+              "type": "markdown",
+              "state": {
+                "file": "PROJECT_STATUS.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "PROJECT_STATUS"
             }
           }
         ]
@@ -180,6 +184,7 @@
   },
   "active": "8cc0ed0e897c6604",
   "lastOpenFiles": [
+    "Untitled.canvas",
     "mcp-guide.md",
     "installation.md",
     "AGENTS_ARCHITECTURE.md",

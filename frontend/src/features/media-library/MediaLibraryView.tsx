@@ -3,10 +3,12 @@ import {
   type CollectionItem,
   createCollection,
   deleteVideoIndex,
+  exportVideoClip,
   fetchCollections,
   fetchVideos,
   fetchVideoScenes,
   fetchVideoTranscript,
+  getClipDownloadUrl,
   getVideoStreamUrl,
   getVideoThumbnailUrl,
   importVideos,
@@ -42,6 +44,7 @@ export function MediaLibraryView() {
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [playbackRate, setPlaybackRate] = useState<number>(1.0);
   const [copiedClipId, setCopiedClipId] = useState<string | null>(null);
+  const [exportingClipId, setExportingClipId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -202,6 +205,28 @@ export function MediaLibraryView() {
     setCopiedClipId(`${seg.start_time}`);
     setTimeout(() => setCopiedClipId(null), 2000);
   }
+
+  async function handleExportClip(startTime: number, endTime: number) {
+    if (!selectedVideo) return;
+    const clipKey = `${startTime.toFixed(1)}-${endTime.toFixed(1)}`;
+    setExportingClipId(clipKey);
+    try {
+      const resp = await exportVideoClip(selectedVideo.id, startTime, endTime);
+      const downloadUrl = getClipDownloadUrl(resp.clip_filename);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = resp.clip_filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setStatusMessage(`Clip exported successfully: ${resp.clip_filename} (${resp.duration}s)`);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Clip export failed");
+    } finally {
+      setExportingClipId(null);
+    }
+  }
+
 
   return (
     <div className="space-y-6">
@@ -544,16 +569,29 @@ export function MediaLibraryView() {
                           </span>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            copyMarkdownClip(seg);
-                          }}
-                          className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-mono text-slate-400 hover:text-white shrink-0 transition-colors"
-                        >
-                          {copiedClipId === `${seg.start_time}` ? "Copied!" : "Quote MD"}
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copyMarkdownClip(seg);
+                            }}
+                            className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-mono text-slate-400 hover:text-white transition-colors"
+                          >
+                            {copiedClipId === `${seg.start_time}` ? "Copied!" : "Quote MD"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleExportClip(seg.start_time, seg.end_time);
+                            }}
+                            disabled={exportingClipId === `${seg.start_time.toFixed(1)}-${seg.end_time.toFixed(1)}`}
+                            className="px-2 py-0.5 rounded bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800/80 text-[10px] font-mono text-emerald-300 transition-colors disabled:opacity-50"
+                          >
+                            {exportingClipId === `${seg.start_time.toFixed(1)}-${seg.end_time.toFixed(1)}` ? "..." : "Export"}
+                          </button>
+                        </div>
                       </div>
                     );
                   })

@@ -5,11 +5,37 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+import subprocess
 from app.ai.providers.embeddings import index_video_chunks
 from app.core.config import settings
 from app.database.session import Base, init_db
 from app.models.entities import Transcript, TranscriptSegment, Video
+from app.processing.metadata import get_ffmpeg_binary
 from mcp_server.tools import video_tools
+
+
+def _make_test_mp4(target: Path, duration: float = 2.0) -> Path:
+    ffmpeg_bin = get_ffmpeg_binary()
+    subprocess.run(
+        [
+            ffmpeg_bin,
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            f"testsrc=duration={duration}:size=320x240:rate=24",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            str(target),
+        ],
+        capture_output=True,
+        check=True,
+        timeout=30,
+    )
+    return target
+
 
 
 @pytest.fixture()
@@ -26,10 +52,13 @@ def db_session(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generator[Ses
     init_db(test_engine)
     TestingSession = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
+    test_file = tmp_path / "mcp_deep_dive.mp4"
+    _make_test_mp4(test_file, duration=2.0)
+
     with TestingSession() as session:
         video = Video(
             filename="mcp_deep_dive.mp4",
-            file_path=str(tmp_path / "mcp_deep_dive.mp4"),
+            file_path=str(test_file),
             file_hash="hash_mcp_demo_123",
             duration=75.0,
             width=1920,
@@ -126,4 +155,14 @@ def test_all_eight_mcp_tools(db_session: Session) -> None:
     assert stats["total_videos"] == 1
     assert stats["total_duration_sec"] == 75.0
     assert stats["total_transcripts_indexed"] == 1
+
+    # 9. export_video_clip
+    clip_res = video_tools.export_video_clip(video_id=video_id, start_time=0.2, end_time=1.0, db=db_session)
+    assert clip_res["video_id"] == video_id
+    assert clip_res["start_time"] == 0.2
+    assert clip_res["end_time"] == 1.0
+    assert clip_res["duration"] == 0.8
+    assert clip_res["file_size"] > 0
+    assert Path(clip_res["clip_path"]).is_file()
+
 

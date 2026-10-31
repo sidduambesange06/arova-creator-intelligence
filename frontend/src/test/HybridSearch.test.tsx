@@ -80,6 +80,7 @@ describe("HybridSearchView", () => {
         screen.getByText(/In this lesson we explore vector database indexing/i)
       ).toBeInTheDocument();
       expect(screen.getByText("0.8842")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Export Clip" })).toBeInTheDocument();
     });
 
     expect(fetchSpy).toHaveBeenCalled();

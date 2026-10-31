@@ -345,3 +345,39 @@ export async function fetchMediaLibraryStats(): Promise<MediaLibraryStats> {
   }
   return res.json() as Promise<MediaLibraryStats>;
 }
+
+
+export interface ClipExportResponse {
+  video_id: string;
+  clip_filename: string;
+  start_time: number;
+  end_time: number;
+  duration: number;
+  file_size: number;
+  download_url: string;
+}
+
+export async function exportVideoClip(
+  videoId: string,
+  startTime: number,
+  endTime: number
+): Promise<ClipExportResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/videos/${encodeURIComponent(videoId)}/export-clip`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      start_time: startTime,
+      end_time: endTime,
+    }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Clip export failed (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<ClipExportResponse>;
+}
+
+export function getClipDownloadUrl(filename: string): string {
+  return `${API_BASE_URL}/api/v1/videos/clips/${encodeURIComponent(filename)}`;
+}
+

@@ -3,6 +3,8 @@ import {
   askVideoAi,
   type AskQuestionResponse,
   type EvalBenchmarkReport,
+  exportVideoClip,
+  getClipDownloadUrl,
   getVideoStreamUrl,
   type HybridSearchResponse,
   runEvalBenchmark,
@@ -43,7 +45,28 @@ export function HybridSearchView() {
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [activeVideoTime, setActiveVideoTime] = useState<number>(0);
   const [copiedSnippetId, setCopiedSnippetId] = useState<string | null>(null);
+  const [exportingClipKey, setExportingClipKey] = useState<string | null>(null);
   const videoPlayerRef = useRef<HTMLVideoElement | null>(null);
+
+  const handleExportClip = async (videoId: string, startTime: number, endTime: number) => {
+    const key = `${videoId}-${startTime.toFixed(1)}-${endTime.toFixed(1)}`;
+    setExportingClipKey(key);
+    try {
+      const resp = await exportVideoClip(videoId, startTime, endTime);
+      const downloadUrl = getClipDownloadUrl(resp.clip_filename);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = resp.clip_filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Clip export failed");
+    } finally {
+      setExportingClipKey(null);
+    }
+  };
+
 
   const executeSearch = async (queryString: string) => {
     const q = queryString.trim();
@@ -277,16 +300,26 @@ export function HybridSearchView() {
                 <span className="text-[11px] font-mono text-slate-400 block">Video Citations:</span>
                 <div className="flex flex-wrap gap-2">
                   {qaResponse.citations.map((c, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => jumpToClip(c.video_id, c.start_time)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#0d1424] hover:bg-slate-800 border border-[#172338] text-[11px] font-mono text-slate-300 hover:text-white transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
-                    >
-                      <span className="text-emerald-400 font-medium">[{c.timestamp_label}]</span>
-                      <span className="truncate max-w-[140px]">{c.filename}</span>
-                      <span className="text-[10px] text-slate-500">({c.match_channel})</span>
-                    </button>
+                    <div key={i} className="inline-flex items-center gap-1 rounded bg-[#0d1424] border border-[#172338] pr-1">
+                      <button
+                        type="button"
+                        onClick={() => jumpToClip(c.video_id, c.start_time)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono text-slate-300 hover:text-white transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
+                      >
+                        <span className="text-emerald-400 font-medium">[{c.timestamp_label}]</span>
+                        <span className="truncate max-w-[140px]">{c.filename}</span>
+                        <span className="text-[10px] text-slate-500">({c.match_channel})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleExportClip(c.video_id, c.start_time, c.end_time)}
+                        disabled={exportingClipKey === `${c.video_id}-${c.start_time.toFixed(1)}-${c.end_time.toFixed(1)}`}
+                        className="px-1.5 py-0.5 rounded bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-800/60 text-[10px] font-mono text-emerald-300"
+                        title="Export clip segment"
+                      >
+                        {exportingClipKey === `${c.video_id}-${c.start_time.toFixed(1)}-${c.end_time.toFixed(1)}` ? "..." : "Export"}
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -515,6 +548,15 @@ export function HybridSearchView() {
                       >
                         {copiedSnippetId === `${item.start_time}` ? "Copied!" : "Copy Quote"}
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleExportClip(item.video_id, item.start_time, item.end_time)}
+                        disabled={exportingClipKey === `${item.video_id}-${item.start_time.toFixed(1)}-${item.end_time.toFixed(1)}`}
+                        className="px-2.5 py-1 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 rounded text-xs font-mono border border-emerald-800/80 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:outline-none disabled:opacity-50"
+                      >
+                        {exportingClipKey === `${item.video_id}-${item.start_time.toFixed(1)}-${item.end_time.toFixed(1)}` ? "Exporting..." : "Export Clip"}
+                      </button>
+
                     </div>
                   </div>
 

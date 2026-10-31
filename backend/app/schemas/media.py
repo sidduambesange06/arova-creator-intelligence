@@ -50,3 +50,19 @@ class CollectionOut(BaseModel):
     created_at: datetime
     video_count: int = 0
 
+
+class ClipExportRequest(BaseModel):
+    start_time: float = Field(..., ge=0.0, description="Start timestamp in seconds")
+    end_time: float = Field(..., gt=0.0, description="End timestamp in seconds")
+
+
+class ClipExportResponse(BaseModel):
+    video_id: str
+    clip_filename: str
+    start_time: float
+    end_time: float
+    duration: float
+    file_size: int
+    download_url: str
+
+

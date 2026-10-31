@@ -56,6 +56,15 @@ const MCP_TOOLS = [
     description: "Retrieve inventory counts and runtime metrics for the video library.",
     parameters: [],
   },
+  {
+    name: "export_video_clip",
+    description: "Export a lossless trimmed subclip from an indexed video given start and end timestamps.",
+    parameters: [
+      { name: "video_id", type: "string", description: "Unique video ID" },
+      { name: "start_time", type: "number", description: "Start timestamp in seconds" },
+      { name: "end_time", type: "number", description: "End timestamp in seconds" },
+    ],
+  },
 ];
 
 type ClientTab = "claude" | "cursor" | "antigravity";
@@ -243,11 +252,11 @@ export function McpConfigView() {
         </pre>
       </div>
 
-      {/* 8 MCP Tools Table */}
+      {/* 9 MCP Tools Table */}
       <div className="hallmark-surface p-4 space-y-3">
         <div>
           <h3 className="text-xs font-semibold text-white">
-            Available Read-Only MCP Tools (8)
+            Available MCP Tools ({MCP_TOOLS.length})
           </h3>
           <p className="text-[11px] text-slate-400 mt-0.5">
             Registered with STDIO transport and backed directly by local database and ML reranker services.

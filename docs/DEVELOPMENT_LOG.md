@@ -213,3 +213,31 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - Backend Pytest: `24/24` tests passed in 9.84s.
   - System Health Audit: `7/7` checks passed (100% HEALTHY in 31.59s).
 - **Review (`ponytail-review`):** Clean, mastercraft workstation design adhering to Hallmark principles. Zero fake data; real synchronized playback and seeking.
+
+---
+
+### Feature 5.6: Automated Lossless Clip Export & MCP Slicing Tool
+- **Date:** 2026-10-31
+- **Scope & Plan:**
+  1. Build lossless subclip extraction engine (`backend/app/processing/clip_export.py`) using FFmpeg stream copy (`-c copy -avoid_negative_ts make_zero`) with fallback to ultrafast `libx264` re-encoding on non-keyframe cuts.
+  2. Implement backend REST endpoints in `backend/app/api/routes/videos.py`: `POST /api/v1/videos/{video_id}/export-clip` with Pydantic validation (`ClipExportRequest`, `ClipExportResponse`) and path-traversal-guarded download endpoint `GET /api/v1/videos/clips/{clip_filename}`.
+  3. Register 9th official MCP tool `export_video_clip` in `mcp_server/tools/video_tools.py` and `mcp_server/server.py` so external AI agents (Claude, Cursor, Antigravity) can slice subclips.
+  4. Wire "Export Clip" download buttons into frontend UI (`HybridSearchView.tsx` search results + grounded Q&A citations, and `MediaLibraryView.tsx` multi-track transcript segments), triggering browser downloads.
+- **Implemented:**
+  - `backend/app/processing/clip_export.py`: `export_subclip` with stream copy and ultrafast fallback.
+  - `backend/app/schemas/media.py`: Added `ClipExportRequest` and `ClipExportResponse`.
+  - `backend/app/api/routes/videos.py`: Added `POST /{video_id}/export-clip` and `GET /clips/{clip_filename}`.
+  - `mcp_server/tools/video_tools.py` & `server.py`: Implemented tool #9 `export_video_clip`.
+  - `backend/tests/integration/test_clip_export.py`: Added 4 tests verifying export, streaming, bound checks, and path traversal protection.
+  - `mcp_server/tests/test_mcp_tools.py`: Added test assertion verifying `export_video_clip` returns valid subclip details.
+  - `frontend/src/services/api.ts`: Added `exportVideoClip` and `getClipDownloadUrl`.
+  - `frontend/src/features/video-search/HybridSearchView.tsx`: Added "Export Clip" buttons on search result cards and citations.
+  - `frontend/src/features/media-library/MediaLibraryView.tsx`: Added "Export" button on transcript segments.
+  - `frontend/src/features/settings/McpConfigView.tsx` & `docs/mcp-guide.md`: Documented 9th tool `export_video_clip`.
+- **Verification Results:**
+  - Backend + MCP Pytest: `29/29` passed (100%).
+  - Frontend Vitest: `4/4` suites passed (6/6 tests).
+  - Production Build: `tsc -b && vite build` passed (202 KB, 0 errors).
+  - Master Health Audit: `7/7` checks passed (100% HEALTHY).
+- **Review (`ponytail-review`):** Minimal addition delivering direct utility: turns timestamp discovery into instantly usable MP4 subclips for users and agents. Zero dead code.
+

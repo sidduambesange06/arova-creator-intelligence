@@ -16,8 +16,8 @@ mcp = MCPServer(
     name="arova-creator-intelligence",
     instructions=(
         "Official Model Context Protocol (MCP) server for Arova Creator Intelligence. "
-        "Provides 8 read-only tools to list videos, probe video metadata, execute two-stage hybrid search, "
-        "find candidate clips, extract grounded summaries/chapters, and inspect library stats."
+        "Provides 9 tools to list videos, probe video metadata, execute two-stage hybrid search, "
+        "find candidate clips, export trimmed lossless subclips, extract grounded summaries/chapters, and inspect library stats."
     ),
     version="0.1.0",
 )
@@ -75,6 +75,12 @@ def get_video_chapters(video_id: str) -> list[dict[str, Any]]:
 @mcp.tool(description="Retrieve inventory counts and runtime metrics for the video library")
 def get_media_library_stats() -> dict[str, Any]:
     return video_tools.get_media_library_stats()
+
+
+@mcp.tool(description="Export a lossless trimmed subclip from an indexed video given start and end timestamps")
+def export_video_clip(video_id: str, start_time: float, end_time: float) -> dict[str, Any]:
+    return video_tools.export_video_clip(video_id=video_id, start_time=start_time, end_time=end_time)
+
 
 
 def main() -> None:

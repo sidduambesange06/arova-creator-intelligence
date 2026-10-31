@@ -6,9 +6,17 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, 
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.database.session import get_db
 from app.models.entities import Transcript, Video, VideoScene
-from app.schemas.media import VideoImportRequest, VideoImportResponse, VideoOut
+from app.processing.clip_export import export_subclip
+from app.schemas.media import (
+    ClipExportRequest,
+    ClipExportResponse,
+    VideoImportRequest,
+    VideoImportResponse,
+    VideoOut,
+)
 from app.schemas.pipeline import TranscriptOut, TranscriptSegmentOut, VideoSceneOut
 from app.services import media_service
 from app.workers.pipeline_runner import run_video_pipeline
@@ -200,4 +208,61 @@ def stream_video_endpoint(
         media_type=media_type,
         headers=headers,
     )
+
+
+@router.post("/{video_id}/export-clip", response_model=ClipExportResponse)
+def export_video_clip_endpoint(
+    video_id: str,
+    payload: ClipExportRequest,
+    db: Session = Depends(get_db),
+) -> ClipExportResponse:
+    try:
+        video = media_service.get_video(db=db, video_id=video_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    if payload.start_time >= payload.end_time:
+        raise HTTPException(status_code=400, detail="start_time must be strictly less than end_time")
+    if video.duration > 0 and payload.start_time >= video.duration:
+        raise HTTPException(status_code=400, detail=f"start_time ({payload.start_time}s) exceeds video duration ({video.duration}s)")
+
+    try:
+        clip_path = export_subclip(
+            video_path=video.file_path,
+            start_time=payload.start_time,
+            end_time=payload.end_time,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to export video clip: {exc}") from exc
+
+    return ClipExportResponse(
+        video_id=video.id,
+        clip_filename=clip_path.name,
+        start_time=payload.start_time,
+        end_time=payload.end_time,
+        duration=round(payload.end_time - payload.start_time, 2),
+        file_size=clip_path.stat().st_size,
+        download_url=f"/api/v1/videos/clips/{clip_path.name}",
+    )
+
+
+@router.get("/clips/{clip_filename}")
+def download_clip_endpoint(clip_filename: str) -> FileResponse:
+    clean_filename = Path(clip_filename).name
+    if clean_filename != clip_filename or ".." in clip_filename:
+        raise HTTPException(status_code=400, detail="Invalid clip filename")
+
+    clip_dir = (Path(settings.MEDIA_STORAGE_DIR) / "clips").resolve()
+    clip_path = (clip_dir / clean_filename).resolve()
+
+    if not clip_path.is_file() or not str(clip_path).startswith(str(clip_dir)):
+        raise HTTPException(status_code=404, detail="Exported clip not found")
+
+    return FileResponse(
+        str(clip_path),
+        media_type="video/mp4",
+        filename=clean_filename,
+        headers={"Content-Disposition": f'attachment; filename="{clean_filename}"'},
+    )
+
 
