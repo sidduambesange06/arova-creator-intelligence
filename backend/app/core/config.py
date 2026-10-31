@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     SQLITE_DB_PATH: str = "./data/app.db"
     CHROMA_PERSIST_DIR: str = "./data/vectors"
     MEDIA_STORAGE_DIR: str = "./data/media"
-    ALLOWED_MEDIA_ROOTS: str = "."
+    ALLOWED_MEDIA_ROOTS: str = ".,.."
 
     WHISPER_MODEL_SIZE: str = "base"
     WHISPER_COMPUTE_TYPE: str = "int8"

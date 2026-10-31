@@ -141,3 +141,20 @@ def test_summarize_video_api_grounded_and_cached(client: TestClient) -> None:
     missing_res = client.post("/api/v1/ai/summarize", json={"video_id": "non-existent-uuid"})
     assert missing_res.status_code == 404
 
+
+def test_ask_video_ai_grounded_citations(client: TestClient) -> None:
+    # 1. Test grounded question answering
+    res = client.post(
+        "/api/v1/ai/ask",
+        json={"query": "What is covered regarding reciprocal rank fusion?"},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["query"] == "What is covered regarding reciprocal rank fusion?"
+    assert len(data["answer"]) > 0
+    assert len(data["citations"]) >= 1
+    assert "timestamp_label" in data["citations"][0]
+    assert data["citations"][0]["start_time"] >= 0.0
+    assert "creator_ai_tutorial.mp4" in data["citations"][0]["filename"]
+
+

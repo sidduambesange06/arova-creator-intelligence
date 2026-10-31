@@ -2,7 +2,7 @@
 
 Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PLAYBOOK]] | [[DEVELOPMENT_LOG]] | [[TECHNICAL_DECISIONS]] | [[KNOWN_ISSUES]]
 
-## Current Milestone: Milestone 5 — Official MCP Server, Docker & Public v1.0 Release (COMPLETED)
+## Current Milestone: Milestone 5 & Polish — Hallmark Craft Redesign & Visual-Text Dual Memory Engine (COMPLETED)
 
 ### Milestone 1 Checklist (COMPLETED)
 - [x] **Feature 1.1 (Obsidian Brain & Repo Root):** `.gitignore`, `.env.example`, `LICENSE` (Apache 2.0), `README.md`, `docs/architecture.md`, and Obsidian brain notes initialized.
@@ -34,3 +34,8 @@ Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PL
 - [x] **Feature 5.2:** MCP Inspector & Settings UI + MCP Unit Tests (`McpConfigView.tsx`, `mcp_server/tests/test_mcp_tools.py`, `vitest` `6/6` passed, `vite build` passed)
 - [x] **Feature 5.3:** Docker, CI & Final Ponytail Audit (`Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml`, `installation.md`, `mcp-guide.md`)
 
+### Standout Feature & Design Elevation (COMPLETED)
+- [x] **Visual-Text Dual Memory Engine:** Keyframe OCR extraction (`visual_text.py`), multimodal chunk fusion (`[On-Screen Visual Text]: ...`), and search channel tagging (`speech` vs `visual` vs `multimodal`).
+- [x] **Grounded Video Q&A Assistant:** `POST /api/v1/ai/ask` with citations linked directly to live video player timestamps.
+- [x] **Hallmark Design Craft Refactor:** Eliminated AI slop (removed purple/indigo gradients, removed card-in-card nesting, eliminated `transition: all`, removed emojis as icons, added `:focus-visible` styling, added `overflow-x: clip`, and reduced motion support).
+- [x] **7/7 System Health Audit PASS:** Automated audit across security, licensing, database, backend pytest (24/24), frontend vitest (6/6), and production build.

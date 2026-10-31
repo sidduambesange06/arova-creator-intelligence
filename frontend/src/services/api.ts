@@ -271,6 +271,44 @@ export interface MediaLibraryStats {
   engine: string;
 }
 
+export interface VideoCitation {
+  video_id: string;
+  filename: string;
+  start_time: number;
+  end_time: number;
+  timestamp_label: string;
+  snippet: string;
+  match_channel: "speech" | "visual" | "multimodal";
+  relevance_score: number;
+}
+
+export interface AskQuestionResponse {
+  query: string;
+  answer: string;
+  citations: VideoCitation[];
+  model_name: string;
+}
+
+export async function askVideoAi(
+  query: string,
+  videoId?: string
+): Promise<AskQuestionResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/ai/ask`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query,
+      video_id: videoId || null,
+    }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Grounded Q&A failed (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<AskQuestionResponse>;
+}
+
+
 export async function fetchMediaLibraryStats(): Promise<MediaLibraryStats> {
   const res = await fetch(`${API_BASE_URL}/api/v1/videos/stats/summary`);
   if (!res.ok) {

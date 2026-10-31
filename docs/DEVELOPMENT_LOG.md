@@ -164,3 +164,29 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - `docs/mcp-guide.md`: Detailed tool parameters, protocol explanation, and agent configuration guide.
 - **Test Output:** System Health Audit: 7/7 checks passed in 12s.
 - **Review (`ponytail-review`):** What this change does: Packages the entire engine for production, CI, and external developer adoption. Zero dead code or unneeded layers. All milestones 100% complete.
+
+
+---
+
+### Feature 5.4 & Polish: Hallmark Craft Redesign, Grounded Video Q&A & Visual-Text Dual Memory
+- **Date:** 2026-10-31
+- **Scope & Plan:** 
+  1. Inspect and apply Hallmark design system rules (`Nutlope/hallmark`): eliminate AI slop, replace generic purple-to-blue gradients with high-contrast technical dark slate palette, remove card-in-card nesting, eliminate `transition: all`, add strict `:focus-visible` styling, add `overflow-x: clip`, and support reduced motion.
+  2. Implement Grounded Video Q&A Assistant (`POST /api/v1/ai/ask`) with interactive citation chips linking directly to the live video player with scrubbing.
+  3. Verify Visual-Text Dual Memory Engine end-to-end with OCR keyframe extraction, multimodal chunk fusion, and channel filtering (`speech` vs `visual` vs `multimodal`).
+- **Implemented:**
+  - `frontend/src/index.css`: Hallmark stamp, tokenized palette (`:root`), `:focus-visible` instant rings, `overflow-x: clip`, `@media (prefers-reduced-motion: reduce)`, and single containment surfaces (`.hallmark-surface`).
+  - `frontend/src/App.tsx`: Refactored to Hallmark technical studio layout; removed AI gradient marks; applied high-contrast typography and targeted transitions.
+  - `frontend/src/features/video-search/HybridSearchView.tsx`: Integrated Grounded Video Q&A with live timestamp citation playback jump links; replaced emojis with clean badges (`Visual OCR`, `Multimodal`, `Speech ASR`); applied clean typography and focus rings.
+  - `frontend/src/features/media-library/MediaLibraryView.tsx`: Refactored buttons, removed card-in-card nesting, removed `transition-all`.
+  - `frontend/src/features/settings/McpConfigView.tsx`: Cleaned MCP Inspector UI to Hallmark craft standard.
+  - `backend/app/services/summary_service.py` & `backend/app/api/routes/search.py`: Implemented `answer_video_question` and `POST /api/v1/ai/ask`.
+  - `backend/tests/integration/test_clips_and_summary.py`: Added unit test `test_ask_video_ai_grounded_citations`.
+  - `backend/app/core/config.py` & `.env`: Configured `ALLOWED_MEDIA_ROOTS=".,.."` to allow media ingestion from workspace root.
+- **Verification Results:**
+  - Backend: `pytest` passed `24/24` tests in 3.43s.
+  - Frontend: `vitest` passed `4/4` suites (6 tests) in 2.58s.
+  - Build: `npm run build` (`tsc -b && vite build`) passed in 1.47s.
+  - System Health Audit: `7/7` checks passed (100% HEALTHY).
+  - Live End-to-End: `demo_developer_lecture.mp4` indexed and queried via `POST /api/v1/ai/ask`, returning grounded answer with exact timecodes `[0:00 - 0:12]`.
+- **Review (`ponytail-review`):** What this change does: Elevates the frontend to Hallmark mastercraft standards without AI slop, and adds the grounded timestamped video Q&A feature that links AI answers directly into the synchronized video player. Clean, zero-mock, production-grade.

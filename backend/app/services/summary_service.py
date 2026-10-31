@@ -68,6 +68,90 @@ def find_video_clips(
     return clips
 
 
+def answer_video_question(
+    db: Session,
+    query: str,
+    video_id: str | None = None,
+    api_key: str | None = None,
+) -> dict[str, Any]:
+    search_resp = run_hybrid_search(
+        db=db,
+        query=query,
+        top_k=5,
+        use_reranker=True,
+        video_id_filter=video_id,
+    )
+    if not search_resp.results:
+        return {
+            "query": query,
+            "answer": "No relevant spoken or visual content was found matching this question.",
+            "citations": [],
+            "model_name": "grounded-retrieval",
+        }
+
+    citations = []
+    evidence_blocks = []
+    for item in search_resp.results:
+        time_str = f"{int(item.start_time // 60)}:{int(item.start_time % 60):02d} - {int(item.end_time // 60)}:{int(item.end_time % 60):02d}"
+        citations.append(
+            {
+                "video_id": item.video_id,
+                "filename": item.filename,
+                "start_time": item.start_time,
+                "end_time": item.end_time,
+                "timestamp_label": time_str,
+                "snippet": item.chunk_text,
+                "match_channel": getattr(item, "match_channel", "speech"),
+                "relevance_score": item.rerank_score,
+            }
+        )
+        evidence_blocks.append(f"[{item.filename} @ {time_str}] {item.chunk_text}")
+
+    key = api_key or settings.GEMINI_API_KEY
+    if key and key.strip():
+        try:
+            from google import genai  # type: ignore
+
+            client = genai.Client(api_key=key.strip())
+            prompt = (
+                "You are an expert factual video assistant. Answer the user question strictly using the provided video evidence. "
+                "Cite exact timestamps [mm:ss - mm:ss] whenever stating facts. If not mentioned in the evidence, say so.\n\n"
+                f"Question: {query}\n\n"
+                "Video Evidence:\n" + "\n".join(evidence_blocks) + "\n\nAnswer:"
+            )
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+            )
+            return {
+                "query": query,
+                "answer": response.text.strip(),
+                "citations": citations,
+                "model_name": "gemini-2.5-flash",
+            }
+        except Exception:
+            pass
+
+    # Deterministic extractive grounded answer (offline local mode)
+    best = search_resp.results[0]
+    best_time = f"{int(best.start_time // 60)}:{int(best.start_time % 60):02d} - {int(best.end_time // 60)}:{int(best.end_time % 60):02d}"
+    channel = getattr(best, "match_channel", "speech")
+    channel_desc = f" ({channel} channel)" if channel else ""
+    answer = f"According to {best.filename} at [{best_time}]{channel_desc}: \"{best.chunk_text}\""
+    if len(search_resp.results) > 1:
+        second = search_resp.results[1]
+        sec_time = f"{int(second.start_time // 60)}:{int(second.start_time % 60):02d} - {int(second.end_time // 60)}:{int(second.end_time % 60):02d}"
+        answer += f"\n\nContext at [{sec_time}]: \"{second.chunk_text}\""
+
+    return {
+        "query": query,
+        "answer": answer,
+        "citations": citations,
+        "model_name": "grounded-extractive-local",
+    }
+
+
+
 def generate_video_summary(
     db: Session,
     video_id: str,

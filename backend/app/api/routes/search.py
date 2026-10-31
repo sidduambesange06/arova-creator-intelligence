@@ -12,7 +12,11 @@ from app.ai.retrieval.hybrid_search import (
 )
 from app.database.session import get_db
 from app.models.entities import TranscriptSegment, Video
-from app.services.summary_service import find_video_clips, generate_video_summary
+from app.services.summary_service import (
+    answer_video_question,
+    find_video_clips,
+    generate_video_summary,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["search-and-ai"])
 
@@ -153,4 +157,24 @@ def summarize_video(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+class AskQuestionRequest(BaseModel):
+    query: str = Field(..., min_length=1, description="Question about video content")
+    video_id: str | None = Field(default=None, description="Optional video ID filter")
+    api_key: str | None = None
+
+
+@router.post("/ai/ask")
+def ask_video_ai(
+    payload: AskQuestionRequest,
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    return answer_video_question(
+        db=db,
+        query=payload.query,
+        video_id=payload.video_id,
+        api_key=payload.api_key,
+    )
+
 
