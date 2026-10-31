@@ -16,6 +16,12 @@ const SUGGESTIONS = [
   "latency benchmarks",
 ];
 
+const QA_PRESETS = [
+  "What is covered regarding reciprocal rank fusion?",
+  "What code or architecture was explained on screen?",
+  "Summarize key performance numbers and latency results.",
+];
+
 export function HybridSearchView() {
   const [query, setQuery] = useState<string>("");
   const [useReranker, setUseReranker] = useState<boolean>(true);
@@ -27,6 +33,8 @@ export function HybridSearchView() {
   const [askingQa, setAskingQa] = useState<boolean>(false);
   const [qaResponse, setQaResponse] = useState<AskQuestionResponse | null>(null);
   const [qaError, setQaError] = useState<string | null>(null);
+
+  const [channelFilter, setChannelFilter] = useState<"all" | "speech" | "visual" | "multimodal">("all");
 
   const [evalReport, setEvalReport] = useState<EvalBenchmarkReport | null>(null);
   const [runningEval, setRunningEval] = useState<boolean>(false);
@@ -59,10 +67,10 @@ export function HybridSearchView() {
     await executeSearch(query);
   };
 
-  const handleAskQuestion = async (e: FormEvent) => {
-    e.preventDefault();
-    const q = qaQuery.trim();
+  const handleAskQuestion = async (customQuestion?: string) => {
+    const q = (customQuestion || qaQuery).trim();
     if (!q) return;
+    if (customQuestion) setQaQuery(customQuestion);
 
     setAskingQa(true);
     setQaError(null);
@@ -113,22 +121,38 @@ export function HybridSearchView() {
     setTimeout(() => setCopiedSnippetId(null), 2000);
   };
 
+  const filteredResults = searchResponse?.results.filter((item) => {
+    if (channelFilter === "all") return true;
+    return item.match_channel === channelFilter;
+  }) ?? [];
+
   return (
     <div className="space-y-6">
-      {/* Search Header */}
-      <div className="border-b border-slate-800/80 pb-5 space-y-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-xl font-semibold tracking-tight text-slate-100">
-              Hybrid Video RAG &amp; Cross-Encoder Search
-            </h2>
-            <span className="px-2 py-0.5 rounded text-[11px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60">
-              Two-Stage RRF
-            </span>
+      {/* Search Header & Query Form */}
+      <div className="border-b border-[#172338] pb-5 space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-xl font-semibold tracking-tight text-slate-100">
+                Hybrid Video RAG &amp; Cross-Encoder Search
+              </h2>
+              <span className="px-2 py-0.5 rounded text-[11px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60">
+                Stage-1 RRF + Stage-2 Cross-Encoder
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Dense MiniLM embeddings + BM25 Lexical FTS5 fused via Reciprocal Rank Fusion ($k=60$) with joint attention re-ranking.
+            </p>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Stage-1 Dense vector + BM25 Lexical RRF Fusion followed by Stage-2 Cross-Encoder joint ML re-ranking.
-          </p>
+
+          <button
+            type="button"
+            onClick={handleRunBenchmark}
+            disabled={runningEval}
+            className="px-3.5 py-1.5 bg-[#0d1424] hover:bg-slate-800 border border-[#172338] rounded-lg text-slate-200 hover:text-white font-mono text-xs disabled:opacity-50 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
+          >
+            {runningEval ? "Running Golden Benchmark..." : "Run ML Evaluation Benchmark"}
+          </button>
         </div>
 
         <form onSubmit={handleSearch} className="space-y-3">
@@ -139,7 +163,7 @@ export function HybridSearchView() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Enter natural language query (e.g. 'explain vector database indexing')..."
-                className="w-full bg-slate-900/90 border border-slate-700/80 rounded-lg px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none transition-colors duration-150"
+                className="w-full bg-[#090e18] border border-[#172338] rounded-lg px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none transition-colors duration-150"
                 aria-label="Search query"
               />
               <span className="absolute right-3 top-2.5 px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-400 border border-slate-700 select-none">
@@ -155,25 +179,25 @@ export function HybridSearchView() {
             </button>
           </div>
 
-          {/* Quick Query Suggestion Chips */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-            <span className="text-[11px] font-mono text-slate-500">Suggestions:</span>
-            {SUGGESTIONS.map((sug) => (
-              <button
-                key={sug}
-                type="button"
-                onClick={() => {
-                  setQuery(sug);
-                  void executeSearch(sug);
-                }}
-                className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] font-mono text-slate-400 hover:text-slate-200 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
-              >
-                {sug}
-              </button>
-            ))}
-          </div>
+          {/* Quick Query Suggestion Chips & Stage-2 Toggle */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-mono text-slate-500">Suggestions:</span>
+              {SUGGESTIONS.map((sug) => (
+                <button
+                  key={sug}
+                  type="button"
+                  onClick={() => {
+                    setQuery(sug);
+                    void executeSearch(sug);
+                  }}
+                  className="px-2 py-0.5 rounded bg-[#090e18] hover:bg-slate-800 border border-[#172338] text-[11px] font-mono text-slate-400 hover:text-slate-200 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
+                >
+                  {sug}
+                </button>
+              ))}
+            </div>
 
-          <div className="flex items-center justify-between text-xs pt-1">
             <label className="flex items-center gap-2 text-slate-300 cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -183,15 +207,6 @@ export function HybridSearchView() {
               />
               <span className="text-xs">Enable Stage-2 Cross-Encoder Re-Ranking</span>
             </label>
-
-            <button
-              type="button"
-              onClick={handleRunBenchmark}
-              disabled={runningEval}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-lg text-slate-300 hover:text-white font-mono text-xs disabled:opacity-50 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
-            >
-              {runningEval ? "Running Golden Benchmark..." : "Run ML Evaluation Benchmark"}
-            </button>
           </div>
         </form>
       </div>
@@ -199,21 +214,39 @@ export function HybridSearchView() {
       {/* Grounded Video Q&A Assistant Bar */}
       <div className="hallmark-surface p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-slate-200">
-            Ask Video Archive (Grounded AI Q&amp;A)
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-cyan-400" />
+            <span className="text-xs font-semibold text-slate-200">
+              Ask Video Archive (Grounded AI Q&amp;A)
+            </span>
+          </div>
           <span className="text-[11px] font-mono text-slate-400">
-            Cites real timestamps with direct video playback
+            Strictly cites real timecodes with live video seek
           </span>
         </div>
-        <form onSubmit={handleAskQuestion} className="flex gap-2">
+
+        {/* Preset Question Pills */}
+        <div className="flex flex-wrap gap-1.5">
+          {QA_PRESETS.map((p, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => void handleAskQuestion(p)}
+              className="px-2.5 py-1 rounded bg-[#060911] hover:bg-[#0d1424] border border-[#172338] text-[11px] font-mono text-slate-300 hover:text-white transition-colors"
+            >
+              &quot;{p}&quot;
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={(e) => { e.preventDefault(); void handleAskQuestion(); }} className="flex gap-2">
           <input
             type="text"
             value={qaQuery}
             onChange={(e) => setQaQuery(e.target.value)}
             placeholder="Ask anything about what was spoken or shown on screen..."
             aria-label="Ask video question"
-            className="flex-1 bg-slate-900/90 border border-slate-700/80 rounded-lg px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
+            className="flex-1 bg-[#090e18] border border-[#172338] rounded-lg px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
           />
           <button
             type="submit"
@@ -231,8 +264,8 @@ export function HybridSearchView() {
         )}
 
         {qaResponse && (
-          <div className="p-3.5 rounded-lg border border-slate-800 bg-slate-900/50 space-y-2.5">
-            <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 border-b border-slate-800/80 pb-1.5">
+          <div className="p-3.5 rounded-lg border border-[#172338] bg-[#090e18] space-y-2.5">
+            <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 border-b border-[#172338] pb-1.5">
               <span>Answer grounded in {qaResponse.citations.length} video segment(s)</span>
               <span className="text-emerald-400">Model: {qaResponse.model_name}</span>
             </div>
@@ -248,10 +281,10 @@ export function HybridSearchView() {
                       key={i}
                       type="button"
                       onClick={() => jumpToClip(c.video_id, c.start_time)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-750 border border-slate-700 text-[11px] font-mono text-slate-300 hover:text-white transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#0d1424] hover:bg-slate-800 border border-[#172338] text-[11px] font-mono text-slate-300 hover:text-white transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
                     >
-                      <span className="text-emerald-400">[{c.timestamp_label}]</span>
-                      <span className="truncate max-w-[120px]">{c.filename}</span>
+                      <span className="text-emerald-400 font-medium">[{c.timestamp_label}]</span>
+                      <span className="truncate max-w-[140px]">{c.filename}</span>
                       <span className="text-[10px] text-slate-500">({c.match_channel})</span>
                     </button>
                   ))}
@@ -277,13 +310,13 @@ export function HybridSearchView() {
         </div>
       )}
 
-      {/* Video Player Preview */}
+      {/* Video Player Preview HUD (Floating / Side-by-Side) */}
       {activeVideoId && (
         <div className="hallmark-surface p-4 space-y-3">
           <div className="flex items-center justify-between text-xs font-mono text-slate-300">
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              <span>Preview Clip at {activeVideoTime.toFixed(1)}s</span>
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Studio Clip Preview at {activeVideoTime.toFixed(1)}s</span>
             </div>
             <button
               type="button"
@@ -298,7 +331,7 @@ export function HybridSearchView() {
             src={getVideoStreamUrl(activeVideoId)}
             controls
             autoPlay
-            className="w-full max-h-80 rounded-lg bg-black border border-slate-800"
+            className="w-full max-h-96 rounded-lg bg-black border border-[#172338]"
             onLoadedMetadata={() => {
               if (videoPlayerRef.current) {
                 videoPlayerRef.current.currentTime = activeVideoTime;
@@ -324,24 +357,24 @@ export function HybridSearchView() {
               <span className="px-2.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-400">
                 MRR: +{evalReport.improvement_mrr_percent.toFixed(1)}%
               </span>
-              <span className="px-2.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300">
+              <span className="px-2.5 py-0.5 rounded bg-[#090e18] border border-[#172338] text-slate-300">
                 NDCG: +{evalReport.improvement_ndcg_percent.toFixed(1)}%
               </span>
             </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left font-mono text-xs border border-slate-800 rounded-lg overflow-hidden">
-              <thead className="bg-slate-900 text-slate-400 text-xs">
+            <table className="w-full text-left font-mono text-xs border border-[#172338] rounded-lg overflow-hidden">
+              <thead className="bg-[#090e18] text-slate-400 text-xs">
                 <tr>
-                  <th className="p-2.5 border-b border-slate-800 font-medium">Metric</th>
-                  <th className="p-2.5 border-b border-slate-800 font-medium">Stage-1 (Bi-Encoder + FTS5)</th>
-                  <th className="p-2.5 border-b border-slate-800 font-medium">Stage-2 (Cross-Encoder Re-ranked)</th>
-                  <th className="p-2.5 border-b border-slate-800 font-medium">Relative Delta</th>
+                  <th className="p-2.5 border-b border-[#172338] font-medium">Metric</th>
+                  <th className="p-2.5 border-b border-[#172338] font-medium">Stage-1 (Bi-Encoder + FTS5)</th>
+                  <th className="p-2.5 border-b border-[#172338] font-medium">Stage-2 (Cross-Encoder Re-ranked)</th>
+                  <th className="p-2.5 border-b border-[#172338] font-medium">Relative Delta</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/80 text-slate-300">
-                <tr className="bg-slate-950/40">
+              <tbody className="divide-y divide-[#172338] text-slate-300">
+                <tr className="bg-[#060911]/40">
                   <td className="p-2.5 font-medium text-slate-200">MRR@10</td>
                   <td className="p-2.5">{evalReport.stage1_biencoder_metrics.mrr_at_10.toFixed(4)}</td>
                   <td className="p-2.5 text-emerald-400 font-bold">{evalReport.stage2_crossencoder_metrics.mrr_at_10.toFixed(4)}</td>
@@ -353,7 +386,7 @@ export function HybridSearchView() {
                   <td className="p-2.5 text-emerald-400 font-bold">{evalReport.stage2_crossencoder_metrics.ndcg_at_10.toFixed(4)}</td>
                   <td className="p-2.5 font-semibold text-emerald-400">+{evalReport.improvement_ndcg_percent.toFixed(1)}%</td>
                 </tr>
-                <tr className="bg-slate-950/40">
+                <tr className="bg-[#060911]/40">
                   <td className="p-2.5">Recall@1</td>
                   <td className="p-2.5">{evalReport.stage1_biencoder_metrics.recall_at_1.toFixed(4)}</td>
                   <td className="p-2.5">{evalReport.stage2_crossencoder_metrics.recall_at_1.toFixed(4)}</td>
@@ -365,7 +398,7 @@ export function HybridSearchView() {
                   <td className="p-2.5">{evalReport.stage2_crossencoder_metrics.recall_at_3.toFixed(4)}</td>
                   <td className="p-2.5">-</td>
                 </tr>
-                <tr className="bg-slate-950/40">
+                <tr className="bg-[#060911]/40">
                   <td className="p-2.5">Recall@5</td>
                   <td className="p-2.5">{evalReport.stage1_biencoder_metrics.recall_at_5.toFixed(4)}</td>
                   <td className="p-2.5">{evalReport.stage2_crossencoder_metrics.recall_at_5.toFixed(4)}</td>
@@ -377,7 +410,7 @@ export function HybridSearchView() {
                   <td className="p-2.5">{evalReport.stage2_crossencoder_metrics.recall_at_10.toFixed(4)}</td>
                   <td className="p-2.5">-</td>
                 </tr>
-                <tr className="bg-slate-950/40">
+                <tr className="bg-[#060911]/40">
                   <td className="p-2.5">Latency p50 / p95 (ms)</td>
                   <td className="p-2.5">
                     {evalReport.stage1_latency_ms.p50.toFixed(1)} / {evalReport.stage1_latency_ms.p95.toFixed(1)} ms
@@ -393,34 +426,57 @@ export function HybridSearchView() {
         </div>
       )}
 
-      {/* Search Results */}
+      {/* Search Results Section */}
       {searchResponse && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between text-xs text-slate-400 font-mono bg-slate-900/70 p-3 rounded-lg border border-slate-800">
-            <span>
-              Retrieved <span className="text-white font-medium">{searchResponse.total_results}</span> candidate windows in <span className="text-white">{searchResponse.total_ms.toFixed(1)}ms</span>
-            </span>
-            <span>
-              Stage-1: {searchResponse.stage1_ms.toFixed(1)}ms · Stage-2 Rerank: {searchResponse.stage2_rerank_ms.toFixed(1)}ms
-            </span>
+          {/* Results Summary Bar + Channel Filters */}
+          <div className="flex items-center justify-between flex-wrap gap-3 text-xs text-slate-400 font-mono bg-[#090e18] p-3 rounded-lg border border-[#172338]">
+            <div className="flex items-center gap-2">
+              <span>
+                Retrieved <span className="text-white font-medium">{searchResponse.total_results}</span> candidate windows in <span className="text-white">{searchResponse.total_ms.toFixed(1)}ms</span>
+              </span>
+              <span className="text-slate-600">·</span>
+              <span className="text-[11px] text-slate-500">
+                Stage-1: {searchResponse.stage1_ms.toFixed(1)}ms · Stage-2 Rerank: {searchResponse.stage2_rerank_ms.toFixed(1)}ms
+              </span>
+            </div>
+
+            {/* Channel Filters */}
+            <div className="flex items-center gap-1">
+              <span className="text-slate-500 text-[11px] mr-1">Channel:</span>
+              {(["all", "speech", "visual", "multimodal"] as const).map((ch) => (
+                <button
+                  key={ch}
+                  type="button"
+                  onClick={() => setChannelFilter(ch)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors ${
+                    channelFilter === ch
+                      ? "bg-slate-100 text-slate-950 font-bold"
+                      : "text-slate-400 hover:text-slate-200 bg-[#0d1424]"
+                  }`}
+                >
+                  {ch === "all" ? "All Channels" : ch === "visual" ? "Visual OCR" : ch === "speech" ? "Speech ASR" : "Multimodal"}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {searchResponse.results.length === 0 ? (
-            <div className="hallmark-surface border-dashed border-slate-800 p-8 text-center text-xs text-slate-400 space-y-1">
+          {filteredResults.length === 0 ? (
+            <div className="hallmark-surface border-dashed border-[#172338] p-8 text-center text-xs text-slate-400 space-y-1">
               <p className="font-medium text-slate-300">No matching video chunks found for &quot;{searchResponse.query}&quot;.</p>
               <p className="text-[11px] text-slate-500 font-mono">Try indexing more videos or broadening your query.</p>
             </div>
           ) : (
             <div className="space-y-2.5">
-              {searchResponse.results.map((item, idx) => (
+              {filteredResults.map((item, idx) => (
                 <div
                   key={item.embedding_id || idx}
-                  className="hallmark-surface p-4 space-y-2.5"
+                  className="hallmark-surface p-4 space-y-2.5 hover:border-[#253654] transition-colors"
                 >
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-xs text-white">{item.filename}</span>
-                      <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-slate-300">
+                      <span className="px-2 py-0.5 rounded bg-[#060911] border border-[#172338] text-[11px] font-mono text-slate-300">
                         [{item.start_time.toFixed(1)}s - {item.end_time.toFixed(1)}s]
                       </span>
                       {item.match_channel === "visual" ? (
@@ -432,7 +488,7 @@ export function HybridSearchView() {
                           Multimodal
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-400">
+                        <span className="px-2 py-0.5 rounded bg-[#060911] border border-[#172338] text-[10px] font-mono text-slate-400">
                           Speech ASR
                         </span>
                       )}
@@ -462,7 +518,7 @@ export function HybridSearchView() {
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-300 leading-relaxed font-sans bg-slate-900/40 p-2.5 rounded border border-slate-800/80">
+                  <p className="text-xs text-slate-300 leading-relaxed font-sans bg-[#060911] p-2.5 rounded border border-[#172338]">
                     &quot;{item.chunk_text}&quot;
                   </p>
                 </div>

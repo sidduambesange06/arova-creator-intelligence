@@ -4,10 +4,12 @@
 @tailwind utilities;
 
 :root {
-  --bg-canvas: #090d16;
-  --bg-surface: #0f172a;
-  --bg-elevated: #1e293b;
-  --border-subtle: #1e293b;
+  --bg-canvas: #060911;
+  --bg-sidebar: #090e18;
+  --bg-surface: #0d1424;
+  --bg-surface-elevated: #111a2d;
+  --border-subtle: #172338;
+  --border-strong: #253654;
   --border-focus: #38bdf8;
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
@@ -23,7 +25,7 @@
     overflow-x: clip;
     background-color: var(--bg-canvas);
     color: var(--text-main);
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
   }
 
   /* Hallmark Floor 26a: Instant, high-contrast focus-visible rings */
@@ -45,33 +47,33 @@
 
 /* Clean technical scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #090d16;
+  background: var(--bg-canvas);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #1e293b;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #334155;
 }
 
-/* Surface containers: single containment layer, no nested cards */
+/* Surface containers: single containment layer, zero card-in-card nesting */
 .hallmark-surface {
-  background-color: rgba(15, 23, 42, 0.7);
-  border: 1px solid #1e293b;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: 0.75rem;
 }
 
 .hallmark-surface-interactive {
-  background-color: rgba(15, 23, 42, 0.7);
-  border: 1px solid #1e293b;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: 0.75rem;
   transition-property: border-color, background-color;
   transition-duration: 150ms;
@@ -79,6 +81,43 @@
 }
 
 .hallmark-surface-interactive:hover {
-  border-color: #334155;
-  background-color: rgba(30, 41, 59, 0.5);
+  border-color: var(--border-strong);
+  background-color: var(--bg-surface-elevated);
+}
+
+/* Range input scrubber for video player */
+input[type="range"].studio-scrubber {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #172338;
+  height: 6px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"].studio-scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #f8fafc;
+  border: 2px solid #090e18;
+  cursor: pointer;
+  transition: transform 100ms ease;
+}
+
+input[type="range"].studio-scrubber::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+  background: #38bdf8;
+}
+
+input[type="range"].studio-scrubber::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #f8fafc;
+  border: 2px solid #090e18;
+  cursor: pointer;
 }

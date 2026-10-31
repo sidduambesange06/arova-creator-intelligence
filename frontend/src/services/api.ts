@@ -271,6 +271,35 @@ export interface MediaLibraryStats {
   engine: string;
 }
 
+export interface ChapterItem {
+  start_time: number;
+  title: string;
+}
+
+export interface VideoSummaryResponse {
+  video_id: string;
+  summary: string;
+  topics: string[];
+  chapters: ChapterItem[];
+  model_name: string;
+}
+
+export async function summarizeVideo(
+  videoId: string
+): Promise<VideoSummaryResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/ai/summarize`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ video_id: videoId }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Summary generation failed (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<VideoSummaryResponse>;
+}
+
+
 export interface VideoCitation {
   video_id: string;
   filename: string;

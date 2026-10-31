@@ -1,16 +1,16 @@
 {
-  "timestamp": "2026-10-31T05:34:49.555863+00:00",
+  "timestamp": "2026-10-31T07:24:40.161383+00:00",
   "overall_status": "HEALTHY",
   "total_checks": 7,
   "passed_checks": 7,
   "failed_checks": 0,
-  "total_duration_sec": 13.29,
+  "total_duration_sec": 31.59,
   "checks": [
     {
       "name": "Documentation & Ledger Sync",
       "category": "Docs",
       "passed": true,
-      "duration_ms": 1.09,
+      "duration_ms": 21.24,
       "details": "Verified 9 core documentation files. Missing: None.",
       "warnings": []
     },
@@ -18,7 +18,7 @@
       "name": "Strict IP Boundary Scan (Apache 2.0)",
       "category": "Compliance",
       "passed": true,
-      "duration_ms": 71.49,
+      "duration_ms": 181.16,
       "details": "Scanned codebase for 10 commercial IP terms. Violations: None.",
       "warnings": []
     },
@@ -26,7 +26,7 @@
       "name": "Security & Path-Traversal Guard",
       "category": "Security",
       "passed": true,
-      "duration_ms": 391.63,
+      "duration_ms": 786.49,
       "details": "Path traversal protection verified: blocked path outside allowed roots.; Allowed root verification passed.",
       "warnings": []
     },
@@ -34,7 +34,7 @@
       "name": "Database & Schema Integrity",
       "category": "Database",
       "passed": true,
-      "duration_ms": 382.27,
+      "duration_ms": 808.55,
       "details": "SQLite PRAGMA integrity: ok, foreign_keys: 1. Found 15 tables. Missing: None.",
       "warnings": []
     },
@@ -42,15 +42,15 @@
       "name": "Backend Pytest Suite",
       "category": "Backend",
       "passed": true,
-      "duration_ms": 4605.79,
-      "details": "Test summary: 25 passed in 3.69s =============================.",
+      "duration_ms": 10725.92,
+      "details": "Test summary: 25 passed in 8.88s =============================.",
       "warnings": []
     },
     {
       "name": "Frontend Vitest & TypeScript Build",
       "category": "Frontend",
       "passed": true,
-      "duration_ms": 7832.08,
+      "duration_ms": 19068.09,
       "details": "Vitest exit: 0, Build exit: 0. Vite production bundle generated successfully.",
       "warnings": []
     },
@@ -58,7 +58,7 @@
       "name": "TinyFish Connector & Benchmark Fetcher",
       "category": "Connectors",
       "passed": true,
-      "duration_ms": 0.76,
+      "duration_ms": 1.66,
       "details": "TinyFish skill manifest present: True. Local sample fallback verified: test_manifest.json.",
       "warnings": []
     }

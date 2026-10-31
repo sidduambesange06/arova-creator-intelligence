@@ -2,7 +2,7 @@
 
 Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PLAYBOOK]] | [[DEVELOPMENT_LOG]] | [[TECHNICAL_DECISIONS]] | [[KNOWN_ISSUES]]
 
-## Current Milestone: Milestone 5 & Polish — Hallmark Craft Redesign & Visual-Text Dual Memory Engine (COMPLETED)
+## Current Milestone: Milestone 5 & Polish — Hallmark Fullscreen Workstation & Grounded Video Intelligence (COMPLETED)
 
 ### Milestone 1 Checklist (COMPLETED)
 - [x] **Feature 1.1 (Obsidian Brain & Repo Root):** `.gitignore`, `.env.example`, `LICENSE` (Apache 2.0), `README.md`, `docs/architecture.md`, and Obsidian brain notes initialized.
@@ -38,4 +38,5 @@ Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PL
 - [x] **Visual-Text Dual Memory Engine:** Keyframe OCR extraction (`visual_text.py`), multimodal chunk fusion (`[On-Screen Visual Text]: ...`), and search channel tagging (`speech` vs `visual` vs `multimodal`).
 - [x] **Grounded Video Q&A Assistant:** `POST /api/v1/ai/ask` with citations linked directly to live video player timestamps.
 - [x] **Hallmark Design Craft Refactor:** Eliminated AI slop (removed purple/indigo gradients, removed card-in-card nesting, eliminated `transition: all`, removed emojis as icons, added `:focus-visible` styling, added `overflow-x: clip`, and reduced motion support).
+- [x] **Fullscreen Workstation & Multi-Track Studio Experience:** Full viewport canvas (`w-full`), custom smooth video scrubber, variable playback rates (`0.75x` - `2x`), step seek (`-5s`/`+5s`), simultaneous synchronized transcript + scene cuts + AI chapters timeline.
 - [x] **7/7 System Health Audit PASS:** Automated audit across security, licensing, database, backend pytest (24/24), frontend vitest (6/6), and production build.
