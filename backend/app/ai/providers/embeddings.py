@@ -172,3 +172,4 @@ def index_video_chunks(
     for r in records:
         db.refresh(r)
     return records
+

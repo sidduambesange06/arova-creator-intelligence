@@ -105,3 +105,4 @@ def test_index_video_chunks_dual_storage(tmp_path: Path) -> None:
         assert db.query(EmbeddingRecord).filter_by(video_id=video.id).count() == len(records)
 
     Base.metadata.drop_all(bind=test_engine)
+

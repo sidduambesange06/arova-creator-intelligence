@@ -65,3 +65,4 @@ def test_eval_harness_and_endpoints(tmp_path: Path) -> None:
         assert "worker" in body
         assert "ml_benchmark" in body
         assert body["ml_benchmark"]["mrr_at_10_stage1"] is not None
+

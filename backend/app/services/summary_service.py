@@ -159,3 +159,4 @@ def _extractive_summary(segments: list, full_text: str) -> tuple[str, list[str],
         chapters.append({"start_time": segments[0].start_time, "title": "Main Session"})
 
     return summary_text, top_topics, chapters, "extractive-grounded-local"
+

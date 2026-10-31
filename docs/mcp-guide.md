@@ -87,3 +87,4 @@ Or execute automated tool verification:
 ```bash
 pytest mcp_server/tests/test_mcp_tools.py -v
 ```
+

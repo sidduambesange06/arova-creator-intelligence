@@ -126,3 +126,4 @@ def test_all_eight_mcp_tools(db_session: Session) -> None:
     assert stats["total_videos"] == 1
     assert stats["total_duration_sec"] == 75.0
     assert stats["total_transcripts_indexed"] == 1
+

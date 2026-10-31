@@ -72,3 +72,4 @@ def average_metrics(metrics_list: list[RankingMetrics]) -> RankingMetrics:
         recall_at_5=round(sum(m.recall_at_5 for m in metrics_list) / n, 4),
         recall_at_10=round(sum(m.recall_at_10 for m in metrics_list) / n, 4),
     )
+

@@ -140,3 +140,4 @@ def test_summarize_video_api_grounded_and_cached(client: TestClient) -> None:
     # 4. Error check: non-existent video -> 404
     missing_res = client.post("/api/v1/ai/summarize", json={"video_id": "non-existent-uuid"})
     assert missing_res.status_code == 404
+

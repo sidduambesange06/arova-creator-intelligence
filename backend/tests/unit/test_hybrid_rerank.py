@@ -112,3 +112,4 @@ def test_hybrid_search_rrf_and_api(tmp_path: Path) -> None:
 
     app.dependency_overrides.clear()
     Base.metadata.drop_all(bind=test_engine)
+

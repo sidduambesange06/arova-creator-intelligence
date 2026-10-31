@@ -52,3 +52,4 @@ def get_system_telemetry() -> dict:
             "stage2_latency_p50_ms": eval_rep.stage2_latency_p50_ms if eval_rep else None,
         },
     }
+

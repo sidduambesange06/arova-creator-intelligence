@@ -86,3 +86,4 @@ class CrossEncoderReranker:
         reranked.sort(key=lambda x: x["rerank_score"], reverse=True)
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
         return reranked[:top_k], round(elapsed_ms, 2)
+

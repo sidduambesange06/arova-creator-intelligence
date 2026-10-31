@@ -237,3 +237,4 @@ def get_media_library_stats(db: Session | None = None) -> dict[str, Any]:
     finally:
         if db is None:
             session.close()
+

@@ -199,3 +199,4 @@ def run_hybrid_search(
         total_ms=round(t_total, 2),
         results=results,
     )
+
