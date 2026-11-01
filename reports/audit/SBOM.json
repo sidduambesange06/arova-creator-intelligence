@@ -4,7 +4,7 @@
   "serialNumber": "urn:uuid:arova-creator-intelligence-sbom-0.1.0",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-01T10:56:32Z",
+    "timestamp": "2026-11-01T11:19:50Z",
     "component": {
       "name": "arova-creator-intelligence",
       "version": "0.1.0",

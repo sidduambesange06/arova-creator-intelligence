@@ -1,6 +1,6 @@
 # Arova Creator Intelligence — 100-Query Multimodal Retrieval Benchmark
 
-**Date:** 2026-11-01T10:56:15.590658+00:00  
+**Date:** 2026-11-01T11:19:32.010804+00:00  
 **Dataset:** `sample_data/visual_retrieval_golden_100.json` (100 queries, 100 corpus passages)  
 **Hardware Environment:** AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD | Windows 10 | Python 3.11.9  
 **Evaluation Mode:** Local CPU Inference (`torch 2.6.0+cpu`, quantized sentence-transformers)
@@ -32,9 +32,9 @@
 
 | Stage | Median (p50) Latency | 95th Percentile (p95) Latency |
 |---|---|---|
-| **Stage 1 (Embedding + FTS5 + RRF)** | `7.11 ms` | `8.23 ms` |
-| **Stage 2 (Cross-Encoder Re-Ranking)** | `8.68 ms` | `10.23 ms` |
-| **Total Query Latency** | `15.79 ms` | `18.46 ms` |
+| **Stage 1 (Embedding + FTS5 + RRF)** | `7.44 ms` | `9.06 ms` |
+| **Stage 2 (Cross-Encoder Re-Ranking)** | `9.06 ms` | `10.75 ms` |
+| **Total Query Latency** | `16.50 ms` | `19.81 ms` |
 
 ---
 

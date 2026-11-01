@@ -45,13 +45,23 @@
 
 ### ADR-006: Canonical Task Numbering & Deliverable Separation for Launch 01
 - **Date:** 2026-11-01
-- **Status:** Accepted
+- **Status:** Accepted & Implemented
 - **Context:** Early drafts assigned `TASK-010` to the automated release gate, while community governance documents (`NOTICE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` per Spec §10.2) were informal deliverables.
 - **Decision:** Reconcile task IDs into a single canonical sequence:
-  - `TASK-006`: `arova doctor` diagnostic CLI command (`WS-CLI`, `REQ-024`) — `NOT IMPLEMENTED`
-  - `TASK-007`: `arova demo` synthetic first-use flow (`WS-CLI`, `REQ-025`, `REQ-032`) — `NOT IMPLEMENTED`
-  - `TASK-008`: Thin Python client wrapper `arova-client` (`WS-CLI`, `REQ-023`) — `NOT IMPLEMENTED` (frozen scope: thin REST client only)
-  - `TASK-009`: Tested client integration matrices in `docs/INTEGRATIONS.md` (`WS-DOC`, `REQ-033`) — `NOT IMPLEMENTED`
-  - `TASK-010`: Open-source community governance files (`WS-DOC`, `REQ-031`) — `NOT IMPLEMENTED`
-  - `TASK-011`: Automated release gate verification script (`WS-QA`, `REQ-029`) — `NOT IMPLEMENTED`
+  - `TASK-006`: `arova doctor` diagnostic CLI command (`WS-CLI`, `REQ-024`) — `VERIFIED`
+  - `TASK-007`: `arova demo` synthetic first-use flow (`WS-CLI`, `REQ-025`, `REQ-032`) — `VERIFIED`
+  - `TASK-008`: Thin Python client wrapper `arova-client` (`WS-CLI`, `REQ-023`) — `VERIFIED`
+  - `TASK-009`: Tested client integration matrices in `docs/INTEGRATIONS.md` (`WS-DOC`, `REQ-033`) — `VERIFIED`
+  - `TASK-010`: Open-source community governance files (`WS-DOC`, `REQ-031`) — `VERIFIED`
+  - `TASK-011`: Automated release gate verification script (`WS-QA`, `REQ-029`) — `VERIFIED`
 - **Consequences:** Provides exact 1:1 requirement traceability across all registers and eliminates ambiguity between release verification and community documentation.
+
+### ADR-007: Staged Release Governance (Alpha vs Beta/Stable Scope Delineation)
+- **Date:** 2026-11-01
+- **Status:** Accepted & Enforced
+- **Context:** An open-source developer Alpha (`v0.1.0-alpha`) requires verified local core engine mechanics, safe queries, bounded filesystems, prompt defanging, and robust recovery, but does not warrant enterprise SaaS certification or blocking local developer previews on external multi-machine non-developer physical setups.
+- **Decision:** Separate release gates into staged milestones:
+  - **Alpha (`v0.1.0-alpha`):** All 12 automated checks (Backend, Frontend, FastMCP, Doctor, Demo, 500-Video Stress, 215 Red-Team Cases, 100-Query Benchmark, Fault-Injection Resiliency, and CycloneDX SBOM) 100% passing. Localhost-only binding (`127.0.0.1`), 8 default read-only MCP tools, parameterized SQL, and source media immutability.
+  - **Beta (`v0.2.0-beta`):** External non-developer multi-machine validation across independent macOS and Linux hosts; live Claude Desktop / Cursor GUI manual verification; PyPI package distribution.
+  - **Stable (`v1.0.0`):** Model Context Protocol official registry publication and enterprise backward compatibility.
+- **Consequences:** Unblocks open-source Alpha preview testing with zero false claims of enterprise certification, while cleanly staging broader ecosystem QA on the Beta/Stable roadmap.

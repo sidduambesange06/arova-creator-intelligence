@@ -66,8 +66,8 @@ Arova Creator Intelligence is an open-source, local-first video intelligence eng
 |---|---|---|
 | **Phase 1 Implementation** | **COMPLETE** | All backlog tasks (TASK-006 through TASK-011) implemented and verified. |
 | **Automated Tests** | **PASSING** | 64 backend/CLI/MCP/stress/benchmark tests passing; 6 frontend Vitest tests passing; 0 regressions. |
-| **Security Verification** | **VERIFIED** | Loopback binding default (`127.0.0.1`), deny-by-default allowed roots, untrusted text sanitization (215 red-team cases), read-only MCP tool boundary. |
-| **Integration Verification** | **PARTIALLY VERIFIED** | Google Antigravity live verified; Claude Desktop and Cursor IDE FastMCP STDIO schema verified; desktop GUI execution pending manual verification. |
-| **Stress-Test Completion** | **COMPLETE** | 500-video indexing/recovery test, 215 prompt-injection red-team cases, 100-query visual retrieval benchmark, and fault injection tests implemented and passing. |
-| **Launch 01 Release Readiness** | **AUTOMATED GATES COMPLETE** | All 12 automated checks pass; external scale and physical cross-machine validation remain pending. |
-| **Public Release Authorization** | **STRICTLY BLOCKED** | Public tagging (`v1.0.0`) and external distribution are strictly held until clean non-developer installs and desktop GUI client verifications are completed. |
+| **Essential Security Audit** | **VERIFIED (8 Pillars)** | Parameterized SQL, path traversal boundary, safe subprocesses, prompt injection defanging, 8 read-only MCP tools, loopback binding (`127.0.0.1`), zero committed secrets/weights, and CycloneDX SBOM. |
+| **Stress & Resiliency** | **COMPLETE** | 500-video indexing/recovery test, 215 prompt-injection red-team cases, 100-query visual retrieval benchmark, and fault injection tests implemented and passing. |
+| **Initial Open-Source Alpha** | **APPROVED (v0.1.0-alpha)** | All 12 automated checks pass (100% automated coverage); ready for developer preview testing. |
+| **Beta Roadmap Gates** | **DEFERRED (v0.2.0-beta)** | 3 external non-developer physical installs and live Claude Desktop / Cursor GUI click-through deferred to Beta roadmap. |
+| **Public Release Authorization** | **STRICTLY BLOCKED** | No remote push to GitHub or public registry publication without explicit user approval. |

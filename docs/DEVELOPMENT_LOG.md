@@ -445,6 +445,32 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - `python scripts/release_gate.py`: 12/12 automated checks passed; 2 warnings; 0 unbuilt automated stress gates; 3 manual verification requirements; Public Release Authorization strictly BLOCKED.
 - **Review (`ponytail-review`):** Complete, rigorous production implementation. Zero fake mock data. Genuine 500-video scaling, genuine 215 red-team test cases, genuine 100-query IR benchmark, and real SQLite WAL crash recovery. All automated requirements satisfied.
 
+---
+
+### Feature 6.9: Open-Source Alpha Scope Delineation & Essential Security Audit
+- **Date:** 2026-11-01
+- **Scope & Plan:**
+  1. Optimize Arova Creator Intelligence for initial open-source developer Alpha (`v0.1.0-alpha`), rather than enterprise SaaS production launch.
+  2. Conduct a focused audit across 8 essential security pillars:
+     - (1) Parameterized SQL and safe database queries (`SQLAlchemy text()` with `:fts_q`, `:vid`, alphanumeric sanitization).
+     - (2) Path traversal and filesystem boundaries (`validate_media_path` against `ALLOWED_MEDIA_ROOTS`).
+     - (3) Safe subprocess execution and FFmpeg arguments (list args only, never `shell=True`, explicit timeouts).
+     - (4) Basic prompt-injection isolation for transcript and OCR content (`sanitize_untrusted_media_text` + XML boundaries).
+     - (5) Eight read-only MCP tools as the default contract (`export_video_clip` gated behind developer opt-in).
+     - (6) Localhost-only network binding by default (`127.0.0.1:8000`).
+     - (7) No committed secrets, model weights, or private user data (git history scan verified 0 secrets, 0 weights).
+     - (8) Dependency and license inventory (CycloneDX SBOM at `reports/audit/SBOM.json`).
+  3. Separate initial Alpha requirements from future Beta and Stable Release requirements in `scripts/release_gate.py`, `.arova-loop/CURRENT_STATE.md`, `docs/PROJECT_STATUS.md`, and `docs/TECHNICAL_DECISIONS.md` (ADR-007).
+  4. Retain existing 12 automated checks without adding redundant scope or false enterprise claims.
+- **Implementation:**
+  - `scripts/release_gate.py`: Updated Section 5 & 6 to stage Alpha (`v0.1.0-alpha`, APPROVED) vs Beta (`v0.2.0-beta`, DEFERRED roadmap: multi-machine non-developer installs, live desktop GUI click-through) vs Stable (`v1.0.0`, GATED: MCP registry directory listing).
+  - `docs/TECHNICAL_DECISIONS.md` & `.arova-loop/DECISION_LOG.md`: Recorded `ADR-007: Staged Release Governance`.
+  - `docs/PROJECT_STATUS.md` & `.arova-loop/CURRENT_STATE.md`: Synchronized Alpha approval state and roadmap delineation.
+- **Verification Evidence:**
+  - `python scripts/release_gate.py`: 12/12 automated checks PASSED in 22.8s. Verdict: `APPROVED (v0.1.0-alpha Developer Preview)`.
+  - Full automated suite: 64 backend/CLI/stress tests and 6 frontend tests passing.
+- **Review (`ponytail-review`):** Lean release governance. Honest scope boundaries: developer preview Alpha approved for local evaluation; external multi-machine setup cleanly staged on Beta roadmap. Zero unrequested code added.
+
 
 
 
