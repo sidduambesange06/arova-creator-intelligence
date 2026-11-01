@@ -55,6 +55,13 @@ uv sync --project backend
 Run the non-destructive system diagnostic:
 
 ```bash
+# Using uv:
+uv run --project backend arova doctor
+
+# Or with virtualenv activated (.venv/bin/activate or .venv\Scripts\activate):
+arova doctor
+
+# Or directly via Python:
 python -m arova doctor
 ```
 This checks Python runtime, FFmpeg/ffprobe resolution, SQLite FTS5 capability, data directory write permissions, and FastMCP tool availability.
@@ -64,6 +71,13 @@ This checks Python runtime, FFmpeg/ffprobe resolution, SQLite FTS5 capability, d
 Test the complete ingestion, transcription, indexing, hybrid search, and grounded Q&A pipeline on a lightweight synthetic fixture:
 
 ```bash
+# Using uv:
+uv run --project backend arova demo
+
+# Or with virtualenv activated:
+arova demo
+
+# Or directly via Python:
 python -m arova demo
 ```
 *Executes in under 1 second on standard developer hardware with zero external cloud dependencies or credentials required.*

@@ -9,7 +9,9 @@ from sqlalchemy.orm import Session
 
 from app.ai.retrieval.hybrid_search import run_hybrid_search
 from app.core.config import settings
+from app.core.security import compute_sha256
 from app.database.session import SessionLocal, init_db
+from app.models.entities import Video
 from app.processing.metadata import get_ffmpeg_binary
 from app.services import media_service
 from app.services.summary_service import answer_video_question, generate_video_summary
@@ -76,9 +78,14 @@ def run_demo_workflow(
             target_path=str(demo_mp4),
             allowed_roots=[Path(settings.DATA_DIR).resolve().parent, Path(".").resolve(), Path("..").resolve()],
         )
-        if not import_resp.imported:
-            raise RuntimeError(f"Failed to import synthetic video: {import_resp.errors}")
-        video_rec = import_resp.imported[0]
+        if import_resp.imported:
+            video_rec = import_resp.imported[0]
+        else:
+            file_hash = compute_sha256(demo_mp4)
+            existing_vid = session.query(Video).filter((Video.file_path == str(demo_mp4.resolve())) | (Video.file_hash == file_hash)).first()
+            if not existing_vid:
+                raise RuntimeError("Failed to import synthetic video fixture into library")
+            video_rec = media_service._to_video_out(existing_vid)
         timings["import_sec"] = round(time.perf_counter() - t0, 3)
 
         # Step 3: Run full video intelligence pipeline (ASR, scenes, chunking, dual index)

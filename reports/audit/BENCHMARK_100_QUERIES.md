@@ -1,6 +1,6 @@
 # Arova Creator Intelligence — 100-Query Synthetic Multimodal Retrieval Benchmark
 
-**Date:** 2026-11-01T13:05:17.896032+00:00  
+**Date:** 2026-11-01T13:58:41.439436+00:00  
 **Dataset:** `sample_data/visual_retrieval_golden_100.json` (100 synthetic queries, 100 synthetic corpus passages)  
 **Evaluation Scope:** Curated synthetic evaluation golden set. (Note: Benchmark validation against independently labelled real-world video footage is staged on the Beta roadmap)  
 **Hardware Environment:** AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD | Windows 10 | Python 3.11.9  
@@ -33,9 +33,9 @@
 
 | Stage | Median (p50) Latency | 95th Percentile (p95) Latency |
 |---|---|---|
-| **Stage 1 (Embedding + FTS5 + RRF)** | `7.33 ms` | `8.68 ms` |
-| **Stage 2 (Cross-Encoder Re-Ranking)** | `8.90 ms` | `10.48 ms` |
-| **Total Query Latency** | `16.23 ms` | `19.16 ms` |
+| **Stage 1 (Embedding + FTS5 + RRF)** | `7.34 ms` | `9.01 ms` |
+| **Stage 2 (Cross-Encoder Re-Ranking)** | `8.71 ms` | `10.80 ms` |
+| **Total Query Latency** | `16.05 ms` | `19.81 ms` |
 
 ---
 

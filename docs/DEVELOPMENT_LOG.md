@@ -499,6 +499,29 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - Fresh git clone clean install: `arova doctor` passed (6 checks), `arova demo` passed in 0.536s, FastMCP 8 tools verified.
 - **Review (`ponytail-review`):** Zero unrequested code, absolute claim accuracy. Every boundary honestly qualified. Ready for public GitHub push upon user authorization.
 
+---
+
+### Feature 6.11: Packaging Build-System Fix & Remote Clone Verification
+- **Date:** 2026-11-01
+- **Scope & Plan:**
+  1. Investigate root cause of `arova doctor` console-script exit code 1 in clean virtual environments.
+  2. Configure PEP 517/518 build-system (`hatchling`) in `backend/pyproject.toml` so `uv sync` installs the package and creates `.venv/Scripts/arova.exe`.
+  3. Fix in-tree `backend/README.md` reference to eliminate `ValueError: Readme path must be within the project directory`.
+  4. Fix duplicate video fixture import handling in `backend/app/cli/demo.py` and eliminate `AttributeError: VideoImportResponse has no attribute errors`.
+  5. Clone directly from GitHub remote URL (`https://github.com/sidduambesange06/arova-creator-intelligence.git`) in clean temporary directory and evaluate status.
+- **Implementation:**
+  - `backend/pyproject.toml`: Added `[build-system]` (`hatchling.build`), `[tool.hatch.build.targets.wheel] packages = ["app"]`, and updated `readme = "README.md"`.
+  - `backend/README.md`: Created local backend engine overview to satisfy PEP 621 packaging requirements.
+  - `backend/app/cli/demo.py`: Gracefully reuses existing video records on duplicate SHA-256 detection without crashing on nonexistent `errors` field.
+  - `README.md`: Documented all 3 verified CLI invocation forms (`uv run --project backend arova doctor`, `arova doctor` with venv activated, and `python -m arova doctor`).
+- **Verification Evidence:**
+  - `uv run --project backend arova doctor`: Exit code 0 (all 6 diagnostics verified).
+  - `uv run --project backend arova demo --duration 1.0`: Exit code 0 (completed in 0.561s).
+  - `.venv/Scripts/arova.exe doctor`: Exit code 0.
+  - GitHub remote clone audit: Tested `git clone https://github.com/sidduambesange06/arova-creator-intelligence.git`. Identified that remote `origin/main` remains at commit `7d2d951` (Milestone 5) because local Phase 1 commits (TASK-006 through TASK-011) have not been pushed per user instruction. FastMCP 8 tools and FastAPI import verified on remote; CLI features pending push of local commits.
+  - Test suites: 64/64 pytest passed in 12.41s; 12/12 release gates passed in 21s.
+- **Review (`ponytail-review`):** Root cause eliminated at packaging layer. Working tree clean. Zero unrequested dependencies or abstractions.
+
 
 
 
