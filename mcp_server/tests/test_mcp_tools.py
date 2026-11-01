@@ -19,7 +19,7 @@ from app.ai.providers.embeddings import index_video_chunks
 from app.core.config import settings
 from app.database.session import Base, init_db
 from app.models.entities import Transcript, TranscriptSegment, Video
-from app.processing.metadata import get_ffmpeg_binary
+from app.processing.metadata import get_ffmpeg_binary, probe_video_metadata
 from mcp_server.tools import video_tools
 
 
@@ -170,9 +170,14 @@ def test_all_eight_mcp_tools(db_session: Session) -> None:
     assert clip_res["video_id"] == video_id
     assert clip_res["start_time"] == 0.2
     assert clip_res["end_time"] == 1.0
-    assert clip_res["duration"] == 0.8
-    assert clip_res["file_size"] > 0
-    assert Path(clip_res["clip_path"]).is_file()
+
+    # Independently inspect the generated output file using FFprobe
+    clip_file = Path(clip_res["clip_path"])
+    assert clip_file.is_file()
+    probed = probe_video_metadata(clip_file)
+    # Justified tolerance: container header format duration rounded to millisecond precision (0.005s)
+    assert clip_res["duration"] == pytest.approx(probed.duration, abs=0.005)
+    assert clip_res["file_size"] == clip_file.stat().st_size
 
 
 @pytest.mark.anyio
@@ -214,5 +219,27 @@ async def test_mcp_server_opt_in_exports() -> None:
     assert len(tools) == 9
     assert "export_video_clip" in tool_names
 
+
+def test_mcp_export_probe_failure_raises_and_cleans_up(
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify that if duration probing fails, export raises RuntimeError and cleans up generated clip."""
+    videos = video_tools.list_videos(db=db_session)
+    video_id = videos[0]["id"]
+    clips_dir = Path(settings.MEDIA_STORAGE_DIR) / "clips"
+
+    def fake_probe_failure(p):
+        raise ValueError("Simulated corrupted media container header")
+
+    import app.processing.clip_export as ce
+    monkeypatch.setattr(ce, "probe_video_metadata", fake_probe_failure)
+
+    with pytest.raises(RuntimeError, match="could not be measured"):
+        video_tools.export_video_clip(video_id=video_id, start_time=0.2, end_time=1.0, db=db_session)
+
+    # Verify no orphan clip file was left in clips_dir
+    created_clips = list(clips_dir.glob("*.mp4"))
+    assert len(created_clips) == 0
 
 

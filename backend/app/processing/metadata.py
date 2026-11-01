@@ -55,7 +55,15 @@ def probe_video_metadata(video_path: str | Path) -> VideoMetadata:
             "-show_streams",
             str(path),
         ]
-        proc = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=30)
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=True,
+            timeout=30,
+        )
         info = json.loads(proc.stdout)
         streams = info.get("streams", [])
         v_stream = next((s for s in streams if s.get("codec_type") == "video"), {})
@@ -75,6 +83,8 @@ def probe_video_metadata(video_path: str | Path) -> VideoMetadata:
         [ffmpeg_bin, "-hide_banner", "-i", str(path)],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=30,
     )
     stderr = proc.stderr or ""

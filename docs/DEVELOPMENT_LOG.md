@@ -578,6 +578,33 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - Source media immutability: SHA-256 before & after byte-for-byte identical (`efa9062d9cdb7a338e40ad530dfdf234806743f29ae6a1a136b97ece4e588e8f`).
 - **Review (`ponytail-review`):** Complete mathematical accuracy, transparent capability reporting, zero simulated data, and clean separation between open-source engine and commercial strategy.
 
+---
+
+### Feature 6.14: Clip Export Data Safety, Atomic Reservation Ownership & Path Containment Hardening
+- **Date:** 2026-11-01
+- **Scope & Plan:**
+  1. Address Supervisor Directives 01, 02, and 03 on clip export data safety and path containment.
+  2. Implement deterministic collision avoidance using sanitized source stem, video ID/path hash, and millisecond-accurate timestamps (`{base_stem}_{src_id}_{start_fmt}s-{end_fmt}s{disambig_suffix}.mp4`).
+  3. Guarantee atomic non-overwriting reservation via `os.link` on NTFS/APFS/ext4; provide exclusive reservation fallback (`O_CREAT | O_EXCL`) for filesystems lacking hardlinks (e.g. FAT32/exFAT) with `os.fstat` identity checks (`st_dev`, `st_ino`, `st_size == 0`) ensuring only reservations belonging to the current process are unlinked on promotion error.
+  4. Enforce strict source-duration validation (`math.isfinite()`, positive start, `end > start`, `end <= max_duration` with zero tolerance overshoot).
+  5. Measure actual container duration via `measure_clip_duration()` with `probe_video_metadata()`, unlinking invalid/unmeasurable files immediately without fabricating estimates.
+  6. Support full Unicode source filenames (Kannada, Hindi, spaces, punctuation, ASCII) in both sanitizer and download validator, delegating `Content-Disposition` to Starlette's RFC 5987 parser.
+  7. Add 17 integration tests and 4 MCP tests covering all edge cases.
+- **Implementation:**
+  - `backend/app/processing/clip_export.py`: `_validate_clip_timestamps`, `_sanitize_filename`, `_atomically_claim_and_move`, `measure_clip_duration`, and `export_subclip`.
+  - `backend/app/api/routes/videos.py`: Strict validation, `is_safe_clip_filename`, duration reporting, and RFC 5987 streaming.
+  - `backend/app/processing/metadata.py`: Subprocess reader UTF-8 decoding eliminating Windows `cp1252` crashes.
+  - `mcp_server/tools/video_tools.py`: Synchronized validation and duration probing with REST API.
+  - `backend/tests/integration/test_clip_export.py`: 17 comprehensive integration tests.
+  - `mcp_server/tests/test_mcp_tools.py`: Restored independent FFprobe measurement and probe-failure cleanup test.
+- **Verification Evidence:**
+  - Integration tests: 17/17 passed in 10.57s (`test_clip_export.py`).
+  - MCP tests: 4/4 passed in 2.31s (`test_mcp_tools.py`).
+  - Fault-injection tests: 6/6 passed in 1.30s (`test_fault_injection.py`).
+  - Full regression: 80/80 passed in 20.68s; vitest passed 6/6; `git diff --check` passed cleanly.
+  - Source media immutability: Tears of Steel (`efa9062d9cdb7a338e40ad530dfdf234806743f29ae6a1a136b97ece4e588e8f`) 100% verified untouched.
+- **Review (`ponytail-review`):** Minimal standard-library diff, zero mock data, zero speculative locking abstractions. All 6 directive issues resolved.
+
 
 
 

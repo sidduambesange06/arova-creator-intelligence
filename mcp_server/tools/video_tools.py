@@ -12,7 +12,11 @@ from sqlalchemy.orm import Session
 
 from app.ai.retrieval.hybrid_search import run_hybrid_search
 from app.database.session import SessionLocal
-from app.processing.clip_export import export_subclip
+from app.processing.clip_export import (
+    _validate_clip_timestamps,
+    export_subclip,
+    measure_clip_duration,
+)
 from app.models.entities import (
     Collection,
     CollectionVideo,
@@ -253,17 +257,28 @@ def export_video_clip(
         video = session.query(Video).filter_by(id=video_id).first()
         if not video:
             raise ValueError(f"Video '{video_id}' not found in library")
-        if start_time < 0 or end_time <= start_time:
-            raise ValueError(f"Invalid clip bounds: start={start_time}, end={end_time}")
 
-        clip_path = export_subclip(video.file_path, start_time, end_time)
+        start_time, end_time = _validate_clip_timestamps(
+            start_time=start_time,
+            end_time=end_time,
+            max_duration=video.duration,
+        )
+
+        clip_path = export_subclip(
+            video_path=video.file_path,
+            start_time=start_time,
+            end_time=end_time,
+            video_id=video.id,
+            max_duration=video.duration,
+        )
+        actual_duration = measure_clip_duration(clip_path)
         return {
             "video_id": video.id,
             "clip_filename": clip_path.name,
             "clip_path": str(clip_path),
             "start_time": start_time,
             "end_time": end_time,
-            "duration": round(end_time - start_time, 2),
+            "duration": actual_duration,
             "file_size": clip_path.stat().st_size,
         }
     finally:

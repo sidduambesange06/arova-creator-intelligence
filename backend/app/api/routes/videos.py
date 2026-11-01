@@ -1,6 +1,8 @@
 from collections.abc import Iterator
 import mimetypes
 from pathlib import Path
+import re
+import unicodedata
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
@@ -9,7 +11,11 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.database.session import get_db
 from app.models.entities import Transcript, Video, VideoScene
-from app.processing.clip_export import export_subclip
+from app.processing.clip_export import (
+    _validate_clip_timestamps,
+    export_subclip,
+    measure_clip_duration,
+)
 from app.schemas.media import (
     ClipExportRequest,
     ClipExportResponse,
@@ -210,6 +216,58 @@ def stream_video_endpoint(
     )
 
 
+_WINDOWS_DEVICE_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    "COM1",
+    "COM2",
+    "COM3",
+    "COM4",
+    "COM5",
+    "COM6",
+    "COM7",
+    "COM8",
+    "COM9",
+    "LPT1",
+    "LPT2",
+    "LPT3",
+    "LPT4",
+    "LPT5",
+    "LPT6",
+    "LPT7",
+    "LPT8",
+    "LPT9",
+}
+
+
+def _is_safe_filename_char(ch: str) -> bool:
+    if ch in ("_", "-", ".", " "):
+        return True
+    cat = unicodedata.category(ch)
+    # Allow Unicode letters (L*), numbers (N*), and combining marks (M*)
+    return cat[0] in ("L", "N", "M")
+
+
+def is_safe_clip_filename(filename: str) -> bool:
+    if (
+        not filename
+        or ".." in filename
+        or "/" in filename
+        or "\\" in filename
+        or "\x00" in filename
+        or Path(filename).name != filename
+    ):
+        return False
+
+    base = filename.split(".")[0].upper()
+    if base in _WINDOWS_DEVICE_NAMES:
+        return False
+
+    return all(_is_safe_filename_char(c) for c in filename)
+
+
 @router.post("/{video_id}/export-clip", response_model=ClipExportResponse)
 def export_video_clip_endpoint(
     video_id: str,
@@ -221,26 +279,33 @@ def export_video_clip_endpoint(
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
-    if payload.start_time >= payload.end_time:
-        raise HTTPException(status_code=400, detail="start_time must be strictly less than end_time")
-    if video.duration > 0 and payload.start_time >= video.duration:
-        raise HTTPException(status_code=400, detail=f"start_time ({payload.start_time}s) exceeds video duration ({video.duration}s)")
+    try:
+        start_time, end_time = _validate_clip_timestamps(
+            start_time=payload.start_time,
+            end_time=payload.end_time,
+            max_duration=video.duration,
+        )
+    except (ValueError, TypeError) as val_err:
+        raise HTTPException(status_code=400, detail=str(val_err)) from val_err
 
     try:
         clip_path = export_subclip(
             video_path=video.file_path,
-            start_time=payload.start_time,
-            end_time=payload.end_time,
+            start_time=start_time,
+            end_time=end_time,
+            video_id=video.id,
+            max_duration=video.duration,
         )
+        actual_duration = measure_clip_duration(clip_path)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to export video clip: {exc}") from exc
 
     return ClipExportResponse(
         video_id=video.id,
         clip_filename=clip_path.name,
-        start_time=payload.start_time,
-        end_time=payload.end_time,
-        duration=round(payload.end_time - payload.start_time, 2),
+        start_time=start_time,
+        end_time=end_time,
+        duration=actual_duration,
         file_size=clip_path.stat().st_size,
         download_url=f"/api/v1/videos/clips/{clip_path.name}",
     )
@@ -248,21 +313,27 @@ def export_video_clip_endpoint(
 
 @router.get("/clips/{clip_filename}")
 def download_clip_endpoint(clip_filename: str) -> FileResponse:
-    clean_filename = Path(clip_filename).name
-    if clean_filename != clip_filename or ".." in clip_filename:
+    if not is_safe_clip_filename(clip_filename):
         raise HTTPException(status_code=400, detail="Invalid clip filename")
 
-    clip_dir = (Path(settings.MEDIA_STORAGE_DIR) / "clips").resolve()
-    clip_path = (clip_dir / clean_filename).resolve()
+    clips_dir = (Path(settings.MEDIA_STORAGE_DIR) / "clips").resolve()
+    clip_path = (clips_dir / clip_filename).resolve()
 
-    if not clip_path.is_file() or not str(clip_path).startswith(str(clip_dir)):
+    try:
+        is_contained = clip_path.is_relative_to(clips_dir)
+    except ValueError:
+        is_contained = False
+
+    if not is_contained or clip_path == clips_dir:
+        raise HTTPException(status_code=400, detail="Invalid clip path or directory escape attempt")
+
+    if not clip_path.is_file():
         raise HTTPException(status_code=404, detail="Exported clip not found")
 
     return FileResponse(
-        str(clip_path),
+        path=str(clip_path),
         media_type="video/mp4",
-        filename=clean_filename,
-        headers={"Content-Disposition": f'attachment; filename="{clean_filename}"'},
+        filename=clip_filename,
     )
 
 
