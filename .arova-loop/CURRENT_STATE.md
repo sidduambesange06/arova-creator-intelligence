@@ -38,10 +38,10 @@ Arova Creator Intelligence is an open-source, local-first video intelligence eng
 ## 2. Current Verified State
 
 ### 2.1 Codebase Health
-- **Backend, CLI & MCP Tests:** 50 passed out of 50 unit/integration tests (`pytest backend/tests mcp_server/tests -v`, 8.52s).
+- **Backend, CLI, MCP, Stress & Benchmark Tests:** 64 passed out of 64 unit/integration/stress tests (`pytest backend/tests mcp_server/tests -q`, 12.79s).
 - **Frontend Tests:** 4 test suites passed (6 tests) (`vitest run`, 3.53s).
 - **Production Web Build:** `tsc -b && vite build` succeeded (bundle size 202.57 KB, 0 errors).
-- **Hardened Release Gate:** `scripts/release_gate.py` passed all 8 automated baseline checks with explicit warnings, not-yet-implemented gates, and manual verification requirements categorized.
+- **Hardened Release Gate:** `scripts/release_gate.py` passed all 12 automated checks with zero automated failures.
 - **Git Working Tree:** Branch `main`, tracking `origin/main`.
 
 ### 2.2 Active Services
@@ -56,7 +56,7 @@ Arova Creator Intelligence is an open-source, local-first video intelligence eng
 - `TASK-008` (Thin Python REST client wrapper): `DONE` (Verified by 4 unit tests; zero-dependency `ArovaClient`)
 - `TASK-009` (Client setup matrices in `docs/INTEGRATIONS.md`): `DONE` (4-tier support policy and configurations verified; desktop GUI pending manual verification)
 - `TASK-010` (Open-source governance: `NOTICE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`): `DONE` (All files verified)
-- `TASK-011` (Hardened release gate script `scripts/release_gate.py`): `DONE` (8/8 automated baseline checks passed)
+- `TASK-011` (Hardened release gate script `scripts/release_gate.py`): `DONE` (12/12 automated baseline and stress checks passed)
 
 ---
 
@@ -65,9 +65,9 @@ Arova Creator Intelligence is an open-source, local-first video intelligence eng
 | Dimension | Audit Status | Evidence & Summary |
 |---|---|---|
 | **Phase 1 Implementation** | **COMPLETE** | All backlog tasks (TASK-006 through TASK-011) implemented and verified. |
-| **Automated Tests** | **PASSING** | 50 backend/CLI/MCP unit tests passing; 6 frontend Vitest tests passing; 0 regressions. |
-| **Security Verification** | **VERIFIED** | Loopback binding default (`127.0.0.1`), deny-by-default allowed roots, untrusted text sanitization, read-only MCP tool boundary. |
+| **Automated Tests** | **PASSING** | 64 backend/CLI/MCP/stress/benchmark tests passing; 6 frontend Vitest tests passing; 0 regressions. |
+| **Security Verification** | **VERIFIED** | Loopback binding default (`127.0.0.1`), deny-by-default allowed roots, untrusted text sanitization (215 red-team cases), read-only MCP tool boundary. |
 | **Integration Verification** | **PARTIALLY VERIFIED** | Google Antigravity live verified; Claude Desktop and Cursor IDE FastMCP STDIO schema verified; desktop GUI execution pending manual verification. |
-| **Stress-Test Completion** | **NOT COMPLETE** | 500-video indexing/recovery test, 200+ prompt-injection red-team cases, and fault-tolerance suites are not yet implemented. |
-| **Launch 01 Release Readiness** | **HARDENING IN PROGRESS** | Automated engineering baseline passes; external scale and cross-machine validation pending. |
-| **Public Release Authorization** | **BLOCKED** | Public tagging (`v1.0.0`) and external distribution are strictly held until stress tests and clean non-developer installs pass. |
+| **Stress-Test Completion** | **COMPLETE** | 500-video indexing/recovery test, 215 prompt-injection red-team cases, 100-query visual retrieval benchmark, and fault injection tests implemented and passing. |
+| **Launch 01 Release Readiness** | **AUTOMATED GATES COMPLETE** | All 12 automated checks pass; external scale and physical cross-machine validation remain pending. |
+| **Public Release Authorization** | **STRICTLY BLOCKED** | Public tagging (`v1.0.0`) and external distribution are strictly held until clean non-developer installs and desktop GUI client verifications are completed. |

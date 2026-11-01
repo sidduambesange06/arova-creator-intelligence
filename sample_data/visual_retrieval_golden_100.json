@@ -1,0 +1,1523 @@
+{
+  "benchmark_name": "arova_multimodal_visual_retrieval_golden_100",
+  "version": "1.0.0",
+  "description": "100-query annotated multimodal visual retrieval benchmark spanning speech ASR and on-screen visual OCR text across 10 core video engineering domains.",
+  "total_queries": 100,
+  "corpus_size": 100,
+  "domains": [
+    "ffmpeg_pipeline",
+    "speech_recognition",
+    "scene_detection",
+    "vector_embeddings",
+    "lexical_fts5",
+    "cross_encoder_rerank",
+    "rank_fusion",
+    "mcp_protocol",
+    "workstation_ui",
+    "security_hardening"
+  ],
+  "corpus": [
+    {
+      "id": "chunk_ffmpeg_pipeline_01",
+      "video_id": "vid_ffmpeg_arch",
+      "start_time": 0.0,
+      "end_time": 30.0,
+      "text": "FFmpeg extracts 16kHz mono 16-bit PCM WAV audio tracks for Whisper ASR."
+    },
+    {
+      "id": "chunk_ffmpeg_pipeline_02",
+      "video_id": "vid_ffmpeg_arch",
+      "start_time": 30.0,
+      "end_time": 60.0,
+      "text": "The ffprobe utility probes container duration, resolution, FPS, and codec details."
+    },
+    {
+      "id": "chunk_ffmpeg_pipeline_03",
+      "video_id": "vid_ffmpeg_arch",
+      "start_time": 60.0,
+      "end_time": 90.0,
+      "text": "H.264 video decoding utilizes libx264 software decoding on host CPU cores."
+    },
+    {
+      "id": "chunk_ffmpeg_pipeline_04",
+      "video_id": "vid_ffmpeg_arch",
+      "start_time": 90.0,
+      "end_time": 120.0,
+      "text": "Keyframe thumbnails are generated at 1-second intervals via ffmpeg seek flags."
+    },
+    {
+      "id": "chunk_ffmpeg_pipeline_05",
+      "video_id": "vid_ffmpeg_arch",
+      "start_time": 120.0,
+      "end_time": 150.0,
+      "text": "The imageio-ffmpeg library provides a bundled zero-install fallback binary."
+    },
+    {
+      "id": "chunk_ffmpeg_pipeline_06",
+      "video_id": "vid_ffmpeg_arch",
+      "start_time": 150.0,
+      "end_time": 180.0,
+      "text": "Lossless video trimming copies streams using ffmpeg -c copy without re-encoding."
+    },
+    {
+      "id": "chunk_ffmpeg_pipeline_07",
+      "video_id": "vid_ffmpeg_arch",
+      "start_time": 180.0,
+      "end_time": 210.0,
+      "text": "Probing falls back to parsing ffmpeg stderr when ffprobe is absent."
+    },
+    {
+      "id": "chunk_ffmpeg_pipeline_08",
+      "video_id": "vid_ffmpeg_arch",
+      "start_time": 210.0,
+      "end_time": 240.0,
+      "text": "Synthetic test video clips are synthesized using the lavfi testsrc filter."
+    },
+    {
+      "id": "chunk_ffmpeg_pipeline_09",
+      "video_id": "vid_ffmpeg_arch",
+      "start_time": 240.0,
+      "end_time": 270.0,
+      "text": "The WebM and Matroska container formats support Opus and Vorbis audio codecs."
+    },
+    {
+      "id": "chunk_ffmpeg_pipeline_10",
+      "video_id": "vid_ffmpeg_arch",
+      "start_time": 270.0,
+      "end_time": 300.0,
+      "text": "[On-Screen Visual Text]: Slide: Video Media Ingestion Pipeline Architecture Overview."
+    },
+    {
+      "id": "chunk_speech_recognition_01",
+      "video_id": "vid_whisper_asr",
+      "start_time": 0.0,
+      "end_time": 30.0,
+      "text": "Faster-Whisper utilizes CTranslate2 for fast quantized offline speech recognition."
+    },
+    {
+      "id": "chunk_speech_recognition_02",
+      "video_id": "vid_whisper_asr",
+      "start_time": 30.0,
+      "end_time": 60.0,
+      "text": "CTranslate2 int8 quantization reduces RAM usage while maintaining word accuracy."
+    },
+    {
+      "id": "chunk_speech_recognition_03",
+      "video_id": "vid_whisper_asr",
+      "start_time": 60.0,
+      "end_time": 90.0,
+      "text": "Whisper detects spoken languages including English, Hindi, and Hinglish code-switching."
+    },
+    {
+      "id": "chunk_speech_recognition_04",
+      "video_id": "vid_whisper_asr",
+      "start_time": 90.0,
+      "end_time": 120.0,
+      "text": "Word-level and segment-level millisecond timestamps are preserved for each spoken sentence."
+    },
+    {
+      "id": "chunk_speech_recognition_05",
+      "video_id": "vid_whisper_asr",
+      "start_time": 120.0,
+      "end_time": 150.0,
+      "text": "Speech transcription runs locally on CPU without requiring cloud API connections."
+    },
+    {
+      "id": "chunk_speech_recognition_06",
+      "video_id": "vid_whisper_asr",
+      "start_time": 150.0,
+      "end_time": 180.0,
+      "text": "Temperature sampling fallback is used when Whisper ASR encounters low confidence."
+    },
+    {
+      "id": "chunk_speech_recognition_07",
+      "video_id": "vid_whisper_asr",
+      "start_time": 180.0,
+      "end_time": 210.0,
+      "text": "VAD voice activity detection filters out silence before passing audio to Whisper."
+    },
+    {
+      "id": "chunk_speech_recognition_08",
+      "video_id": "vid_whisper_asr",
+      "start_time": 210.0,
+      "end_time": 240.0,
+      "text": "CTranslate2 executes optimized matrix operations using AVX2 CPU instructions."
+    },
+    {
+      "id": "chunk_speech_recognition_09",
+      "video_id": "vid_whisper_asr",
+      "start_time": 240.0,
+      "end_time": 270.0,
+      "text": "Confidence scores between 0.0 and 1.0 are attached to each generated transcript segment."
+    },
+    {
+      "id": "chunk_speech_recognition_10",
+      "video_id": "vid_whisper_asr",
+      "start_time": 270.0,
+      "end_time": 300.0,
+      "text": "[On-Screen Visual Text]: Terminal: faster-whisper --model base.en --device cpu --compute_type int8"
+    },
+    {
+      "id": "chunk_scene_detection_01",
+      "video_id": "vid_scene_cuts",
+      "start_time": 0.0,
+      "end_time": 30.0,
+      "text": "PySceneDetect detects visual scene cuts by analyzing color histogram variations between frames."
+    },
+    {
+      "id": "chunk_scene_detection_02",
+      "video_id": "vid_scene_cuts",
+      "start_time": 30.0,
+      "end_time": 60.0,
+      "text": "The ContentDetector algorithm identifies abrupt camera cuts based on threshold deltas."
+    },
+    {
+      "id": "chunk_scene_detection_03",
+      "video_id": "vid_scene_cuts",
+      "start_time": 60.0,
+      "end_time": 90.0,
+      "text": "Midpoint keyframes are extracted for each detected video scene boundary."
+    },
+    {
+      "id": "chunk_scene_detection_04",
+      "video_id": "vid_scene_cuts",
+      "start_time": 90.0,
+      "end_time": 120.0,
+      "text": "Adaptive detector adjusts thresholds dynamically for gradual fades and dissolves."
+    },
+    {
+      "id": "chunk_scene_detection_05",
+      "video_id": "vid_scene_cuts",
+      "start_time": 120.0,
+      "end_time": 150.0,
+      "text": "Scene records store start_time, end_time, duration, and thumbnail file paths."
+    },
+    {
+      "id": "chunk_scene_detection_06",
+      "video_id": "vid_scene_cuts",
+      "start_time": 150.0,
+      "end_time": 180.0,
+      "text": "Threshold fallback handles synthetic and low-motion presentation videos."
+    },
+    {
+      "id": "chunk_scene_detection_07",
+      "video_id": "vid_scene_cuts",
+      "start_time": 180.0,
+      "end_time": 210.0,
+      "text": "PySceneDetect runs frame downscaling to 160x120 to accelerate cut detection."
+    },
+    {
+      "id": "chunk_scene_detection_08",
+      "video_id": "vid_scene_cuts",
+      "start_time": 210.0,
+      "end_time": 240.0,
+      "text": "Scene boundaries group related visual keyframes into coherent chapter candidates."
+    },
+    {
+      "id": "chunk_scene_detection_09",
+      "video_id": "vid_scene_cuts",
+      "start_time": 240.0,
+      "end_time": 270.0,
+      "text": "Representative frame images are saved as JPEG files under data/thumbnails."
+    },
+    {
+      "id": "chunk_scene_detection_10",
+      "video_id": "vid_scene_cuts",
+      "start_time": 270.0,
+      "end_time": 300.0,
+      "text": "[On-Screen Visual Text]: Graph: Delta intensity curves showing scene transition markers."
+    },
+    {
+      "id": "chunk_vector_embeddings_01",
+      "video_id": "vid_embeddings_vec",
+      "start_time": 0.0,
+      "end_time": 30.0,
+      "text": "ChromaDB provides local embedded persistent vector storage under data/vectors."
+    },
+    {
+      "id": "chunk_vector_embeddings_02",
+      "video_id": "vid_embeddings_vec",
+      "start_time": 30.0,
+      "end_time": 60.0,
+      "text": "Sentence-transformers all-MiniLM-L6-v2 outputs 384-dimensional dense semantic vectors."
+    },
+    {
+      "id": "chunk_vector_embeddings_03",
+      "video_id": "vid_embeddings_vec",
+      "start_time": 60.0,
+      "end_time": 90.0,
+      "text": "Cosine similarity computes vector proximity using L2-normalized embedding vectors."
+    },
+    {
+      "id": "chunk_vector_embeddings_04",
+      "video_id": "vid_embeddings_vec",
+      "start_time": 90.0,
+      "end_time": 120.0,
+      "text": "ChromaDB collections index transcript chunk text alongside video ID metadata."
+    },
+    {
+      "id": "chunk_vector_embeddings_05",
+      "video_id": "vid_embeddings_vec",
+      "start_time": 120.0,
+      "end_time": 150.0,
+      "text": "Dense vector retrieval identifies semantically equivalent phrases with different vocabulary."
+    },
+    {
+      "id": "chunk_vector_embeddings_06",
+      "video_id": "vid_embeddings_vec",
+      "start_time": 150.0,
+      "end_time": 180.0,
+      "text": "Overlapping window chunking slices transcripts into 30-second semantic blocks."
+    },
+    {
+      "id": "chunk_vector_embeddings_07",
+      "video_id": "vid_embeddings_vec",
+      "start_time": 180.0,
+      "end_time": 210.0,
+      "text": "Batch embedding generation vectorizes 32 transcript chunks in a single PyTorch forward pass."
+    },
+    {
+      "id": "chunk_vector_embeddings_08",
+      "video_id": "vid_embeddings_vec",
+      "start_time": 210.0,
+      "end_time": 240.0,
+      "text": "HuggingFace sentence-transformers runs offline inference using cached model weights."
+    },
+    {
+      "id": "chunk_vector_embeddings_09",
+      "video_id": "vid_embeddings_vec",
+      "start_time": 240.0,
+      "end_time": 270.0,
+      "text": "Vector IDs map directly to SQLite embedding records for bi-directional lookup."
+    },
+    {
+      "id": "chunk_vector_embeddings_10",
+      "video_id": "vid_embeddings_vec",
+      "start_time": 270.0,
+      "end_time": 300.0,
+      "text": "[On-Screen Visual Text]: Diagram: 384-dimensional vector space clustering technical concepts."
+    },
+    {
+      "id": "chunk_lexical_fts5_01",
+      "video_id": "vid_sqlite_fts",
+      "start_time": 0.0,
+      "end_time": 30.0,
+      "text": "SQLite FTS5 virtual tables enable fast BM25 ranked full-text keyword search."
+    },
+    {
+      "id": "chunk_lexical_fts5_02",
+      "video_id": "vid_sqlite_fts",
+      "start_time": 30.0,
+      "end_time": 60.0,
+      "text": "Exact technical acronyms like RRF, MCP, and ASR are retrieved reliably via FTS5."
+    },
+    {
+      "id": "chunk_lexical_fts5_03",
+      "video_id": "vid_sqlite_fts",
+      "start_time": 60.0,
+      "end_time": 90.0,
+      "text": "The porter stemmer normalizes word variations like index, indexing, and indexed."
+    },
+    {
+      "id": "chunk_lexical_fts5_04",
+      "video_id": "vid_sqlite_fts",
+      "start_time": 90.0,
+      "end_time": 120.0,
+      "text": "FTS5 match syntax supports prefix queries using the wildcard asterisk operator."
+    },
+    {
+      "id": "chunk_lexical_fts5_05",
+      "video_id": "vid_sqlite_fts",
+      "start_time": 120.0,
+      "end_time": 150.0,
+      "text": "SQLite FTS5 snippet function returns highlighted search terms with surrounding context."
+    },
+    {
+      "id": "chunk_lexical_fts5_06",
+      "video_id": "vid_sqlite_fts",
+      "start_time": 150.0,
+      "end_time": 180.0,
+      "text": "Relational video metadata in SQLite is linked to FTS5 rowids via foreign key cascades."
+    },
+    {
+      "id": "chunk_lexical_fts5_07",
+      "video_id": "vid_sqlite_fts",
+      "start_time": 180.0,
+      "end_time": 210.0,
+      "text": "BM25 weights term frequency against inverse document frequency across chunks."
+    },
+    {
+      "id": "chunk_lexical_fts5_08",
+      "video_id": "vid_sqlite_fts",
+      "start_time": 210.0,
+      "end_time": 240.0,
+      "text": "SQLite database transactions ensure ACID compliance during batch index insertion."
+    },
+    {
+      "id": "chunk_lexical_fts5_09",
+      "video_id": "vid_sqlite_fts",
+      "start_time": 240.0,
+      "end_time": 270.0,
+      "text": "FTS5 contentless tables optimize disk usage by referencing the primary segment table."
+    },
+    {
+      "id": "chunk_lexical_fts5_10",
+      "video_id": "vid_sqlite_fts",
+      "start_time": 270.0,
+      "end_time": 300.0,
+      "text": "[On-Screen Visual Text]: Code: SELECT snippet(transcript_segments_fts, 0, '<b>', '</b>', '...', 10) FROM fts;"
+    },
+    {
+      "id": "chunk_cross_encoder_rerank_01",
+      "video_id": "vid_cross_encoder",
+      "start_time": 0.0,
+      "end_time": 30.0,
+      "text": "Cross-encoder models score query and candidate passages jointly via full cross-attention."
+    },
+    {
+      "id": "chunk_cross_encoder_rerank_02",
+      "video_id": "vid_cross_encoder",
+      "start_time": 30.0,
+      "end_time": 60.0,
+      "text": "The ms-marco-MiniLM-L-6-v2 model provides state-of-the-art re-ranking accuracy."
+    },
+    {
+      "id": "chunk_cross_encoder_rerank_03",
+      "video_id": "vid_cross_encoder",
+      "start_time": 60.0,
+      "end_time": 90.0,
+      "text": "Two-stage retrieval combines fast bi-encoder candidate retrieval with cross-encoder scoring."
+    },
+    {
+      "id": "chunk_cross_encoder_rerank_04",
+      "video_id": "vid_cross_encoder",
+      "start_time": 90.0,
+      "end_time": 120.0,
+      "text": "Cross-encoders resolve lexical ambiguities that bi-encoder cosine similarity misses."
+    },
+    {
+      "id": "chunk_cross_encoder_rerank_05",
+      "video_id": "vid_cross_encoder",
+      "start_time": 120.0,
+      "end_time": 150.0,
+      "text": "Top-20 candidates from stage 1 are passed to stage 2 re-ranking to balance speed and quality."
+    },
+    {
+      "id": "chunk_cross_encoder_rerank_06",
+      "video_id": "vid_cross_encoder",
+      "start_time": 150.0,
+      "end_time": 180.0,
+      "text": "PyTorch evaluation mode disables dropout for deterministic re-ranking scores."
+    },
+    {
+      "id": "chunk_cross_encoder_rerank_07",
+      "video_id": "vid_cross_encoder",
+      "start_time": 180.0,
+      "end_time": 210.0,
+      "text": "Softmax normalization converts raw logit scores into bounded probabilities."
+    },
+    {
+      "id": "chunk_cross_encoder_rerank_08",
+      "video_id": "vid_cross_encoder",
+      "start_time": 210.0,
+      "end_time": 240.0,
+      "text": "Latency profiling measures the millisecond cost of cross-encoder attention layers."
+    },
+    {
+      "id": "chunk_cross_encoder_rerank_09",
+      "video_id": "vid_cross_encoder",
+      "start_time": 240.0,
+      "end_time": 270.0,
+      "text": "Cross-encoder re-ranking increases NDCG@10 by up to 25% over baseline dense search."
+    },
+    {
+      "id": "chunk_cross_encoder_rerank_10",
+      "video_id": "vid_cross_encoder",
+      "start_time": 270.0,
+      "end_time": 300.0,
+      "text": "[On-Screen Visual Text]: Benchmark: Bi-Encoder Recall vs Cross-Encoder MRR Comparison Chart."
+    },
+    {
+      "id": "chunk_rank_fusion_01",
+      "video_id": "vid_rrf_math",
+      "start_time": 0.0,
+      "end_time": 30.0,
+      "text": "Reciprocal Rank Fusion merges diverse retrieval rankings using reciprocal position weights."
+    },
+    {
+      "id": "chunk_rank_fusion_02",
+      "video_id": "vid_rrf_math",
+      "start_time": 30.0,
+      "end_time": 60.0,
+      "text": "The constant k parameter in RRF is conventionally set to 60 to soften top-rank bias."
+    },
+    {
+      "id": "chunk_rank_fusion_03",
+      "video_id": "vid_rrf_math",
+      "start_time": 60.0,
+      "end_time": 90.0,
+      "text": "RRF formula calculates score as the sum of 1 divided by k plus rank index for each document."
+    },
+    {
+      "id": "chunk_rank_fusion_04",
+      "video_id": "vid_rrf_math",
+      "start_time": 90.0,
+      "end_time": 120.0,
+      "text": "Hybrid search combines dense vector ranks and lexical BM25 ranks via RRF."
+    },
+    {
+      "id": "chunk_rank_fusion_05",
+      "video_id": "vid_rrf_math",
+      "start_time": 120.0,
+      "end_time": 150.0,
+      "text": "Documents appearing in both semantic and lexical result sets receive highest reciprocal scores."
+    },
+    {
+      "id": "chunk_rank_fusion_06",
+      "video_id": "vid_rrf_math",
+      "start_time": 150.0,
+      "end_time": 180.0,
+      "text": "RRF operates without requiring score calibration or scale normalization across engines."
+    },
+    {
+      "id": "chunk_rank_fusion_07",
+      "video_id": "vid_rrf_math",
+      "start_time": 180.0,
+      "end_time": 210.0,
+      "text": "Weighted RRF allows tuning the relative influence of vector versus keyword retrieval."
+    },
+    {
+      "id": "chunk_rank_fusion_08",
+      "video_id": "vid_rrf_math",
+      "start_time": 210.0,
+      "end_time": 240.0,
+      "text": "Rank fusion prevents catastrophic recall failures when users search rare domain jargon."
+    },
+    {
+      "id": "chunk_rank_fusion_09",
+      "video_id": "vid_rrf_math",
+      "start_time": 240.0,
+      "end_time": 270.0,
+      "text": "Evaluation harnesses compare pure dense, pure lexical, and RRF fused retrieval metrics."
+    },
+    {
+      "id": "chunk_rank_fusion_10",
+      "video_id": "vid_rrf_math",
+      "start_time": 270.0,
+      "end_time": 300.0,
+      "text": "[On-Screen Visual Text]: Formula: RRF_score(d) = sum_{m in M} 1 / (60 + r_m(d))"
+    },
+    {
+      "id": "chunk_mcp_protocol_01",
+      "video_id": "vid_mcp_spec",
+      "start_time": 0.0,
+      "end_time": 30.0,
+      "text": "The Model Context Protocol MCP connects AI agents to local video retrieval tools."
+    },
+    {
+      "id": "chunk_mcp_protocol_02",
+      "video_id": "vid_mcp_spec",
+      "start_time": 30.0,
+      "end_time": 60.0,
+      "text": "FastMCP STDIO transport communicates via JSON-RPC messages over standard input and output."
+    },
+    {
+      "id": "chunk_mcp_protocol_03",
+      "video_id": "vid_mcp_spec",
+      "start_time": 60.0,
+      "end_time": 90.0,
+      "text": "All logging in MCP servers must be routed to stderr to avoid corrupting JSON-RPC streams."
+    },
+    {
+      "id": "chunk_mcp_protocol_04",
+      "video_id": "vid_mcp_spec",
+      "start_time": 90.0,
+      "end_time": 120.0,
+      "text": "The list_videos tool returns paged inventories of indexed media with status filters."
+    },
+    {
+      "id": "chunk_mcp_protocol_05",
+      "video_id": "vid_mcp_spec",
+      "start_time": 120.0,
+      "end_time": 150.0,
+      "text": "The search_video_content tool executes hybrid search returning timestamp intervals."
+    },
+    {
+      "id": "chunk_mcp_protocol_06",
+      "video_id": "vid_mcp_spec",
+      "start_time": 150.0,
+      "end_time": 180.0,
+      "text": "The find_video_clips tool retrieves candidate video time ranges bounded by duration limits."
+    },
+    {
+      "id": "chunk_mcp_protocol_07",
+      "video_id": "vid_mcp_spec",
+      "start_time": 180.0,
+      "end_time": 210.0,
+      "text": "The summarize_video tool delivers factual summaries strictly grounded in transcripts."
+    },
+    {
+      "id": "chunk_mcp_protocol_08",
+      "video_id": "vid_mcp_spec",
+      "start_time": 210.0,
+      "end_time": 240.0,
+      "text": "Claude Desktop connects to Arova via claude_desktop_config.json configuration blocks."
+    },
+    {
+      "id": "chunk_mcp_protocol_09",
+      "video_id": "vid_mcp_spec",
+      "start_time": 240.0,
+      "end_time": 270.0,
+      "text": "The export_video_clip tool is gated behind explicit developer opt-in for security."
+    },
+    {
+      "id": "chunk_mcp_protocol_10",
+      "video_id": "vid_mcp_spec",
+      "start_time": 270.0,
+      "end_time": 300.0,
+      "text": "[On-Screen Visual Text]: JSON: mcpServers configuration snippet for Claude and Cursor IDE."
+    },
+    {
+      "id": "chunk_workstation_ui_01",
+      "video_id": "vid_workstation_ui",
+      "start_time": 0.0,
+      "end_time": 30.0,
+      "text": "The Hallmark design system eliminates AI slop with tokenized dark technical palettes."
+    },
+    {
+      "id": "chunk_workstation_ui_02",
+      "video_id": "vid_workstation_ui",
+      "start_time": 30.0,
+      "end_time": 60.0,
+      "text": "HTML5 video streaming uses HTTP 206 Partial Content Range headers for instant seeking."
+    },
+    {
+      "id": "chunk_workstation_ui_03",
+      "video_id": "vid_workstation_ui",
+      "start_time": 60.0,
+      "end_time": 90.0,
+      "text": "The precision video scrubber supports variable playback rates from 0.75x to 2x speed."
+    },
+    {
+      "id": "chunk_workstation_ui_04",
+      "video_id": "vid_workstation_ui",
+      "start_time": 90.0,
+      "end_time": 120.0,
+      "text": "Multi-track synchronized timelines display transcripts, visual scenes, and AI chapters together."
+    },
+    {
+      "id": "chunk_workstation_ui_05",
+      "video_id": "vid_workstation_ui",
+      "start_time": 120.0,
+      "end_time": 150.0,
+      "text": "Clicking a transcript citation instantly jumps the HTML5 video player to that timestamp."
+    },
+    {
+      "id": "chunk_workstation_ui_06",
+      "video_id": "vid_workstation_ui",
+      "start_time": 150.0,
+      "end_time": 180.0,
+      "text": "Dark mode background colors use high contrast token #060911 for developer focus."
+    },
+    {
+      "id": "chunk_workstation_ui_07",
+      "video_id": "vid_workstation_ui",
+      "start_time": 180.0,
+      "end_time": 210.0,
+      "text": "CSS overflow-x clip prevents horizontal layout shifts during timeline animations."
+    },
+    {
+      "id": "chunk_workstation_ui_08",
+      "video_id": "vid_workstation_ui",
+      "start_time": 210.0,
+      "end_time": 240.0,
+      "text": "The reduced motion media query disables animations for users with vestibular sensitivity."
+    },
+    {
+      "id": "chunk_workstation_ui_09",
+      "video_id": "vid_workstation_ui",
+      "start_time": 240.0,
+      "end_time": 270.0,
+      "text": "Instant focus rings with 2px offset provide accessible keyboard navigation."
+    },
+    {
+      "id": "chunk_workstation_ui_10",
+      "video_id": "vid_workstation_ui",
+      "start_time": 270.0,
+      "end_time": 300.0,
+      "text": "[On-Screen Visual Text]: Interface: 12-column fullscreen video intelligence studio workstation."
+    },
+    {
+      "id": "chunk_security_hardening_01",
+      "video_id": "vid_security_hardening",
+      "start_time": 0.0,
+      "end_time": 30.0,
+      "text": "Deny-by-default filesystem roots reject path traversal attempts outside allowed directories."
+    },
+    {
+      "id": "chunk_security_hardening_02",
+      "video_id": "vid_security_hardening",
+      "start_time": 30.0,
+      "end_time": 60.0,
+      "text": "Canonical path resolution prevents directory traversal via dot-dot and symlink escapes."
+    },
+    {
+      "id": "chunk_security_hardening_03",
+      "video_id": "vid_security_hardening",
+      "start_time": 60.0,
+      "end_time": 90.0,
+      "text": "Source video files are strictly immutable; index deletion never removes source media."
+    },
+    {
+      "id": "chunk_security_hardening_04",
+      "video_id": "vid_security_hardening",
+      "start_time": 90.0,
+      "end_time": 120.0,
+      "text": "The backend API binds exclusively to loopback 127.0.0.1 by default for local privacy."
+    },
+    {
+      "id": "chunk_security_hardening_05",
+      "video_id": "vid_security_hardening",
+      "start_time": 120.0,
+      "end_time": 150.0,
+      "text": "Media-derived text is sanitized before prompt assembly to neutralize prompt injections."
+    },
+    {
+      "id": "chunk_security_hardening_06",
+      "video_id": "vid_security_hardening",
+      "start_time": 150.0,
+      "end_time": 180.0,
+      "text": "Zero remote telemetry and zero silent cloud fallbacks preserve user data confidentiality."
+    },
+    {
+      "id": "chunk_security_hardening_07",
+      "video_id": "vid_security_hardening",
+      "start_time": 180.0,
+      "end_time": 210.0,
+      "text": "CycloneDX SBOM artifacts inventory all dependencies and licenses for audit compliance."
+    },
+    {
+      "id": "chunk_security_hardening_08",
+      "video_id": "vid_security_hardening",
+      "start_time": 210.0,
+      "end_time": 240.0,
+      "text": "Non-destructive doctor diagnostics inspect system readiness without mutating local state."
+    },
+    {
+      "id": "chunk_security_hardening_09",
+      "video_id": "vid_security_hardening",
+      "start_time": 240.0,
+      "end_time": 270.0,
+      "text": "FastMCP agent tools enforce a read-only contract preventing unauthorized file publishing."
+    },
+    {
+      "id": "chunk_security_hardening_10",
+      "video_id": "vid_security_hardening",
+      "start_time": 270.0,
+      "end_time": 300.0,
+      "text": "[On-Screen Visual Text]: Policy: Strict IP Boundary protecting commercial Creator OS secrets."
+    }
+  ],
+  "queries": [
+    {
+      "query_id": "q_001",
+      "domain": "ffmpeg_pipeline",
+      "query": "FFmpeg audio extraction 16kHz mono WAV",
+      "relevant_ids": [
+        "chunk_ffmpeg_pipeline_01"
+      ]
+    },
+    {
+      "query_id": "q_002",
+      "domain": "ffmpeg_pipeline",
+      "query": "ffprobe container duration resolution codec",
+      "relevant_ids": [
+        "chunk_ffmpeg_pipeline_02"
+      ]
+    },
+    {
+      "query_id": "q_003",
+      "domain": "ffmpeg_pipeline",
+      "query": "H.264 libx264 software video decoding CPU",
+      "relevant_ids": [
+        "chunk_ffmpeg_pipeline_03"
+      ]
+    },
+    {
+      "query_id": "q_004",
+      "domain": "ffmpeg_pipeline",
+      "query": "ffmpeg keyframe thumbnail generation 1-second intervals",
+      "relevant_ids": [
+        "chunk_ffmpeg_pipeline_04"
+      ]
+    },
+    {
+      "query_id": "q_005",
+      "domain": "ffmpeg_pipeline",
+      "query": "imageio-ffmpeg bundled fallback binary",
+      "relevant_ids": [
+        "chunk_ffmpeg_pipeline_05"
+      ]
+    },
+    {
+      "query_id": "q_006",
+      "domain": "ffmpeg_pipeline",
+      "query": "lossless video trimming ffmpeg c copy",
+      "relevant_ids": [
+        "chunk_ffmpeg_pipeline_06"
+      ]
+    },
+    {
+      "query_id": "q_007",
+      "domain": "ffmpeg_pipeline",
+      "query": "ffmpeg stderr probe parsing fallback",
+      "relevant_ids": [
+        "chunk_ffmpeg_pipeline_07"
+      ]
+    },
+    {
+      "query_id": "q_008",
+      "domain": "ffmpeg_pipeline",
+      "query": "lavfi testsrc synthetic test video generation",
+      "relevant_ids": [
+        "chunk_ffmpeg_pipeline_08"
+      ]
+    },
+    {
+      "query_id": "q_009",
+      "domain": "ffmpeg_pipeline",
+      "query": "WebM Matroska container Opus Vorbis audio",
+      "relevant_ids": [
+        "chunk_ffmpeg_pipeline_09"
+      ]
+    },
+    {
+      "query_id": "q_010",
+      "domain": "ffmpeg_pipeline",
+      "query": "visual slide video media ingestion pipeline architecture",
+      "relevant_ids": [
+        "chunk_ffmpeg_pipeline_10"
+      ]
+    },
+    {
+      "query_id": "q_011",
+      "domain": "speech_recognition",
+      "query": "Faster-Whisper CTranslate2 quantized offline ASR",
+      "relevant_ids": [
+        "chunk_speech_recognition_01"
+      ]
+    },
+    {
+      "query_id": "q_012",
+      "domain": "speech_recognition",
+      "query": "CTranslate2 int8 quantization RAM accuracy",
+      "relevant_ids": [
+        "chunk_speech_recognition_02"
+      ]
+    },
+    {
+      "query_id": "q_013",
+      "domain": "speech_recognition",
+      "query": "Whisper language detection Hindi Hinglish code-switching",
+      "relevant_ids": [
+        "chunk_speech_recognition_03"
+      ]
+    },
+    {
+      "query_id": "q_014",
+      "domain": "speech_recognition",
+      "query": "millisecond timestamp preservation speech segments",
+      "relevant_ids": [
+        "chunk_speech_recognition_04"
+      ]
+    },
+    {
+      "query_id": "q_015",
+      "domain": "speech_recognition",
+      "query": "offline local CPU transcription no cloud API",
+      "relevant_ids": [
+        "chunk_speech_recognition_05"
+      ]
+    },
+    {
+      "query_id": "q_016",
+      "domain": "speech_recognition",
+      "query": "Whisper temperature sampling fallback low confidence",
+      "relevant_ids": [
+        "chunk_speech_recognition_06"
+      ]
+    },
+    {
+      "query_id": "q_017",
+      "domain": "speech_recognition",
+      "query": "VAD voice activity detection audio silence filtering",
+      "relevant_ids": [
+        "chunk_speech_recognition_07"
+      ]
+    },
+    {
+      "query_id": "q_018",
+      "domain": "speech_recognition",
+      "query": "CTranslate2 AVX2 CPU matrix multiplication",
+      "relevant_ids": [
+        "chunk_speech_recognition_08"
+      ]
+    },
+    {
+      "query_id": "q_019",
+      "domain": "speech_recognition",
+      "query": "transcript segment confidence score metric",
+      "relevant_ids": [
+        "chunk_speech_recognition_09"
+      ]
+    },
+    {
+      "query_id": "q_020",
+      "domain": "speech_recognition",
+      "query": "terminal faster-whisper model base cpu int8 command",
+      "relevant_ids": [
+        "chunk_speech_recognition_10"
+      ]
+    },
+    {
+      "query_id": "q_021",
+      "domain": "scene_detection",
+      "query": "PySceneDetect color histogram visual scene cut detection",
+      "relevant_ids": [
+        "chunk_scene_detection_01"
+      ]
+    },
+    {
+      "query_id": "q_022",
+      "domain": "scene_detection",
+      "query": "ContentDetector abrupt camera cuts threshold delta",
+      "relevant_ids": [
+        "chunk_scene_detection_02"
+      ]
+    },
+    {
+      "query_id": "q_023",
+      "domain": "scene_detection",
+      "query": "midpoint keyframe extraction video scene boundaries",
+      "relevant_ids": [
+        "chunk_scene_detection_03"
+      ]
+    },
+    {
+      "query_id": "q_024",
+      "domain": "scene_detection",
+      "query": "AdaptiveDetector gradual fades dissolves video cuts",
+      "relevant_ids": [
+        "chunk_scene_detection_04"
+      ]
+    },
+    {
+      "query_id": "q_025",
+      "domain": "scene_detection",
+      "query": "scene records start end duration thumbnail path",
+      "relevant_ids": [
+        "chunk_scene_detection_05"
+      ]
+    },
+    {
+      "query_id": "q_026",
+      "domain": "scene_detection",
+      "query": "threshold fallback low-motion presentation videos",
+      "relevant_ids": [
+        "chunk_scene_detection_06"
+      ]
+    },
+    {
+      "query_id": "q_027",
+      "domain": "scene_detection",
+      "query": "frame downscaling acceleration PySceneDetect",
+      "relevant_ids": [
+        "chunk_scene_detection_07"
+      ]
+    },
+    {
+      "query_id": "q_028",
+      "domain": "scene_detection",
+      "query": "scene boundaries visual keyframes chapter candidates",
+      "relevant_ids": [
+        "chunk_scene_detection_08"
+      ]
+    },
+    {
+      "query_id": "q_029",
+      "domain": "scene_detection",
+      "query": "JPEG keyframe images storage data thumbnails",
+      "relevant_ids": [
+        "chunk_scene_detection_09"
+      ]
+    },
+    {
+      "query_id": "q_030",
+      "domain": "scene_detection",
+      "query": "graph delta intensity curves scene transitions",
+      "relevant_ids": [
+        "chunk_scene_detection_10"
+      ]
+    },
+    {
+      "query_id": "q_031",
+      "domain": "vector_embeddings",
+      "query": "ChromaDB local persistent vector storage directory",
+      "relevant_ids": [
+        "chunk_vector_embeddings_01"
+      ]
+    },
+    {
+      "query_id": "q_032",
+      "domain": "vector_embeddings",
+      "query": "all-MiniLM-L6-v2 384-dimensional dense semantic vectors",
+      "relevant_ids": [
+        "chunk_vector_embeddings_02"
+      ]
+    },
+    {
+      "query_id": "q_033",
+      "domain": "vector_embeddings",
+      "query": "cosine similarity L2-normalized embedding vectors",
+      "relevant_ids": [
+        "chunk_vector_embeddings_03"
+      ]
+    },
+    {
+      "query_id": "q_034",
+      "domain": "vector_embeddings",
+      "query": "ChromaDB collections transcript chunks metadata",
+      "relevant_ids": [
+        "chunk_vector_embeddings_04"
+      ]
+    },
+    {
+      "query_id": "q_035",
+      "domain": "vector_embeddings",
+      "query": "dense retrieval semantically equivalent phrasing",
+      "relevant_ids": [
+        "chunk_vector_embeddings_05"
+      ]
+    },
+    {
+      "query_id": "q_036",
+      "domain": "vector_embeddings",
+      "query": "overlapping 30-second window transcript chunking",
+      "relevant_ids": [
+        "chunk_vector_embeddings_06"
+      ]
+    },
+    {
+      "query_id": "q_037",
+      "domain": "vector_embeddings",
+      "query": "batch embedding generation PyTorch forward pass",
+      "relevant_ids": [
+        "chunk_vector_embeddings_07"
+      ]
+    },
+    {
+      "query_id": "q_038",
+      "domain": "vector_embeddings",
+      "query": "HuggingFace sentence-transformers offline cached weights",
+      "relevant_ids": [
+        "chunk_vector_embeddings_08"
+      ]
+    },
+    {
+      "query_id": "q_039",
+      "domain": "vector_embeddings",
+      "query": "vector ID SQLite embedding record mapping",
+      "relevant_ids": [
+        "chunk_vector_embeddings_09"
+      ]
+    },
+    {
+      "query_id": "q_040",
+      "domain": "vector_embeddings",
+      "query": "diagram 384-dimensional vector space clustering",
+      "relevant_ids": [
+        "chunk_vector_embeddings_10"
+      ]
+    },
+    {
+      "query_id": "q_041",
+      "domain": "lexical_fts5",
+      "query": "SQLite FTS5 BM25 ranked full-text keyword search",
+      "relevant_ids": [
+        "chunk_lexical_fts5_01"
+      ]
+    },
+    {
+      "query_id": "q_042",
+      "domain": "lexical_fts5",
+      "query": "exact technical acronym retrieval RRF MCP ASR",
+      "relevant_ids": [
+        "chunk_lexical_fts5_02"
+      ]
+    },
+    {
+      "query_id": "q_043",
+      "domain": "lexical_fts5",
+      "query": "porter stemmer word normalization index indexed",
+      "relevant_ids": [
+        "chunk_lexical_fts5_03"
+      ]
+    },
+    {
+      "query_id": "q_044",
+      "domain": "lexical_fts5",
+      "query": "FTS5 match syntax prefix queries wildcard asterisk",
+      "relevant_ids": [
+        "chunk_lexical_fts5_04"
+      ]
+    },
+    {
+      "query_id": "q_045",
+      "domain": "lexical_fts5",
+      "query": "SQLite FTS5 snippet function highlighted search terms",
+      "relevant_ids": [
+        "chunk_lexical_fts5_05"
+      ]
+    },
+    {
+      "query_id": "q_046",
+      "domain": "lexical_fts5",
+      "query": "SQLite relational metadata FTS5 rowid foreign key",
+      "relevant_ids": [
+        "chunk_lexical_fts5_06"
+      ]
+    },
+    {
+      "query_id": "q_047",
+      "domain": "lexical_fts5",
+      "query": "BM25 term frequency inverse document frequency",
+      "relevant_ids": [
+        "chunk_lexical_fts5_07"
+      ]
+    },
+    {
+      "query_id": "q_048",
+      "domain": "lexical_fts5",
+      "query": "SQLite ACID compliance batch index insertion",
+      "relevant_ids": [
+        "chunk_lexical_fts5_08"
+      ]
+    },
+    {
+      "query_id": "q_049",
+      "domain": "lexical_fts5",
+      "query": "FTS5 contentless table disk optimization",
+      "relevant_ids": [
+        "chunk_lexical_fts5_09"
+      ]
+    },
+    {
+      "query_id": "q_050",
+      "domain": "lexical_fts5",
+      "query": "SQL SELECT snippet query transcript segments fts",
+      "relevant_ids": [
+        "chunk_lexical_fts5_10"
+      ]
+    },
+    {
+      "query_id": "q_051",
+      "domain": "cross_encoder_rerank",
+      "query": "cross-encoder query passage joint scoring cross-attention",
+      "relevant_ids": [
+        "chunk_cross_encoder_rerank_01"
+      ]
+    },
+    {
+      "query_id": "q_052",
+      "domain": "cross_encoder_rerank",
+      "query": "ms-marco-MiniLM-L-6-v2 re-ranking model accuracy",
+      "relevant_ids": [
+        "chunk_cross_encoder_rerank_02"
+      ]
+    },
+    {
+      "query_id": "q_053",
+      "domain": "cross_encoder_rerank",
+      "query": "two-stage retrieval bi-encoder candidate cross-encoder",
+      "relevant_ids": [
+        "chunk_cross_encoder_rerank_03"
+      ]
+    },
+    {
+      "query_id": "q_054",
+      "domain": "cross_encoder_rerank",
+      "query": "cross-encoder resolves lexical ambiguity cosine similarity",
+      "relevant_ids": [
+        "chunk_cross_encoder_rerank_04"
+      ]
+    },
+    {
+      "query_id": "q_055",
+      "domain": "cross_encoder_rerank",
+      "query": "top-20 candidates stage 1 stage 2 re-ranking",
+      "relevant_ids": [
+        "chunk_cross_encoder_rerank_05"
+      ]
+    },
+    {
+      "query_id": "q_056",
+      "domain": "cross_encoder_rerank",
+      "query": "PyTorch eval mode deterministic re-ranking scores",
+      "relevant_ids": [
+        "chunk_cross_encoder_rerank_06"
+      ]
+    },
+    {
+      "query_id": "q_057",
+      "domain": "cross_encoder_rerank",
+      "query": "softmax normalization raw logits bounded probabilities",
+      "relevant_ids": [
+        "chunk_cross_encoder_rerank_07"
+      ]
+    },
+    {
+      "query_id": "q_058",
+      "domain": "cross_encoder_rerank",
+      "query": "latency profiling cross-encoder attention millisecond cost",
+      "relevant_ids": [
+        "chunk_cross_encoder_rerank_08"
+      ]
+    },
+    {
+      "query_id": "q_059",
+      "domain": "cross_encoder_rerank",
+      "query": "cross-encoder NDCG@10 increase over baseline",
+      "relevant_ids": [
+        "chunk_cross_encoder_rerank_09"
+      ]
+    },
+    {
+      "query_id": "q_060",
+      "domain": "cross_encoder_rerank",
+      "query": "benchmark Bi-Encoder Recall Cross-Encoder MRR chart",
+      "relevant_ids": [
+        "chunk_cross_encoder_rerank_10"
+      ]
+    },
+    {
+      "query_id": "q_061",
+      "domain": "rank_fusion",
+      "query": "Reciprocal Rank Fusion RRF diverse ranking merge",
+      "relevant_ids": [
+        "chunk_rank_fusion_01"
+      ]
+    },
+    {
+      "query_id": "q_062",
+      "domain": "rank_fusion",
+      "query": "RRF constant k parameter 60 soften rank bias",
+      "relevant_ids": [
+        "chunk_rank_fusion_02"
+      ]
+    },
+    {
+      "query_id": "q_063",
+      "domain": "rank_fusion",
+      "query": "RRF formula sum 1 over k plus rank index",
+      "relevant_ids": [
+        "chunk_rank_fusion_03"
+      ]
+    },
+    {
+      "query_id": "q_064",
+      "domain": "rank_fusion",
+      "query": "hybrid search dense vector BM25 lexical RRF",
+      "relevant_ids": [
+        "chunk_rank_fusion_04"
+      ]
+    },
+    {
+      "query_id": "q_065",
+      "domain": "rank_fusion",
+      "query": "documents in both semantic lexical results high score",
+      "relevant_ids": [
+        "chunk_rank_fusion_05"
+      ]
+    },
+    {
+      "query_id": "q_066",
+      "domain": "rank_fusion",
+      "query": "RRF no score calibration scale normalization needed",
+      "relevant_ids": [
+        "chunk_rank_fusion_06"
+      ]
+    },
+    {
+      "query_id": "q_067",
+      "domain": "rank_fusion",
+      "query": "weighted RRF tuning relative vector keyword influence",
+      "relevant_ids": [
+        "chunk_rank_fusion_07"
+      ]
+    },
+    {
+      "query_id": "q_068",
+      "domain": "rank_fusion",
+      "query": "rank fusion prevents recall failure rare domain jargon",
+      "relevant_ids": [
+        "chunk_rank_fusion_08"
+      ]
+    },
+    {
+      "query_id": "q_069",
+      "domain": "rank_fusion",
+      "query": "evaluation harness dense lexical RRF retrieval comparison",
+      "relevant_ids": [
+        "chunk_rank_fusion_09"
+      ]
+    },
+    {
+      "query_id": "q_070",
+      "domain": "rank_fusion",
+      "query": "formula RRF score math equation sum over rank",
+      "relevant_ids": [
+        "chunk_rank_fusion_10"
+      ]
+    },
+    {
+      "query_id": "q_071",
+      "domain": "mcp_protocol",
+      "query": "Model Context Protocol MCP AI agents local video tools",
+      "relevant_ids": [
+        "chunk_mcp_protocol_01"
+      ]
+    },
+    {
+      "query_id": "q_072",
+      "domain": "mcp_protocol",
+      "query": "FastMCP STDIO transport JSON-RPC stdin stdout",
+      "relevant_ids": [
+        "chunk_mcp_protocol_02"
+      ]
+    },
+    {
+      "query_id": "q_073",
+      "domain": "mcp_protocol",
+      "query": "MCP server logging routed to stderr avoid stream corruption",
+      "relevant_ids": [
+        "chunk_mcp_protocol_03"
+      ]
+    },
+    {
+      "query_id": "q_074",
+      "domain": "mcp_protocol",
+      "query": "list_videos MCP tool paged media inventory status filter",
+      "relevant_ids": [
+        "chunk_mcp_protocol_04"
+      ]
+    },
+    {
+      "query_id": "q_075",
+      "domain": "mcp_protocol",
+      "query": "search_video_content MCP tool hybrid search timestamps",
+      "relevant_ids": [
+        "chunk_mcp_protocol_05"
+      ]
+    },
+    {
+      "query_id": "q_076",
+      "domain": "mcp_protocol",
+      "query": "find_video_clips MCP tool duration limits bounds",
+      "relevant_ids": [
+        "chunk_mcp_protocol_06"
+      ]
+    },
+    {
+      "query_id": "q_077",
+      "domain": "mcp_protocol",
+      "query": "summarize_video MCP tool grounded transcript summary",
+      "relevant_ids": [
+        "chunk_mcp_protocol_07"
+      ]
+    },
+    {
+      "query_id": "q_078",
+      "domain": "mcp_protocol",
+      "query": "Claude Desktop connection claude_desktop_config.json",
+      "relevant_ids": [
+        "chunk_mcp_protocol_08"
+      ]
+    },
+    {
+      "query_id": "q_079",
+      "domain": "mcp_protocol",
+      "query": "export_video_clip tool gated developer opt-in security",
+      "relevant_ids": [
+        "chunk_mcp_protocol_09"
+      ]
+    },
+    {
+      "query_id": "q_080",
+      "domain": "mcp_protocol",
+      "query": "JSON mcpServers configuration snippet Claude Cursor",
+      "relevant_ids": [
+        "chunk_mcp_protocol_10"
+      ]
+    },
+    {
+      "query_id": "q_081",
+      "domain": "workstation_ui",
+      "query": "Hallmark design system tokenized dark technical palette",
+      "relevant_ids": [
+        "chunk_workstation_ui_01"
+      ]
+    },
+    {
+      "query_id": "q_082",
+      "domain": "workstation_ui",
+      "query": "HTTP 206 Partial Content Range headers instant video seeking",
+      "relevant_ids": [
+        "chunk_workstation_ui_02"
+      ]
+    },
+    {
+      "query_id": "q_083",
+      "domain": "workstation_ui",
+      "query": "precision video scrubber variable playback speed 0.75x 2x",
+      "relevant_ids": [
+        "chunk_workstation_ui_03"
+      ]
+    },
+    {
+      "query_id": "q_084",
+      "domain": "workstation_ui",
+      "query": "multi-track synchronized timeline transcript scenes chapters",
+      "relevant_ids": [
+        "chunk_workstation_ui_04"
+      ]
+    },
+    {
+      "query_id": "q_085",
+      "domain": "workstation_ui",
+      "query": "clicking transcript citation jumps HTML5 video player timestamp",
+      "relevant_ids": [
+        "chunk_workstation_ui_05"
+      ]
+    },
+    {
+      "query_id": "q_086",
+      "domain": "workstation_ui",
+      "query": "dark mode background high contrast token #060911",
+      "relevant_ids": [
+        "chunk_workstation_ui_06"
+      ]
+    },
+    {
+      "query_id": "q_087",
+      "domain": "workstation_ui",
+      "query": "CSS overflow-x clip prevents horizontal layout shifts",
+      "relevant_ids": [
+        "chunk_workstation_ui_07"
+      ]
+    },
+    {
+      "query_id": "q_088",
+      "domain": "workstation_ui",
+      "query": "reduced motion media query disabled animations accessibility",
+      "relevant_ids": [
+        "chunk_workstation_ui_08"
+      ]
+    },
+    {
+      "query_id": "q_089",
+      "domain": "workstation_ui",
+      "query": "instant focus rings 2px offset accessible keyboard navigation",
+      "relevant_ids": [
+        "chunk_workstation_ui_09"
+      ]
+    },
+    {
+      "query_id": "q_090",
+      "domain": "workstation_ui",
+      "query": "interface 12-column fullscreen video intelligence workstation",
+      "relevant_ids": [
+        "chunk_workstation_ui_10"
+      ]
+    },
+    {
+      "query_id": "q_091",
+      "domain": "security_hardening",
+      "query": "deny-by-default filesystem roots reject path traversal",
+      "relevant_ids": [
+        "chunk_security_hardening_01"
+      ]
+    },
+    {
+      "query_id": "q_092",
+      "domain": "security_hardening",
+      "query": "canonical path resolution prevents dot-dot symlink escapes",
+      "relevant_ids": [
+        "chunk_security_hardening_02"
+      ]
+    },
+    {
+      "query_id": "q_093",
+      "domain": "security_hardening",
+      "query": "source video files immutable index deletion never removes media",
+      "relevant_ids": [
+        "chunk_security_hardening_03"
+      ]
+    },
+    {
+      "query_id": "q_094",
+      "domain": "security_hardening",
+      "query": "backend API binds loopback 127.0.0.1 local privacy default",
+      "relevant_ids": [
+        "chunk_security_hardening_04"
+      ]
+    },
+    {
+      "query_id": "q_095",
+      "domain": "security_hardening",
+      "query": "media-derived text sanitized neutralize prompt injections",
+      "relevant_ids": [
+        "chunk_security_hardening_05"
+      ]
+    },
+    {
+      "query_id": "q_096",
+      "domain": "security_hardening",
+      "query": "zero remote telemetry zero cloud fallback user confidentiality",
+      "relevant_ids": [
+        "chunk_security_hardening_06"
+      ]
+    },
+    {
+      "query_id": "q_097",
+      "domain": "security_hardening",
+      "query": "CycloneDX SBOM inventory dependencies licenses audit",
+      "relevant_ids": [
+        "chunk_security_hardening_07"
+      ]
+    },
+    {
+      "query_id": "q_098",
+      "domain": "security_hardening",
+      "query": "non-destructive doctor diagnostics system readiness check",
+      "relevant_ids": [
+        "chunk_security_hardening_08"
+      ]
+    },
+    {
+      "query_id": "q_099",
+      "domain": "security_hardening",
+      "query": "FastMCP agent tools read-only contract prevent file publishing",
+      "relevant_ids": [
+        "chunk_security_hardening_09"
+      ]
+    },
+    {
+      "query_id": "q_100",
+      "domain": "security_hardening",
+      "query": "policy strict IP boundary commercial Creator OS secrets",
+      "relevant_ids": [
+        "chunk_security_hardening_10"
+      ]
+    }
+  ]
+}

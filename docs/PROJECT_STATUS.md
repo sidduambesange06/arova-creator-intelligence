@@ -58,9 +58,16 @@ Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PL
 
 ### Dedicated Launch 01 Release Readiness Audit (COMPLETED)
 - [x] **Requirement Traceability:** 35/35 requirements audited individually with direct evidence (33 VERIFIED, 2 PARTIALLY VERIFIED, 0 NOT VERIFIED).
-- [x] **Release Gate Completeness:** Identified 4 not-yet-implemented stress gates and 3 manual verification requirements.
+- [x] **Release Gate Completeness:** Identified 4 stress gates and 3 manual verification requirements.
 - [x] **MCP Security Boundary:** 8 read-only tools default contract verified; `export_video_clip` requires explicit opt-in.
 - [x] **Client Integrations:** Differentiated verified STDIO schema from physical desktop GUI manual testing.
 - [x] **Open-Source Governance:** All 8 governance documents verified under Apache-2.0.
 - [x] **FFmpeg Fallback:** Software decoding and ffmpeg -i fallback when ffprobe is absent verified by unit test.
-- [x] **Release Gate Script Hardened:** Reports passed, failed, warnings, not-yet-implemented gates, and manual requirements. Public release authorization strictly BLOCKED pending stress tests.
+- [x] **Release Gate Script Hardened:** Reports passed, failed, warnings, not-yet-implemented gates, and manual requirements.
+
+### Automated Hardening & Stress Gates (COMPLETED)
+- [x] **500-Video Library Stress & Recovery:** Directory scanning, SHA-256 deduplication, mid-run abort at video 250, and resumption recovery without duplicate writes (`backend/tests/stress/test_large_library_stress.py`).
+- [x] **200+ Prompt-Injection Red-Team Corpus:** 215 diverse adversarial test cases across 9 attack vectors with prompt sanitization defense (`sample_data/redteam_prompt_injections.json`, `backend/tests/security/test_prompt_injection_redteam.py`).
+- [x] **100-Query Multimodal Visual Retrieval Benchmark:** 100 queries evaluated on speech and on-screen OCR text; Stage 2 Cross-Encoder achieved MRR@10=1.0000, NDCG@10=1.0000; p50 total latency 15.91ms (`sample_data/visual_retrieval_golden_100.json`, `reports/audit/BENCHMARK_100_QUERIES.md`).
+- [x] **Fault-Injection Resiliency:** ENOSPC disk-full cleanup, zero-byte/truncated media rejection, worker SIGINT abort handling, and SQLite WAL crash recovery verified (`backend/tests/stress/test_fault_injection.py`).
+- [x] **Automated Release Gate Passing:** 12/12 automated checks pass in `scripts/release_gate.py`. Public release authorization strictly BLOCKED pending external non-developer installs and desktop GUI client confirmation.
