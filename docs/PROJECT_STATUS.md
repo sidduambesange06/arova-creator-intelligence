@@ -54,4 +54,4 @@ Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PL
 - [x] **TASK-008 (WS-CLI, REQ-023):** Thin Python client wrapper `arova-client` (COMPLETED; zero-dependency `ArovaClient` calling health, videos, search, ask; 4 tests passed).
 - [x] **TASK-009 (WS-DOC, REQ-033):** Tested client integration matrices in `docs/INTEGRATIONS.md` (COMPLETED; Claude Desktop, Cursor, Gemini Antigravity, Copilot, 4-tier support policy).
 - [x] **TASK-010 (WS-DOC, REQ-031):** Open-source community governance documents (COMPLETED; `NOTICE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`).
-- [ ] **TASK-011 (WS-QA, REQ-029):** Automated release gate verification script `scripts/release_gate.py` (NOT IMPLEMENTED; end-to-end verification gate).
+- [x] **TASK-011 (WS-QA, REQ-029):** Automated release gate verification script `scripts/release_gate.py` (COMPLETED; single-command verification passed all 7 release gates).

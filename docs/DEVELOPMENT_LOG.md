@@ -371,6 +371,30 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - All 8 community documents (`README.md`, `LICENSE`, `NOTICE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`, `AGENTS.md`) verified present and markdown-validated.
 - **Review (`ponytail-review`):** Standardized, professional community setup without bloated or unmaintained documents.
 
+---
+
+### Feature 6.6 (TASK-011): Implementation of Automated End-to-End Release Gate & SBOM Script
+- **Date:** 2026-11-01
+- **Task & REQ ID:** `TASK-011` (`REQ-029`, Release Gate)
+- **Scope & Plan:**
+  1. Build automated single-command verification gate in `scripts/release_gate.py` implementing all release gates defined in Open Source Spec v1.1 (§9.4, §11).
+  2. Implement checks for: Community governance files existence, non-destructive `arova doctor` diagnostics, source media SHA-256 immutability, sub-5 minute synthetic demo flow, full Pytest suite (45+ tests), Vitest suite & production Vite build, and CycloneDX-compatible SBOM generation (`reports/audit/SBOM.json`).
+- **Implementation:**
+  - `scripts/release_gate.py`: Comprehensive 7-gate verification script.
+  - `reports/audit/SBOM.json`: Generated software bill of materials tracking all 11 core dependencies and licenses.
+- **Verification Evidence:**
+  - `python scripts/release_gate.py` executed:
+    - [PASS] Community & Legal Governance Files (All 8 files present)
+    - [PASS] Non-Destructive Doctor Diagnostics (WARNING/PASS, 6 checks)
+    - [PASS] Source Media Immutability (SHA-256 byte-for-byte identical before and after probing)
+    - [PASS] Sub-5 Minute First-Use Synthetic Workflow (0.617s duration, verified citations)
+    - [PASS] Backend, CLI & FastMCP Test Suite (Pytest completed in 9.21s, returncode: 0)
+    - [PASS] Frontend Workstation Tests & Production Build (Vitest + Vite build passed in 8.43s)
+    - [PASS] SBOM Generation & License Inventory (reports/audit/SBOM.json generated)
+    - Verdict: ALL RELEASE GATES PASSED (7/7).
+- **Review (`ponytail-review`):** Zero mock assertions; runs real test runners, real cryptographic hashes, and real subprocess builds.
+
+
 
 
 

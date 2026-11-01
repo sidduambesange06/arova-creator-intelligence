@@ -42,7 +42,7 @@
 | **TASK-008** | `REQ-023` | `WS-CLI` | Package Thin Python Client Wrapper (`arova-client`) | `DONE` | Lightweight, typed Python wrapper exposing `health()`, `search()`, `videos()`, `ask()`. | `tests/cli/test_client.py` (4 passed in 0.06s) |
 | **TASK-009** | `REQ-033` | `WS-DOC` | Finalize Tested Client Matrices (`docs/INTEGRATIONS.md`) | `DONE` | Tested configurations for Claude Desktop, Cursor, and Gemini Antigravity with verified screenshots/logs. | `docs/INTEGRATIONS.md` |
 | **TASK-010** | `REQ-031` | `WS-DOC` | Open-Source Governance & Community Documents | `DONE` | Create root `NOTICE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`. | Verified all files present and compliant with Apache 2.0 |
-| **TASK-011** | `REQ-029`, Release Gate | `WS-QA` | Automated End-to-End Release Gate Script (`scripts/release_gate.py`) | Pytest + Vitest | Single-command gate validating all 31+ unit tests, frontend build, source immutability, and license inventory. | `python scripts/release_gate.py` |
+| **TASK-011** | `REQ-029`, Release Gate | `WS-QA` | Automated End-to-End Release Gate Script (`scripts/release_gate.py`) | `DONE` | Single-command gate validating all 49+ unit tests, frontend build, source immutability, and license inventory. | `scripts/release_gate.py` (7/7 gates PASSED) |
 
 ---
 
