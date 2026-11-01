@@ -22,7 +22,18 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[DEVELOPMENT_LOG]] | [[K
 - **Decision:** Extract on-screen text from keyframe thumbnails and fuse it directly into sliding-window transcript chunks tagged with `[On-Screen Visual Text]: ...`. Tag search matches with their channel (`speech`, `visual`, `multimodal`).
 - **Consequences:** Unifies speech and visual slide text in both dense vector and lexical FTS5 retrieval.
 
-## ADR-005: Grounded Video Q&A with Timecode Citations
-- **Context:** Users and AI agents need factual answers to video questions with verifiable timecode receipts rather than unsupported summaries.
-- **Decision:** Synthesize grounded answers strictly from verified transcript chunks, formatting citations as clickable time intervals `[mm:ss - mm:ss]` that seek the video player.
-- **Consequences:** Prevents hallucination; binds every answer to observable video evidence.
+## ADR-005: FastMCP Default Read-Only Isolation & Developer Opt-In for Exports
+- **Context:** Open Source Spec v1.1 (§3.2, §15.3) dictates that AI agents in Launch 01 must only have read-only tools. The `export_video_clip` tool writes MP4 subclips to disk.
+- **Decision:** Isolate the default MCP toolset to strictly the 8 read-only retrieval tools. Gate `export_video_clip` behind an explicit developer opt-in (`AROVA_ENABLE_MCP_EXPORTS=1` or `--enable-exports`).
+- **Consequences:** Strictly enforces the read-only agent contract while preserving subclip slicing capability for explicit developer opt-in. (Implemented in commit `13dd684`).
+
+## ADR-006: Canonical Task Numbering & Deliverable Separation for Launch 01
+- **Context:** Early drafts assigned `TASK-010` to the automated release gate, while community governance documents (`NOTICE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` per Spec §10.2) were informal deliverables.
+- **Decision:** Reconcile task IDs into a single canonical sequence:
+  - `TASK-006`: `arova doctor` diagnostic CLI command (`WS-CLI`, `REQ-024`) — `NOT IMPLEMENTED`
+  - `TASK-007`: `arova demo` synthetic first-use flow (`WS-CLI`, `REQ-025`, `REQ-032`) — `NOT IMPLEMENTED`
+  - `TASK-008`: Thin Python client wrapper `arova-client` (`WS-CLI`, `REQ-023`) — `NOT IMPLEMENTED` (frozen scope: thin REST client only)
+  - `TASK-009`: Tested client integration matrices in `docs/INTEGRATIONS.md` (`WS-DOC`, `REQ-033`) — `NOT IMPLEMENTED`
+  - `TASK-010`: Open-source community governance files (`WS-DOC`, `REQ-031`) — `NOT IMPLEMENTED`
+  - `TASK-011`: Automated release gate verification script (`WS-QA`, `REQ-029`) — `NOT IMPLEMENTED`
+- **Consequences:** Provides exact 1:1 requirement traceability across all registers and eliminates ambiguity between release verification and community documentation.

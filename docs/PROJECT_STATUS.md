@@ -39,11 +39,19 @@ Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PL
 - [x] **Grounded Video Q&A Assistant:** `POST /api/v1/ai/ask` with citations linked directly to live video player timestamps.
 - [x] **Hallmark Design Craft Refactor:** Eliminated AI slop (tokenized workstation palette `#060911`, `:focus-visible` styling, `overflow-x: clip`, reduced motion support).
 - [x] **Fullscreen Workstation & Multi-Track Studio Experience:** Full viewport canvas, custom smooth video scrubber, variable playback rates (`0.75x` - `2x`), step seek (`-5s`/`+5s`), simultaneous synchronized transcript + scene cuts + AI chapters timeline.
-- [x] **Automated Lossless Clip Export & MCP Slicing Tool:** Lossless subclip extraction (`clip_export.py` with FFmpeg stream copy `-c copy` + ultrafast fallback), API endpoints (`POST /api/v1/videos/{id}/export-clip`, `GET /api/v1/videos/clips/{filename}`).
-- [x] **7/7 System Health Audit PASS:** Automated audit across security, licensing, database, backend pytest (28/28), frontend vitest (6/6), and production build.
+- [x] **Automated Lossless Clip Export & MCP Security Boundary Fix:** Lossless subclip extraction (`clip_export.py`), API endpoints (`POST /api/v1/videos/{id}/export-clip`, `GET /api/v1/videos/clips/{filename}`), and default isolation of 8 read-only tools on MCP (`export_video_clip` requires explicit developer opt-in; commit `13dd684`).
+- [x] **System Health Audit PASS:** Automated baseline audit across security, licensing, database, backend/MCP pytest (31/31), frontend vitest (6/6), and production build.
 
 ### Autonomous Loop Reality Audit & Phase 1 Proposal (CURRENT GATE)
 - [x] **Operational State Trackers Created in `.arova-loop/`:** `CURRENT_STATE.md`, `REQUIREMENT_STATUS.md` (35 REQs), `BACKLOG.md` (P0-P3), `SOURCE_CONFLICTS.md` (5 Conflicts), `DEPENDENCIES.md`, `RISK_REGISTER.md`, `ISSUES.md`, `DECISION_LOG.md`, `PENDING_OBSIDIAN_SYNC.md`.
 - [x] **Audit Reports Published:** `reports/audit/BASELINE.md`, `reports/audit/DEPENDENCY_LICENSES.md`, `reports/security/CONTROL_GAP_ASSESSMENT.md`, `docs/FEATURE_STATUS.md`, `docs/MCP_TOOLS.md`.
 - [x] **Antigravity Skills Installed:** `arova-project-management`, `arova-engineering-loop`, `arova-obsidian-sync`, `arova-release-gate`.
 - [x] **Approval Gate Reached:** Stopping for user review of Phase 1 proposal before routine loop iterations.
+
+### Phase 1 Sequential Backlog (NOT IMPLEMENTED — Awaiting Phase 1 Approval)
+- [ ] **TASK-006 (WS-CLI, REQ-024):** `arova doctor` diagnostic CLI command (NOT IMPLEMENTED; non-destructive check of Python, FFmpeg, SQLite, disk space, and MCP readiness).
+- [ ] **TASK-007 (WS-CLI, REQ-025, REQ-032):** `arova demo` synthetic first-use flow (NOT IMPLEMENTED; 2s synthetic fixture tested in < 15s).
+- [ ] **TASK-008 (WS-CLI, REQ-023):** Thin Python client wrapper `arova-client` (NOT IMPLEMENTED; strictly frozen to thin REST client for health, search, videos, ask).
+- [ ] **TASK-009 (WS-DOC, REQ-033):** Tested client integration matrices in `docs/INTEGRATIONS.md` (NOT IMPLEMENTED; Claude Desktop, Cursor, Gemini Antigravity).
+- [ ] **TASK-010 (WS-DOC, REQ-031):** Open-source community governance documents (NOT IMPLEMENTED; `NOTICE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`).
+- [ ] **TASK-011 (WS-QA, REQ-029):** Automated release gate verification script `scripts/release_gate.py` (NOT IMPLEMENTED; end-to-end verification gate).

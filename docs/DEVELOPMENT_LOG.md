@@ -264,4 +264,18 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - System Health Audit: `scripts/system_health_audit.py` -> 7/7 PASSED (HEALTHY).
 - **Review (`ponytail-review`):** Complete reality baseline established with verified automated test evidence. Zero mock claims.
 
+---
+
+### Security Boundary Fix: FastMCP Default Read-Only Isolation (`export_video_clip` Opt-In)
+- **Date:** 2026-11-01
+- **Commit:** `13dd684` (`fix(mcp): isolate 8 read-only tools by default and update verification governance`)
+- **Files Changed:** `mcp_server/server.py`, `mcp_server/tests/test_mcp_tools.py`
+- **Reason for Change:** Open Source Spec v1.1 (§3.2, §15.3) strictly mandates that Launch 01 provides an exclusively read-only MCP interface to AI agents. `export_video_clip` performs filesystem writes to `data/clips`. It was previously registered unconditionally, exposing 9 tools.
+- **Implementation:** Refactored `server.py` with `create_mcp_server(enable_exports: bool | None = None)`. By default, exactly the 8 approved read-only tools are registered on the server. `export_video_clip` is gated behind explicit developer opt-in via environment variable (`AROVA_ENABLE_MCP_EXPORTS=1`) or CLI argument (`--enable-exports`). Added automated async tests in `mcp_server/tests/test_mcp_tools.py` validating that the default tool list has length 8 and excludes `export_video_clip`, while the opt-in server has length 9.
+- **Tests Executed:**
+  - `pytest mcp_server/tests/test_mcp_tools.py -v` -> 3/3 passed in 1.72s (`test_all_eight_mcp_tools`, `test_mcp_server_default_tools_are_eight_read_only`, `test_mcp_server_opt_in_exports`).
+  - Full suite: `pytest backend/tests mcp_server/tests -v` -> 31/31 passed in 5.09s.
+- **Resulting Behavior:** Default MCP server discovery lists strictly the 8 read-only tools. Any client attempting to call `export_video_clip` without opt-in receives an unknown tool error.
+
+
 
