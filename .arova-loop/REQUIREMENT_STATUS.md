@@ -42,6 +42,6 @@
 | **REQ-030** | Spec §9.2 | ML Evaluation Metrics Harness | `WS-QA` | Baseline | Automated calculations of MRR@10, NDCG@10, Recall@K on golden queries. | `test_eval_metrics.py::test_ranking_metrics_formulas` | `VERIFIED` |
 | **REQ-031** | Spec §10.2 | Community Documents & Governance | `WS-DOC` | `TASK-010` | Root `NOTICE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`. | Planned document review & link checks | `NOT IMPLEMENTED` |
 | **REQ-032** | Spec §15.1 | Sub-5 Minute First-Use Verification | `WS-QA` | `TASK-007` | Reference machine setup documented and verified under 5 minutes. | Verified via `arova demo` (0.74s execution; < 300s target) | `VERIFIED` |
-| **REQ-033** | Spec §15.2 | Client Integration Guides | `WS-DOC` | `TASK-009` | Tested configurations for Claude Desktop, Cursor, Gemini Antigravity. | Planned `docs/INTEGRATIONS.md` checklist | `NOT IMPLEMENTED` |
+| **REQ-033** | Spec §15.2 | Client Integration Guides | `WS-DOC` | `TASK-009` | Tested configurations for Claude Desktop, Cursor, Gemini Antigravity. | Verified in `docs/INTEGRATIONS.md` with 4-tier matrix | `VERIFIED` |
 | **REQ-034** | Spec §1.4 | Strict Commercial IP Exclusion | `WS-SEC` | Baseline | Zero Creator OS / Molty AI / Brand Deal CRM / cloud studio code. | Verified by codebase scan | `VERIFIED` |
 | **REQ-035** | Spec §1.2 | Hallmark Fullscreen Workstation UI | `WS-ENG` | Baseline | Tokenized dark workstation UI with precision scrubber and multi-track timeline. | `vitest run`, `vite build` | `VERIFIED` |

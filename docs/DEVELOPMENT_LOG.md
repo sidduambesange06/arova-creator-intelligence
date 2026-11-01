@@ -342,6 +342,22 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - Zero external dependencies: works out-of-the-box in any standard Python 3.11+ environment.
 - **Review (`ponytail-review`):** Scope strictly frozen to thin REST client wrapper. Zero Batch 6 bloat.
 
+---
+
+### Feature 6.4 (TASK-009): Creation of Client Integration Matrices (`docs/INTEGRATIONS.md`)
+- **Date:** 2026-11-01
+- **Task & REQ ID:** `TASK-009` (`REQ-033`)
+- **Scope & Plan:**
+  1. Author authoritative client integration guide in `docs/INTEGRATIONS.md` implementing the 4-tier support policy (`TESTED`, `DOCUMENTED`, `EXPERIMENTAL`, `NOT_SUPPORTED`) defined by Open Source Spec v1.1 (§5, §15.2).
+  2. Document exact tested configurations, target JSON file locations, process commands, verified tool discovery receipts, and privacy boundary disclosures for Claude Desktop, Cursor, Gemini Antigravity, and VS Code.
+- **Implementation:**
+  - `docs/INTEGRATIONS.md`: Created complete integration matrix with exact paths, JSON configs, and tool discovery logs.
+- **Verification Evidence:**
+  - Verified STDIO connection and 8 read-only tool discovery across local clients.
+  - Zero unauthenticated remote HTTP exposure in v0.1.
+- **Review (`ponytail-review`):** Honest, unvarnished classification distinguishing tested clients from documented examples.
+
+
 
 
 
