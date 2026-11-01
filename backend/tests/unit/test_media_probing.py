@@ -1,4 +1,5 @@
 from pathlib import Path
+import shutil
 import subprocess
 import pytest
 
@@ -68,4 +69,25 @@ def test_ffmpeg_metadata_probe_and_thumbnail(tmp_path: Path) -> None:
     )
     assert thumb.is_file()
     assert thumb.stat().st_size > 100
+
+
+def test_ffmpeg_metadata_probe_fallback_without_ffprobe(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify metadata extraction falls back to ffmpeg -i when ffprobe is missing."""
+    sample_mp4 = _create_sample_mp4(tmp_path / "fallback_sample.mp4", duration=2.0)
+    real_which = shutil.which
+
+    def fake_which(cmd: str) -> str | None:
+        if cmd == "ffprobe":
+            return None
+        return real_which(cmd)
+
+    monkeypatch.setattr(shutil, "which", fake_which)
+    meta = probe_video_metadata(sample_mp4)
+    assert meta.width == 320
+    assert meta.height == 240
+    assert meta.fps == 24.0
+    assert 1.8 <= meta.duration <= 2.2
+    assert meta.codec == "h264"
+    assert meta.format == "mp4"
+    assert meta.file_size > 0
 

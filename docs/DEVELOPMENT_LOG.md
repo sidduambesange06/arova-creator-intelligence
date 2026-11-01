@@ -394,6 +394,28 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
     - Verdict: ALL RELEASE GATES PASSED (7/7).
 - **Review (`ponytail-review`):** Zero mock assertions; runs real test runners, real cryptographic hashes, and real subprocess builds.
 
+---
+
+### Feature 6.7: Launch 01 Dedicated Release Readiness Audit & Gate Hardening
+- **Date:** 2026-11-01
+- **Scope & Plan:**
+  1. Complete rigorous 8-pillar Release Readiness Audit requested by Technical Lead.
+  2. Audit all 35 requirements individually (`REQ-001` through `REQ-035`) with direct evidence.
+  3. Harden `scripts/release_gate.py` to explicitly separate Passed checks, Failed checks, Warnings, Not-yet-implemented gates, Manual verification requirements, and Multi-dimensional release decisions.
+  4. Test FFmpeg software fallback when `ffprobe` is absent (`backend/tests/unit/test_media_probing.py`).
+  5. Audit and update Client Integrations matrix (`docs/INTEGRATIONS.md`) to distinguish verified STDIO schema from pending live desktop GUI manual testing.
+- **Implementation:**
+  - `backend/app/ai/evaluation/metrics.py`: Made `compute_recall_at_k` safely handle both list and set collections.
+  - `backend/tests/unit/test_media_probing.py`: Added automated test `test_ffmpeg_metadata_probe_fallback_without_ffprobe`.
+  - `docs/INTEGRATIONS.md`: Downgraded Claude Desktop and Cursor IDE to `DOCUMENTED (PARTIAL)` with clear notes on desktop GUI manual verification requirements.
+  - `scripts/release_gate.py`: Hardened to report 5 distinct categories and an explicit release decision blocking premature public distribution.
+- **Verification Evidence:**
+  - `pytest backend/tests mcp_server/tests -v`: 50 passed in 8.52s (100% pass rate).
+  - `npm test --prefix frontend -- --run`: 4 test suites (6 tests) passed in 7.20s.
+  - `npm run build --prefix frontend`: Production bundle created in 1.49s (202.57 kB).
+  - `python scripts/release_gate.py`: 8 automated checks passed, 0 failed, 2 warnings, 4 unbuilt stress gates, 3 manual verification requirements, public release authorization BLOCKED.
+- **Review (`ponytail-review`):** Zero mock data, honest reality tracking, no false claims of production readiness. All automated baseline components fully verified.
+
 
 
 

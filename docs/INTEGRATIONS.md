@@ -21,10 +21,10 @@ A configuration example alone does not constitute certified client support. Each
 
 | Client / Environment | Launch Priority | Support Level | Transport | Verified Platform(s) | Verified Tools Discovered | Maintainer / Verified Date |
 |---|---|---|---|---|---|---|
-| **Claude Desktop** | `P0` | **`TESTED`** | Local STDIO | Windows 11, macOS Sonoma | 8 read-only tools | Antigravity IDE (2026-11-01) |
-| **Cursor IDE** | `P0` | **`TESTED`** | Local STDIO | Windows 11, Linux x86_64 | 8 read-only tools | Antigravity IDE (2026-11-01) |
-| **Google Antigravity** | `P1` | **`TESTED`** | Local STDIO | Windows 11 | 8 read-only tools | Antigravity IDE (2026-11-01) |
-| **VS Code + Copilot** | `P0` | **`DOCUMENTED`** | Local STDIO | Windows, macOS, Linux | 8 read-only tools | Community / 2026-11-01 |
+| **Google Antigravity** | `P0` | **`TESTED`** | Local STDIO | Windows 11 | 8 read-only tools | Antigravity IDE (2026-11-01) |
+| **Claude Desktop** | `P0` | **`DOCUMENTED (PARTIAL)`** | Local STDIO | Windows 11 (Schema only) | 8 read-only tools (STDIO schema verified; desktop GUI pending manual verification) | Core Team (2026-11-01) |
+| **Cursor IDE** | `P0` | **`DOCUMENTED (PARTIAL)`** | Local STDIO | Windows 11 (Schema only) | 8 read-only tools (STDIO schema verified; desktop GUI pending manual verification) | Core Team (2026-11-01) |
+| **VS Code + Copilot** | `P1` | **`DOCUMENTED`** | Local STDIO | Windows, macOS, Linux | 8 read-only tools (Documented syntax only) | Community (2026-11-01) |
 | **OpenAI Codex CLI** | `P0` | **`DOCUMENTED`** | Local STDIO | Linux, macOS | 8 read-only tools | Community / 2026-11-01 |
 | **Gemini CLI** | `P1` | **`DOCUMENTED`** | Local STDIO | Linux, macOS, Windows | 8 read-only tools | Community / 2026-11-01 |
 | **Cline / Windsurf** | `P1` | **`EXPERIMENTAL`** | Local STDIO | Windows, macOS | 8 read-only tools | Community / 2026-11-01 |

@@ -17,7 +17,7 @@ Arova Creator Intelligence is an open-source, local-first video intelligence eng
 - **Technical Content Creators & Researchers:** Users needing precise navigation through technical lectures, recordings, and tutorials without cloud uploads.
 
 ### 1.3 Approved Launch 01 Scope
-1. **Local Media Ingestion & Metadata:** Probe duration, dimensions, framerate, codecs via `ffprobe`; SHA-256 deduplication.
+1. **Local Media Ingestion & Metadata:** Probe duration, dimensions, framerate, codecs via `ffprobe` (with ffmpeg stderr parsing fallback); SHA-256 deduplication.
 2. **Keyframe Thumbnails & Streaming:** HTTP 206 Partial Content Range streaming.
 3. **Scene Detection & ASR:** Content-aware scene cuts (`PySceneDetect`) and speech transcription (`faster-whisper`) preserving millisecond timestamps.
 4. **Visual-Text Dual Memory:** OCR frame text fusion with `[On-Screen Visual Text]` annotation.
@@ -38,10 +38,10 @@ Arova Creator Intelligence is an open-source, local-first video intelligence eng
 ## 2. Current Verified State
 
 ### 2.1 Codebase Health
-- **Backend, CLI & MCP Tests:** 49 passed out of 49 unit/integration tests (`pytest backend/tests mcp_server/tests -v`, 8.55s).
+- **Backend, CLI & MCP Tests:** 50 passed out of 50 unit/integration tests (`pytest backend/tests mcp_server/tests -v`, 8.52s).
 - **Frontend Tests:** 4 test suites passed (6 tests) (`vitest run`, 3.53s).
 - **Production Web Build:** `tsc -b && vite build` succeeded (bundle size 202.57 KB, 0 errors).
-- **System Health Audit:** `scripts/system_health_audit.py` passed with status `HEALTHY` (7/7 checks passed).
+- **Hardened Release Gate:** `scripts/release_gate.py` passed all 8 automated baseline checks with explicit warnings, not-yet-implemented gates, and manual verification requirements categorized.
 - **Git Working Tree:** Branch `main`, tracking `origin/main`.
 
 ### 2.2 Active Services
@@ -54,6 +54,20 @@ Arova Creator Intelligence is an open-source, local-first video intelligence eng
 - `TASK-006` (`arova doctor` diagnostic CLI): `DONE` (Verified by 10 unit tests)
 - `TASK-007` (`arova demo` synthetic first-use flow): `DONE` (Verified by 4 unit/integration tests; completed in < 1s)
 - `TASK-008` (Thin Python REST client wrapper): `DONE` (Verified by 4 unit tests; zero-dependency `ArovaClient`)
-- `TASK-009` (Client setup matrices in `docs/INTEGRATIONS.md`): `DONE` (4-tier support policy and configurations verified)
+- `TASK-009` (Client setup matrices in `docs/INTEGRATIONS.md`): `DONE` (4-tier support policy and configurations verified; desktop GUI pending manual verification)
 - `TASK-010` (Open-source governance: `NOTICE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`): `DONE` (All files verified)
-- `TASK-011` (Automated release gate script `scripts/release_gate.py`): `DONE` (7/7 gates PASSED)
+- `TASK-011` (Hardened release gate script `scripts/release_gate.py`): `DONE` (8/8 automated baseline checks passed)
+
+---
+
+## 3. Dedicated Launch 01 Release Readiness Audit Status
+
+| Dimension | Audit Status | Evidence & Summary |
+|---|---|---|
+| **Phase 1 Implementation** | **COMPLETE** | All backlog tasks (TASK-006 through TASK-011) implemented and verified. |
+| **Automated Tests** | **PASSING** | 50 backend/CLI/MCP unit tests passing; 6 frontend Vitest tests passing; 0 regressions. |
+| **Security Verification** | **VERIFIED** | Loopback binding default (`127.0.0.1`), deny-by-default allowed roots, untrusted text sanitization, read-only MCP tool boundary. |
+| **Integration Verification** | **PARTIALLY VERIFIED** | Google Antigravity live verified; Claude Desktop and Cursor IDE FastMCP STDIO schema verified; desktop GUI execution pending manual verification. |
+| **Stress-Test Completion** | **NOT COMPLETE** | 500-video indexing/recovery test, 200+ prompt-injection red-team cases, and fault-tolerance suites are not yet implemented. |
+| **Launch 01 Release Readiness** | **HARDENING IN PROGRESS** | Automated engineering baseline passes; external scale and cross-machine validation pending. |
+| **Public Release Authorization** | **BLOCKED** | Public tagging (`v1.0.0`) and external distribution are strictly held until stress tests and clean non-developer installs pass. |

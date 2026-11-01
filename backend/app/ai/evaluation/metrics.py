@@ -12,12 +12,13 @@ class RankingMetrics:
     recall_at_10: float
 
 
-def compute_recall_at_k(retrieved_ids: list[str], relevant_ids: set[str], k: int) -> float:
+def compute_recall_at_k(retrieved_ids: list[str], relevant_ids: set[str] | list[str], k: int) -> float:
     if not relevant_ids:
         return 0.0
     top_k_set = set(retrieved_ids[:k])
-    intersect = len(top_k_set & relevant_ids)
-    return round(intersect / float(len(relevant_ids)), 4)
+    rel_set = set(relevant_ids)
+    intersect = len(top_k_set & rel_set)
+    return round(intersect / float(len(rel_set)), 4)
 
 
 def compute_mrr_at_k(retrieved_ids: list[str], relevant_ids: set[str], k: int = 10) -> float:
