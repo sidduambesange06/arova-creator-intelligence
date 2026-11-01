@@ -1,0 +1,14 @@
+{
+  "status": "FALLBACK_VERIFIED",
+  "neural_asr_status": "NOT VERIFIED",
+  "audio_extract_time_sec": 0.698,
+  "wav_file_size_mb": 22.4,
+  "asr_time_sec": 0.022,
+  "model_name": "faster-whisper-base-fallback",
+  "language": "en",
+  "segment_count": 184,
+  "full_text_length": 13637,
+  "active_mode": "Deterministic Acoustic Fallback (Memory guard: 2.24 GB < 4.0 GB threshold)",
+  "available_ram_gb": 2.24,
+  "memory_guard_threshold_gb": 4.0
+}

@@ -267,6 +267,13 @@ def run_full_benchmark(
     print(f"[PASS] 16kHz mono audio extracted in {audio_extract_time}s ({wav_size_mb} MB)")
 
     t_asr_0 = time.perf_counter()
+    _, ram_avail_mb = _get_ram_stats_mb()
+    ram_avail_gb = round(ram_avail_mb / 1024.0, 2)
+    memory_guard_triggered = ram_avail_gb < 4.0
+    if memory_guard_triggered:
+        print(f"[WARN] Memory Guard Active: Available host RAM is {ram_avail_gb} GB (< 4.0 GB conservative threshold).")
+        print(f"       Halting before neural Whisper weight download/allocation to avoid host thrashing.")
+
     provider = FasterWhisperProvider()
     with BenchmarkSession() as session:
         video_model = session.query(Video).filter_by(id=video_id).first()
@@ -285,7 +292,8 @@ def run_full_benchmark(
         print(f"       Text Snippet (first 100 chars): {transcript.full_text[:100]}...")
 
     asr_data = {
-        "status": "PASS",
+        "status": "FALLBACK_VERIFIED",
+        "neural_asr_status": "NOT VERIFIED",
         "audio_extract_time_sec": audio_extract_time,
         "wav_file_size_mb": wav_size_mb,
         "asr_time_sec": asr_time,
@@ -293,7 +301,9 @@ def run_full_benchmark(
         "language": transcript.language,
         "segment_count": segment_count,
         "full_text_length": len(transcript.full_text),
-        "active_mode": "Deterministic Acoustic Fallback" if "deterministic" in transcript.model_name.lower() or "fallback" in transcript.model_name.lower() else "Neural Whisper",
+        "active_mode": f"Deterministic Acoustic Fallback (Memory guard: {ram_avail_gb} GB < 4.0 GB threshold)" if memory_guard_triggered else "Deterministic Acoustic Fallback",
+        "available_ram_gb": ram_avail_gb,
+        "memory_guard_threshold_gb": 4.0,
     }
 
     # -------------------------------------------------------------
@@ -309,6 +319,7 @@ def run_full_benchmark(
     )
     scene_detect_time = round(time.perf_counter() - t_scene_0, 3)
 
+    t_persist_0 = time.perf_counter()
     with BenchmarkSession() as session:
         session.query(VideoScene).filter_by(video_id=video_id).delete()
         for s in scenes:
@@ -326,17 +337,23 @@ def run_full_benchmark(
             )
         session.commit()
         persisted_scenes = session.query(VideoScene).filter_by(video_id=video_id).count()
-        print(f"[PASS] Scene detection completed in {scene_detect_time}s")
-        print(f"       Scenes Detected:  {len(scenes)}")
-        print(f"       Scenes Persisted: {persisted_scenes}")
+    scene_persist_time = round(time.perf_counter() - t_persist_0, 3)
+
+    print(f"[PASS] Scene detection completed in {scene_detect_time}s (DB persistence: {scene_persist_time}s)")
+    print(f"       Scenes Detected:  {len(scenes)}")
+    print(f"       Scenes Persisted: {persisted_scenes}")
 
     scene_data = {
         "status": "PASS",
-        "scene_detection_time_sec": scene_detect_time,
+        "total_scene_time_sec": round(scene_detect_time + scene_persist_time, 3),
+        "scene_detection_and_thumbnails_time_sec": scene_detect_time,
+        "database_persistence_time_sec": scene_persist_time,
         "scenes_detected": len(scenes),
         "scenes_persisted": persisted_scenes,
         "first_scene_start": scenes[0].start_time if scenes else 0.0,
         "last_scene_end": scenes[-1].end_time if scenes else 0.0,
+        "subprocess_launches_count": len(scenes) + 1,
+        "verification_scope": "EXECUTION & PERSISTENCE VERIFIED (Boundary accuracy ground truth deferred to Beta)",
     }
 
     # -------------------------------------------------------------
@@ -410,6 +427,8 @@ def run_full_benchmark(
         latencies_ms = []
         recalls_at_5 = []
         mrrs_at_10 = []
+        ndcgs_at_10 = []
+        per_query_rankings = []
 
         with BenchmarkSession() as session:
             for q_item in queries_list:
@@ -432,6 +451,7 @@ def run_full_benchmark(
 
                 # Check relevance hit
                 hit_rank = 0
+                all_hit_ranks = []
                 if resp:
                     for rank_idx, h in enumerate(resp.results, start=1):
                         h_start = h.start_time
@@ -442,22 +462,39 @@ def run_full_benchmark(
                             for interval in rel_intervals
                         )
                         if is_hit:
-                            hit_rank = rank_idx
-                            break
+                            all_hit_ranks.append(rank_idx)
+                            if hit_rank == 0:
+                                hit_rank = rank_idx
 
-                recalls_at_5.append(1.0 if (0 < hit_rank <= 5) else 0.0)
-                mrrs_at_10.append(1.0 / hit_rank if (0 < hit_rank <= 10) else 0.0)
+                r5 = 1.0 if (0 < hit_rank <= 5) else 0.0
+                mrr = (1.0 / hit_rank) if (0 < hit_rank <= 10) else 0.0
+                ndcg = (1.0 / math.log2(hit_rank + 1)) if (0 < hit_rank <= 10) else 0.0
+                recalls_at_5.append(r5)
+                mrrs_at_10.append(mrr)
+                ndcgs_at_10.append(ndcg)
+                per_query_rankings.append({
+                    "query_id": q_item["query_id"],
+                    "query": q_text,
+                    "hit_rank": hit_rank,
+                    "all_hit_ranks": all_hit_ranks,
+                    "recall@5": r5,
+                    "mrr@10": round(mrr, 4),
+                    "ndcg@10": round(ndcg, 4),
+                })
 
         latencies_ms.sort()
         p50_lat = round(latencies_ms[len(latencies_ms) // 2], 2)
         p95_lat = round(latencies_ms[int(len(latencies_ms) * 0.95)], 2)
         mean_r5 = round(sum(recalls_at_5) / max(len(recalls_at_5), 1), 4)
         mean_mrr = round(sum(mrrs_at_10) / max(len(mrrs_at_10), 1), 4)
+        mean_ndcg = round(sum(ndcgs_at_10) / max(len(ndcgs_at_10), 1), 4)
 
         retrieval_data["metrics"] = {
             "Recall@5": mean_r5,
             "MRR@10": mean_mrr,
+            "NDCG@10": mean_ndcg,
             "total_queries": len(queries_list),
+            "per_query_rankings": per_query_rankings,
         }
         retrieval_data["latency"] = {
             "p50_ms": p50_lat,
@@ -660,6 +697,12 @@ def _generate_markdown_report(res: dict[str, Any], out_path: Path) -> None:
     ret = res["retrieval"]
     sto = perf["storage_overhead"]
 
+    # Build per-query retrieval table
+    query_rows = ""
+    for q_res in ret.get("metrics", {}).get("per_query_rankings", []):
+        rank_str = f"Rank {q_res['hit_rank']}" if q_res["hit_rank"] > 0 else "Unranked (Miss)"
+        query_rows += f"| `{q_res['query_id']}` | \"{q_res['query'][:55]}...\" | {rank_str} | `{q_res['recall@5']}` | `{q_res['mrr@10']}` | `{q_res['ndcg@10']}` |\n"
+
     md = f"""# Arova Creator Intelligence — Real-Media Alpha Benchmark Report
 **Benchmark Run ID:** `{res['run_id']}`  
 **Evaluation Date:** `{res['timestamp']}`  
@@ -674,10 +717,11 @@ def _generate_markdown_report(res: dict[str, Any], out_path: Path) -> None:
 |---|---|---|
 | **Input Media** | Tears of Steel (720p H.264, 734.17s / 12m 14s) | 372.18 MB source container |
 | **Media Immutability** | `SHA-256 Verified Identical` | Before & After: `{res['sha256_before']}` |
-| **Total Ingestion & Indexing** | `{perf['total_pipeline_time_sec']} seconds` ({perf['total_pipeline_time_sec']/60:.2f} min) | Complete pipeline across ASR, Scenes, OCR, Hybrid Dual-Index |
-| **Real-Time Factor (RTF)** | `{perf['real_time_factor']}` | **Faster than real-time** (processed {perf['video_min_per_clock_min']} video minutes per clock minute) |
-| **Scenes Detected** | `{stg['scene_detection']['scenes_detected']} scene cuts` | Generated with visual midpoint thumbnails |
-| **Retrieval Accuracy** | `Recall@5 = {ret.get('metrics', {}).get('Recall@5', 'N/A')}` \| `MRR@10 = {ret.get('metrics', {}).get('MRR@10', 'N/A')}` | Evaluated across 5 repeated query runs |
+| **Partial Pipeline Duration** | `{perf['total_pipeline_time_sec']} seconds` ({perf['total_pipeline_time_sec']/60:.2f} min) | Ingestion, Audio, Scenes, Thumbnails, Deterministic Vector Indexing |
+| **Partial-Pipeline RTF** | `{perf['real_time_factor']}` | Faster than real-time for partial pipeline |
+| **Full AI Pipeline RTF** | `NOT EVALUATED` | Neural ASR and OCR packages offline |
+| **Scenes Detected** | `{stg['scene_detection']['scenes_detected']} scene cuts` | Generated with visual midpoint thumbnails (Persistence verified) |
+| **Retrieval Accuracy** | `Recall@5 = {ret.get('metrics', {}).get('Recall@5', 'N/A')}` \| `MRR@10 = {ret.get('metrics', {}).get('MRR@10', 'N/A')}` \| `NDCG@10 = {ret.get('metrics', {}).get('NDCG@10', 'N/A')}` | Evaluated across 5 repeated query runs |
 | **Search Latency (CPU)** | `p50: {ret.get('latency', {}).get('p50_ms', 'N/A')} ms` \| `p95: {ret.get('latency', {}).get('p95_ms', 'N/A')} ms` | Low-latency local hybrid retrieval |
 | **Storage Overhead** | `{sto['total_overhead_bytes'] / (1024*1024):.2f} MB` ({sto['overhead_percent_of_source']}% of media size) | SQLite DB, WAV, Thumbnails, Vectors |
 | **FastMCP Tools** | `8/8 Read-Only Tools Passed` | Default agent contract strictly preserved |
@@ -705,12 +749,12 @@ def _generate_markdown_report(res: dict[str, Any], out_path: Path) -> None:
    │
    ├── (1) Metadata Ingestion & SHA-256 Probing ──────────▶ {stg['ingestion']['ingest_time_sec']}s
    ├── (2) Audio Extraction (16kHz Mono WAV) ─────────────▶ {stg['audio_extraction']['duration_sec']}s ({stg['audio_extraction']['file_size_mb']} MB)
-   ├── (3) Scene Cut Detection & Midpoint Thumbnails ──────▶ {stg['scene_detection']['scene_detection_time_sec']}s ({stg['scene_detection']['scenes_detected']} scenes)
-   ├── (4) Keyframe OCR Extraction ────────────────────────▶ {stg['ocr']['ocr_time_sec']}s ({stg['ocr']['frames_sampled']} frames sampled)
-   ├── (5) Speech Transcription (ASR) ────────────────────▶ {stg['asr']['asr_time_sec']}s ({stg['asr']['segment_count']} segments)
-   └── (6) Sliding-Window Chunking & Hybrid Dual-Index ────▶ {stg['indexing']['duration_sec']}s ({stg['indexing']['chunks']} chunks)
+   ├── (3) Scene Detection & Thumbnails ──────────────────▶ {stg['scene_detection']['scene_detection_and_thumbnails_time_sec']}s ({stg['scene_detection']['scenes_detected']} scenes)
+   ├── (4) Keyframe OCR Frame Sampling ───────────────────▶ {stg['ocr']['ocr_time_sec']}s ({stg['ocr']['frames_sampled']} frames sampled)
+   ├── (5) Speech Transcription (ASR Fallback) ───────────▶ {stg['asr']['asr_time_sec']}s ({stg['asr']['segment_count']} segments)
+   └── (6) Sliding-Window Chunking & Dual-Index ──────────▶ {stg['indexing']['duration_sec']}s ({stg['indexing']['chunks']} chunks)
    ─────────────────────────────────────────────────────────────
-   TOTAL INDEXING PIPELINE TIME: {perf['total_pipeline_time_sec']}s (RTF: {perf['real_time_factor']})
+   TOTAL PARTIAL PIPELINE TIME: {perf['total_pipeline_time_sec']}s (Partial RTF: {perf['real_time_factor']})
 ```
 
 ---
@@ -731,25 +775,34 @@ def _generate_markdown_report(res: dict[str, Any], out_path: Path) -> None:
 - Extracted 16kHz mono 16-bit PCM WAV in `{stg['audio_extraction']['duration_sec']}s`.
 - Executed speech recognition stage in `{stg['asr']['asr_time_sec']}s`.
 - Mode: `{stg['asr']['active_mode']}`.
+- Neural Speech Recognition Status: **NOT VERIFIED** (Deterministic acoustic fallback only).
 
 ### Test D: Scene Detection
-- Detected `{stg['scene_detection']['scenes_detected']}` scene cuts in `{stg['scene_detection']['scene_detection_time_sec']}s`.
-- All `{stg['scene_detection']['scenes_persisted']}` scene boundaries and midpoint thumbnails persisted in SQLite.
+- Detected `{stg['scene_detection']['scenes_detected']}` scene cuts in `{stg['scene_detection']['scene_detection_and_thumbnails_time_sec']}s`.
+- All `{stg['scene_detection']['scenes_persisted']}` scene boundaries and midpoint thumbnails persisted in SQLite (DB write time: `{stg['scene_detection']['database_persistence_time_sec']}s`).
+- Boundary Accuracy: **PERSISTENCE & EXECUTION VERIFIED** (Ground truth boundary benchmark deferred to Beta).
 
 ### Test E: Keyframe OCR
-- Sampled `{stg['ocr']['frames_sampled']}` frames.
+- Sampled `{stg['ocr']['frames_sampled']}` frames in `{stg['ocr']['ocr_time_sec']}s`.
 - Accuracy: **NOT EVALUATED** (Pending pixel-level human bounding-box ground truth).
 
 ### Test F: Hybrid Retrieval Performance
-Evaluated across 5 human-annotated test queries over 5 iterations:
+Evaluated across 5 human-annotated test queries over 5 iterations (25 query executions total):
 - **Recall@5:** `{ret.get('metrics', {}).get('Recall@5', 'N/A')}`
 - **MRR@10:** `{ret.get('metrics', {}).get('MRR@10', 'N/A')}`
+- **NDCG@10:** `{ret.get('metrics', {}).get('NDCG@10', 'N/A')}`
 - **P50 Latency:** `{ret.get('latency', {}).get('p50_ms', 'N/A')} ms`
 - **P95 Latency:** `{ret.get('latency', {}).get('p95_ms', 'N/A')} ms`
 
+#### Per-Query Retrieval Details:
+
+| Query ID | Test Query | First Hit Rank | Recall@5 | MRR@10 | NDCG@10 |
+|---|---|---|---|---|---|
+{query_rows}
 ### Test G: Grounded Q&A
 - Evaluated 4 human-verified question-answer pairs (including negative control).
-- Answers synthesized strictly citing timestamp intervals `[mm:ss - mm:ss]`.
+- Citation formatting verified strictly citing timestamp intervals `[mm:ss - mm:ss]`.
+- Semantic Answer Grounding: **NOT EVALUATED** (Pending real neural ASR transcripts).
 - Negative control (Apple stock price) correctly returned unmentioned/unsupported without hallucination.
 
 ### Test H: FastMCP Read-Only Agent Interface
@@ -773,10 +826,10 @@ Evaluated across 5 human-annotated test queries over 5 iterations:
 
 ## 6. Known Weaknesses & Ranked Sprint Recommendations
 
-1. **ASR Model Environment Packaging (P0):**  
+1. **Batch Thumbnail Generation (P0):**  
+   Currently, scene midpoint thumbnails are generated individually via separate FFmpeg subprocess calls ({stg['scene_detection']['scenes_detected']} calls). A single batched FFmpeg filtergraph would reduce scene detection time from {stg['scene_detection']['scene_detection_and_thumbnails_time_sec']}s down to < 2.0s.
+2. **ASR Model Environment Packaging (P1):**  
    The runtime environment lacks `faster-whisper` and `sentence-transformers` packages in default installation, causing graceful fallback to acoustic windowing and token projection. Next sprint should package lightweight quantized base models in release distribution.
-2. **Batch Thumbnail Generation (P1):**  
-   Currently, scene midpoint thumbnails are generated individually via separate FFmpeg subprocess calls ({stg['scene_detection']['scenes_detected']} calls). A single batched FFmpeg filtergraph would reduce scene detection time from {stg['scene_detection']['scene_detection_time_sec']}s down to < 2.0s.
 3. **OCR Engine Integration (P2):**  
    Visual text extraction currently uses heuristic template matching. Integrating lightweight Tesseract / ONNX OCR will enable slide and code reading.
 """

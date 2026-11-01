@@ -553,6 +553,31 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - Regression: pytest passed 64/64 in 12.27s; vitest passed 6/6 in 3.73s; release gate passed 12/12 in 21s.
 - **Review (`ponytail-review`):** Zero unrequested features, zero fake metrics. Honest labeling of deterministic acoustic fallback and pending OCR bounding-box ground truth. Completely isolated execution with zero mutations to source media or production database.
 
+---
+
+### Feature 6.13: Post-Benchmark Review, Metric Reconciliation, Product Scope & Run 2 Evaluation
+- **Date:** 2026-11-01
+- **Scope & Plan:**
+  1. Reconcile retrieval metric calculations (MRR@10=0.2286, Recall@5=0.4000, NDCG@10=0.3190) and add automated tests (`backend/tests/benchmarks/test_retrieval_metrics.py`).
+  2. Implement conservative memory guard in benchmark runner (stops before heavy neural model loading when available host RAM is < 4.0 GB).
+  3. Correctly classify ASR (deterministic acoustic fallback; neural ASR not verified), embeddings (deterministic 384-d token projection fallback), OCR (keyframe sampling verified; quality not evaluated), and Q&A (citation format verified; semantic answer grounding not evaluated).
+  4. Separate scene detection sub-timings (cut detection filter vs 139 thumbnail subprocesses vs SQLite persistence).
+  5. Execute second real-media benchmark run into `reports/benchmarks/run-2-evaluation/` preserving `alpha-baseline/` completely intact.
+  6. Author factual public product scope document (`docs/PRODUCT_SCOPE.md`).
+  7. Author private internal financial and product strategy document outside repository (`C:\Arova-Private\AROVA_INTERNAL_PRODUCT_AND_FINANCIAL_STRATEGY.md`).
+- **Implementation:**
+  - `backend/tests/benchmarks/test_retrieval_metrics.py`: Unit tests validating exact Argon formulas for Recall@K, MRR@K, NDCG@K, and edge cases.
+  - `scripts/benchmarks/run_benchmark.py`: Enhanced with memory guard, per-query ranking capture, NDCG@10 calculation, and honest classification.
+  - `docs/PRODUCT_SCOPE.md`: Public architectural document detailing current verified capabilities, privacy boundaries, and explicit exclusions.
+  - `C:\Arova-Private\AROVA_INTERNAL_PRODUCT_AND_FINANCIAL_STRATEGY.md`: Confidential internal financial model detailing commercial tiers, AI usage economics, and break-even analysis.
+  - `reports/benchmarks/run-2-evaluation/`: Run 2 artifacts (`bench_1793548181`).
+- **Verification Evidence:**
+  - Unit tests: 66/66 pytest passed in 14.20s; 6/6 frontend vitest passed in 3.50s.
+  - Benchmark run 2: `run_benchmark.py` completed with exit code 0; schema validation passed.
+  - Memory guard: Successfully reported 2.24 GB available RAM (< 4.0 GB threshold) and halted neural model weights download.
+  - Source media immutability: SHA-256 before & after byte-for-byte identical (`efa9062d9cdb7a338e40ad530dfdf234806743f29ae6a1a136b97ece4e588e8f`).
+- **Review (`ponytail-review`):** Complete mathematical accuracy, transparent capability reporting, zero simulated data, and clean separation between open-source engine and commercial strategy.
+
 
 
 

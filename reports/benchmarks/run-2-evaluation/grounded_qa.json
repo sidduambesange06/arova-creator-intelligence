@@ -1,0 +1,70 @@
+[
+  {
+    "question_id": "tos_qa_1",
+    "question": "Why does Celia say she is in Amsterdam?",
+    "is_supported": true,
+    "answer": "According to tears_of_steel_720p.mov at [1:52 - 2:24] (speech channel): \"[Speech Segment 29] Video audio transcription timestamp 112.0s to 116.0s. [Speech Segment 30] Video audio transcription timestamp 116.0s to 120.0s. [Speech Segment 31] Video audio transcription timestamp 120.0s to 124.0s. [Speech Segment 32] Video audio transcription timestamp 124.0s to 128.0s. [Speech Segment 33] Video audio transcription timestamp 128.0s to 132.0s. [Speech Segment 34] Video audio transcription timestamp 132.0s to 136.0s. [Speech Segment 35] Video audio transcription timestamp 136.0s to 140.0s. [Speech Segment 36] Video audio transcription timestamp 140.0s to 144.0s.\n[On-Screen Visual Text]: None\"\n\nContext at [10:16 - 10:48]: \"[Speech Segment 155] Video audio transcription timestamp 616.0s to 620.0s. [Speech Segment 156] Video audio transcription timestamp 620.0s to 624.0s. [Speech Segment 157] Video audio transcription timestamp 624.0s to 628.0s. [Speech Segment 158] Video audio transcription timestamp 628.0s to 632.0s. [Speech Segment 159] Video audio transcription timestamp 632.0s to 636.0s. [Speech Segment 160] Video audio transcription timestamp 636.0s to 640.0s. [Speech Segment 161] Video audio transcription timestamp 640.0s to 644.0s. [Speech Segment 162] Video audio transcription timestamp 644.0s to 648.0s.\n[On-Screen Visual Text]: None\"",
+    "citation_count": 5,
+    "first_citation": {
+      "video_id": "2591e3ed-44a2-4fdd-a417-fca2785e90b8",
+      "filename": "tears_of_steel_720p.mov",
+      "start_time": 112.0,
+      "end_time": 144.0,
+      "timestamp_label": "1:52 - 2:24",
+      "snippet": "[Speech Segment 29] Video audio transcription timestamp 112.0s to 116.0s. [Speech Segment 30] Video audio transcription timestamp 116.0s to 120.0s. [Speech Segment 31] Video audio transcription timestamp 120.0s to 124.0s. [Speech Segment 32] Video audio transcription timestamp 124.0s to 128.0s. [Speech Segment 33] Video audio transcription timestamp 128.0s to 132.0s. [Speech Segment 34] Video audio transcription timestamp 132.0s to 136.0s. [Speech Segment 35] Video audio transcription timestamp 136.0s to 140.0s. [Speech Segment 36] Video audio transcription timestamp 140.0s to 144.0s.\n[On-Screen Visual Text]: None",
+      "match_channel": "speech",
+      "relevance_score": 0.2121
+    }
+  },
+  {
+    "question_id": "tos_qa_2",
+    "question": "What is the status of the neural link in the church lab?",
+    "is_supported": true,
+    "answer": "According to tears_of_steel_720p.mov at [3:16 - 3:48] (speech channel): \"[Speech Segment 50] Video audio transcription timestamp 196.0s to 200.0s. [Speech Segment 51] Video audio transcription timestamp 200.0s to 204.0s. [Speech Segment 52] Video audio transcription timestamp 204.0s to 208.0s. [Speech Segment 53] Video audio transcription timestamp 208.0s to 212.0s. [Speech Segment 54] Video audio transcription timestamp 212.0s to 216.0s. [Speech Segment 55] Video audio transcription timestamp 216.0s to 220.0s. [Speech Segment 56] Video audio transcription timestamp 220.0s to 224.0s. [Speech Segment 57] Video audio transcription timestamp 224.0s to 228.0s.\n[On-Screen Visual Text]: None\"\n\nContext at [0:28 - 1:00]: \"[Speech Segment 8] Video audio transcription timestamp 28.0s to 32.0s. [Speech Segment 9] Video audio transcription timestamp 32.0s to 36.0s. [Speech Segment 10] Video audio transcription timestamp 36.0s to 40.0s. [Speech Segment 11] Video audio transcription timestamp 40.0s to 44.0s. [Speech Segment 12] Video audio transcription timestamp 44.0s to 48.0s. [Speech Segment 13] Video audio transcription timestamp 48.0s to 52.0s. [Speech Segment 14] Video audio transcription timestamp 52.0s to 56.0s. [Speech Segment 15] Video audio transcription timestamp 56.0s to 60.0s.\n[On-Screen Visual Text]: None\"",
+    "citation_count": 5,
+    "first_citation": {
+      "video_id": "2591e3ed-44a2-4fdd-a417-fca2785e90b8",
+      "filename": "tears_of_steel_720p.mov",
+      "start_time": 196.0,
+      "end_time": 228.0,
+      "timestamp_label": "3:16 - 3:48",
+      "snippet": "[Speech Segment 50] Video audio transcription timestamp 196.0s to 200.0s. [Speech Segment 51] Video audio transcription timestamp 200.0s to 204.0s. [Speech Segment 52] Video audio transcription timestamp 204.0s to 208.0s. [Speech Segment 53] Video audio transcription timestamp 208.0s to 212.0s. [Speech Segment 54] Video audio transcription timestamp 212.0s to 216.0s. [Speech Segment 55] Video audio transcription timestamp 216.0s to 220.0s. [Speech Segment 56] Video audio transcription timestamp 220.0s to 224.0s. [Speech Segment 57] Video audio transcription timestamp 224.0s to 228.0s.\n[On-Screen Visual Text]: None",
+      "match_channel": "speech",
+      "relevance_score": 0.2018
+    }
+  },
+  {
+    "question_id": "tos_qa_3",
+    "question": "What does Celia say to Thom at the climax about his apology?",
+    "is_supported": true,
+    "answer": "According to tears_of_steel_720p.mov at [0:28 - 1:00] (speech channel): \"[Speech Segment 8] Video audio transcription timestamp 28.0s to 32.0s. [Speech Segment 9] Video audio transcription timestamp 32.0s to 36.0s. [Speech Segment 10] Video audio transcription timestamp 36.0s to 40.0s. [Speech Segment 11] Video audio transcription timestamp 40.0s to 44.0s. [Speech Segment 12] Video audio transcription timestamp 44.0s to 48.0s. [Speech Segment 13] Video audio transcription timestamp 48.0s to 52.0s. [Speech Segment 14] Video audio transcription timestamp 52.0s to 56.0s. [Speech Segment 15] Video audio transcription timestamp 56.0s to 60.0s.\n[On-Screen Visual Text]: None\"\n\nContext at [1:52 - 2:24]: \"[Speech Segment 29] Video audio transcription timestamp 112.0s to 116.0s. [Speech Segment 30] Video audio transcription timestamp 116.0s to 120.0s. [Speech Segment 31] Video audio transcription timestamp 120.0s to 124.0s. [Speech Segment 32] Video audio transcription timestamp 124.0s to 128.0s. [Speech Segment 33] Video audio transcription timestamp 128.0s to 132.0s. [Speech Segment 34] Video audio transcription timestamp 132.0s to 136.0s. [Speech Segment 35] Video audio transcription timestamp 136.0s to 140.0s. [Speech Segment 36] Video audio transcription timestamp 140.0s to 144.0s.\n[On-Screen Visual Text]: None\"",
+    "citation_count": 5,
+    "first_citation": {
+      "video_id": "2591e3ed-44a2-4fdd-a417-fca2785e90b8",
+      "filename": "tears_of_steel_720p.mov",
+      "start_time": 28.0,
+      "end_time": 60.0,
+      "timestamp_label": "0:28 - 1:00",
+      "snippet": "[Speech Segment 8] Video audio transcription timestamp 28.0s to 32.0s. [Speech Segment 9] Video audio transcription timestamp 32.0s to 36.0s. [Speech Segment 10] Video audio transcription timestamp 36.0s to 40.0s. [Speech Segment 11] Video audio transcription timestamp 40.0s to 44.0s. [Speech Segment 12] Video audio transcription timestamp 44.0s to 48.0s. [Speech Segment 13] Video audio transcription timestamp 48.0s to 52.0s. [Speech Segment 14] Video audio transcription timestamp 52.0s to 56.0s. [Speech Segment 15] Video audio transcription timestamp 56.0s to 60.0s.\n[On-Screen Visual Text]: None",
+      "match_channel": "speech",
+      "relevance_score": 0.2018
+    }
+  },
+  {
+    "question_id": "tos_qa_4",
+    "question": "What was the stock price of Apple mentioned in the video?",
+    "is_supported": false,
+    "answer": "According to tears_of_steel_720p.mov at [0:00 - 0:32] (speech channel): \"[Speech Segment 1] Video audio transcription timestamp 0.0s to 4.0s. [Speech Segment 2] Video audio transcription timestamp 4.0s to 8.0s. [Speech Segment 3] Video audio transcription timestamp 8.0s to 12.0s. [Speech Segment 4] Video audio transcription timestamp 12.0s to 16.0s. [Speech Segment 5] Video audio transcription timestamp 16.0s to 20.0s. [Speech Segment 6] Video audio transcription timestamp 20.0s to 24.0s. [Speech Segment 7] Video audio transcription timestamp 24.0s to 28.0s. [Speech Segment 8] Video audio transcription timestamp 28.0s to 32.0s.\n[On-Screen Visual Text]: None\"\n\nContext at [0:56 - 1:28]: \"[Speech Segment 15] Video audio transcription timestamp 56.0s to 60.0s. [Speech Segment 16] Video audio transcription timestamp 60.0s to 64.0s. [Speech Segment 17] Video audio transcription timestamp 64.0s to 68.0s. [Speech Segment 18] Video audio transcription timestamp 68.0s to 72.0s. [Speech Segment 19] Video audio transcription timestamp 72.0s to 76.0s. [Speech Segment 20] Video audio transcription timestamp 76.0s to 80.0s. [Speech Segment 21] Video audio transcription timestamp 80.0s to 84.0s. [Speech Segment 22] Video audio transcription timestamp 84.0s to 88.0s.\n[On-Screen Visual Text]: None\"",
+    "citation_count": 5,
+    "first_citation": {
+      "video_id": "2591e3ed-44a2-4fdd-a417-fca2785e90b8",
+      "filename": "tears_of_steel_720p.mov",
+      "start_time": 0.0,
+      "end_time": 32.0,
+      "timestamp_label": "0:00 - 0:32",
+      "snippet": "[Speech Segment 1] Video audio transcription timestamp 0.0s to 4.0s. [Speech Segment 2] Video audio transcription timestamp 4.0s to 8.0s. [Speech Segment 3] Video audio transcription timestamp 8.0s to 12.0s. [Speech Segment 4] Video audio transcription timestamp 12.0s to 16.0s. [Speech Segment 5] Video audio transcription timestamp 16.0s to 20.0s. [Speech Segment 6] Video audio transcription timestamp 20.0s to 24.0s. [Speech Segment 7] Video audio transcription timestamp 24.0s to 28.0s. [Speech Segment 8] Video audio transcription timestamp 28.0s to 32.0s.\n[On-Screen Visual Text]: None",
+      "match_channel": "speech",
+      "relevance_score": 0.2036
+    }
+  }
+]

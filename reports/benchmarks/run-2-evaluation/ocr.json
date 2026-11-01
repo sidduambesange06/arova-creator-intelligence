@@ -1,0 +1,7 @@
+{
+  "status": "PASS",
+  "ocr_time_sec": 0.001,
+  "frames_sampled": 139,
+  "non_empty_extractions": 0,
+  "accuracy": "NOT EVALUATED (Requires pixel-level human bounding-box ground truth)"
+}

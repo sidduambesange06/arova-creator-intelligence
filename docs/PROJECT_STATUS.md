@@ -75,11 +75,12 @@ Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PL
 
 ### Real-Media Benchmark & Alpha Baseline Performance (COMPLETED)
 - [x] **Real-Media Benchmark System & Harness:** Reusable, schema-validated benchmarking system (`benchmarks/schemas/`, `benchmarks/manifests/`, `benchmarks/annotations/`, `scripts/benchmarks/run_benchmark.py`, `scripts/benchmarks/validate_results.py`).
-- [x] **Real Footage Processing on Tears of Steel (2012):** 720p H.264 (734.17s / 12m 14s, 372.18 MB) indexed in 23.706 seconds (RTF: 0.032, throughput: 30.97 video min/clock min).
-- [x] **Source Media Immutability:** SHA-256 before & after byte-for-byte identical (`efa9062d9cdb7a338e40ad530dfdf234806743f29ae6a1a136b97ece4e588e8f`).
-- [x] **Retrieval & Q&A Baseline:** Recall@5 = 0.4, MRR@10 = 0.2286, p50 latency = 4.95 ms, p95 latency = 5.34 ms; 4 grounded Q&A pairs evaluated with exact timestamp citations.
-- [x] **FastMCP Verification:** All 8 read-only MCP retrieval tools verified against the indexed asset.
-- [x] **Alpha Baseline Reports Published:** 12 benchmark output files in `reports/benchmarks/alpha-baseline/` including `benchmark_run.json` (schema-validated) and `final_report.md`.
+- [x] **Real Footage Processing on Tears of Steel (2012):** 720p H.264 (734.17s / 12m 14s, 372.18 MB) indexed in 23.706s (Run 1) and 27.793s (Run 2) with partial-pipeline RTF of 0.032 - 0.038.
+- [x] **Source Media Immutability:** SHA-256 before & after byte-for-byte identical across both runs (`efa9062d9cdb7a338e40ad530dfdf234806743f29ae6a1a136b97ece4e588e8f`).
+- [x] **Metric Reconciliation & Unit Tests:** Mathematically reconciled MRR@10 = 0.2286, Recall@5 = 0.4000, and NDCG@10 = 0.3190 across query ranks (tos_q1: rank 2, tos_q2: rank 2, tos_q3: rank 7, tos_q4/q5: unranked); 2 automated unit tests passing in `test_retrieval_metrics.py`.
+- [x] **Memory Guard Verification:** Enforces 4.0 GB available RAM safety threshold; halts before neural Whisper weights download when host RAM is constrained (2.24 GB available).
+- [x] **Benchmark Run 2 Published:** Published to `reports/benchmarks/run-2-evaluation/` preserving `reports/benchmarks/alpha-baseline/` completely intact.
+- [x] **Product Scope & Commercial Boundary:** Published factual public scope in `docs/PRODUCT_SCOPE.md` and confidential strategy in `C:\Arova-Private\AROVA_INTERNAL_PRODUCT_AND_FINANCIAL_STRATEGY.md`.
 
 ### Staged Release Readiness & Alpha Approval (CURRENT)
 - [x] **Initial Open-Source Alpha (`v0.1.0-alpha`):** APPROVED. All 12 automated checks pass (64 backend/stress/benchmark tests, 6 frontend tests, production build, qualified CycloneDX SBOM, doctor, demo, immutability). Local developer preview ready on `127.0.0.1`.
