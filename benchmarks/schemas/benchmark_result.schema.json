@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ArovaBenchmarkResult",
+  "type": "object",
+  "required": [
+    "benchmark_version",
+    "run_id",
+    "timestamp",
+    "video_name",
+    "sha256_before",
+    "sha256_after",
+    "sha256_immutable",
+    "environment",
+    "stages",
+    "performance",
+    "reliability"
+  ],
+  "properties": {
+    "benchmark_version": { "type": "string" },
+    "run_id": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "video_name": { "type": "string" },
+    "sha256_before": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "sha256_after": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "sha256_immutable": { "type": "boolean" },
+    "environment": { "type": "object" },
+    "stages": { "type": "object" },
+    "retrieval": { "type": "object" },
+    "grounded_qa": { "type": "object" },
+    "mcp_tools": { "type": "object" },
+    "performance": { "type": "object" },
+    "reliability": { "type": "object" },
+    "failures": { "type": "array" }
+  }
+}
+

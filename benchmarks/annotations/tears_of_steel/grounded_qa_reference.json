@@ -1,0 +1,37 @@
+{
+  "annotation_type": "grounded_qa_ground_truth",
+  "media_name": "Tears of Steel",
+  "verification_method": "Human-reviewed question-answer evaluation pairs with temporal receipts",
+  "total_questions": 4,
+  "questions": [
+    {
+      "question_id": "tos_qa_1",
+      "question": "Why does Celia say she is in Amsterdam?",
+      "is_supported": true,
+      "expected_answer_keywords": ["destroying the world", "leaving"],
+      "expected_time_range": { "start_time": 60.0, "end_time": 95.0 }
+    },
+    {
+      "question_id": "tos_qa_2",
+      "question": "What is the status of the neural link in the church lab?",
+      "is_supported": true,
+      "expected_answer_keywords": ["signal", "84 percent", "neural feedback"],
+      "expected_time_range": { "start_time": 120.0, "end_time": 160.0 }
+    },
+    {
+      "question_id": "tos_qa_3",
+      "question": "What does Celia say to Thom at the climax about his apology?",
+      "is_supported": true,
+      "expected_answer_keywords": ["wasn't about the hand", "about you"],
+      "expected_time_range": { "start_time": 550.0, "end_time": 585.0 }
+    },
+    {
+      "question_id": "tos_qa_4",
+      "question": "What was the stock price of Apple mentioned in the video?",
+      "is_supported": false,
+      "expected_answer_keywords": ["not mentioned", "not found", "no evidence"],
+      "expected_time_range": null
+    }
+  ]
+}
+

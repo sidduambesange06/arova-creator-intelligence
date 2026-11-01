@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ArovaBenchmarkManifest",
+  "type": "object",
+  "required": [
+    "manifest_version",
+    "video_name",
+    "source_url",
+    "license",
+    "attribution",
+    "expected_sha256",
+    "expected_file_size",
+    "expected_duration",
+    "technical_metadata",
+    "annotations"
+  ],
+  "properties": {
+    "manifest_version": { "type": "string" },
+    "video_name": { "type": "string" },
+    "source_url": { "type": "string", "format": "uri" },
+    "license": { "type": "string" },
+    "attribution": { "type": "string" },
+    "expected_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "expected_file_size": { "type": "integer", "minimum": 1 },
+    "expected_duration": { "type": "number", "minimum": 0 },
+    "default_path_override": { "type": "string" },
+    "technical_metadata": {
+      "type": "object",
+      "required": ["width", "height", "fps", "video_codec", "audio_codec", "audio_channels", "audio_sample_rate"],
+      "properties": {
+        "width": { "type": "integer" },
+        "height": { "type": "integer" },
+        "fps": { "type": "number" },
+        "video_codec": { "type": "string" },
+        "audio_codec": { "type": "string" },
+        "audio_channels": { "type": "integer" },
+        "audio_sample_rate": { "type": "integer" }
+      }
+    },
+    "annotations": {
+      "type": "object",
+      "required": ["transcript_reference", "scene_reference", "retrieval_queries", "grounded_qa_reference"],
+      "properties": {
+        "transcript_reference": { "type": "string" },
+        "scene_reference": { "type": "string" },
+        "retrieval_queries": { "type": "string" },
+        "grounded_qa_reference": { "type": "string" }
+      }
+    }
+  }
+}
+

@@ -1,0 +1,19 @@
+{
+  "mcp_tools": {
+    "list_videos": "PASS",
+    "get_video_metadata": "PASS",
+    "search_video_content": "PASS",
+    "search_transcripts": "PASS",
+    "find_video_clips": "PASS",
+    "summarize_video": "PASS",
+    "get_video_chapters": "PASS",
+    "get_media_library_stats": "PASS"
+  },
+  "latency": {
+    "p50_ms": 4.95,
+    "p95_ms": 5.34,
+    "min_ms": 4.81,
+    "max_ms": 14.68,
+    "iterations": 25
+  }
+}

@@ -522,6 +522,38 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - Test suites: 64/64 pytest passed in 12.41s; 12/12 release gates passed in 21s.
 - **Review (`ponytail-review`):** Root cause eliminated at packaging layer. Working tree clean. Zero unrequested dependencies or abstractions.
 
+---
+
+### Feature 6.12: Real-Media Benchmark Suite & Alpha Baseline Performance Report (Tears of Steel 2012)
+- **Date:** 2026-11-01
+- **Scope & Plan:**
+  1. Build a reusable, schema-validated benchmark system (`benchmarks/schemas/`, `benchmarks/manifests/`, `benchmarks/annotations/`).
+  2. Implement an automated real-media benchmark runner (`scripts/benchmarks/run_benchmark.py`) and result validator (`scripts/benchmarks/validate_results.py`).
+  3. Execute an end-to-end benchmark on real 720p footage (*Tears of Steel 2012*, Blender Foundation, CC-BY 3.0, 734.17s / 12m 14s, 372.18 MB) in an isolated workspace (`C:\Arova-Benchmark\workspace/`).
+  4. Measure exact timings, throughput, real-time factor (RTF), memory delta, storage overhead, retrieval metrics (Recall@5, MRR@10 across 5 iterations), grounded Q&A, and FastMCP tool compliance.
+  5. Verify byte-for-byte immutability of the source video before and after processing (`efa9062d9cdb7a338e40ad530dfdf234806743f29ae6a1a136b97ece4e588e8f`).
+  6. Generate structured JSON output artifacts and a comprehensive Markdown report in `reports/benchmarks/alpha-baseline/`.
+- **Implementation:**
+  - `benchmarks/schemas/benchmark_manifest.schema.json`: Standardized JSON schema for video benchmark test asset manifests.
+  - `benchmarks/schemas/benchmark_result.schema.json`: Standardized JSON schema for benchmark execution results.
+  - `benchmarks/manifests/tears_of_steel.json`: Manifest specification for *Tears of Steel (2012)*.
+  - `benchmarks/annotations/tears_of_steel/`: Human-verified reference annotations for transcripts, scenes, retrieval queries, and grounded Q&A.
+  - `benchmarks/README.md`: Architectural documentation for the reproducible benchmarking methodology.
+  - `scripts/benchmarks/run_benchmark.py`: Complete automated test runner executing Tests A through H, profiling CPU/RAM, and enforcing source-media immutability.
+  - `scripts/benchmarks/validate_results.py`: Automated schema conformance validator.
+  - `reports/benchmarks/alpha-baseline/`: Generated 12 benchmark artifacts including `benchmark_run.json` and `final_report.md`.
+- **Verification Evidence:**
+  - Benchmark run: `run_benchmark.py` exited with code 0 (Run ID: `bench_1793546592`).
+  - Source media immutability: SHA-256 before & after byte-for-byte identical (`efa9062d9cdb7a338e40ad530dfdf234806743f29ae6a1a136b97ece4e588e8f`).
+  - End-to-end pipeline time: 23.706 seconds for 12.24 minutes of 720p video (RTF: 0.032, throughput: 30.97 video minutes / clock minute).
+  - Storage overhead: 33.51 MB total (9.0% of source container size).
+  - Retrieval latency: p50 = 4.95 ms, p95 = 5.34 ms (CPU hybrid search).
+  - FastMCP: All 8 read-only tools verified against the indexed asset.
+  - Schema validation: `[PASS] benchmark_run.json conforms to benchmark_result.schema.json`.
+  - Regression: pytest passed 64/64 in 12.27s; vitest passed 6/6 in 3.73s; release gate passed 12/12 in 21s.
+- **Review (`ponytail-review`):** Zero unrequested features, zero fake metrics. Honest labeling of deterministic acoustic fallback and pending OCR bounding-box ground truth. Completely isolated execution with zero mutations to source media or production database.
+
+
 
 
 

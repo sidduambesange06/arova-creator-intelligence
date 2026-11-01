@@ -1,0 +1,52 @@
+{
+  "annotation_type": "scene_ground_truth",
+  "media_name": "Tears of Steel",
+  "verification_method": "Human-reviewed narrative scene boundaries with 5.0s temporal tolerance",
+  "total_reference_scenes": 7,
+  "tolerance_seconds": 5.0,
+  "scenes": [
+    {
+      "scene_id": "tos_scene_01",
+      "start_time": 0.0,
+      "end_time": 45.0,
+      "label": "Opening / Dystopian Amsterdam Oude Kerk exterior"
+    },
+    {
+      "scene_id": "tos_scene_02",
+      "start_time": 45.0,
+      "end_time": 110.0,
+      "label": "Courtyard confrontation Thom and Celia"
+    },
+    {
+      "scene_id": "tos_scene_03",
+      "start_time": 110.0,
+      "end_time": 240.0,
+      "label": "Church interior lab / Neuro-link apparatus"
+    },
+    {
+      "scene_id": "tos_scene_04",
+      "start_time": 240.0,
+      "end_time": 360.0,
+      "label": "Amsterdam canal bridge flashback"
+    },
+    {
+      "scene_id": "tos_scene_05",
+      "start_time": 360.0,
+      "end_time": 520.0,
+      "label": "Robot walker breach and church perimeter battle"
+    },
+    {
+      "scene_id": "tos_scene_06",
+      "start_time": 520.0,
+      "end_time": 620.0,
+      "label": "Climax / Celia rejects Thom's apology"
+    },
+    {
+      "scene_id": "tos_scene_07",
+      "start_time": 620.0,
+      "end_time": 734.17,
+      "label": "Epilogue / Blender Foundation end credits"
+    }
+  ]
+}
+

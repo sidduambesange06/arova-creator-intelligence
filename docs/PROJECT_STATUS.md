@@ -73,6 +73,14 @@ Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PL
 - [x] **Qualified CycloneDX SBOM:** Generated SBOM at `reports/audit/SBOM.json` distinguishing direct dependencies, transitive runtimes, bundled LGPL/GPL FFmpeg binary, and runtime model artefacts.
 - [x] **Automated Release Gate Passing:** 12/12 automated checks pass in `scripts/release_gate.py`.
 
+### Real-Media Benchmark & Alpha Baseline Performance (COMPLETED)
+- [x] **Real-Media Benchmark System & Harness:** Reusable, schema-validated benchmarking system (`benchmarks/schemas/`, `benchmarks/manifests/`, `benchmarks/annotations/`, `scripts/benchmarks/run_benchmark.py`, `scripts/benchmarks/validate_results.py`).
+- [x] **Real Footage Processing on Tears of Steel (2012):** 720p H.264 (734.17s / 12m 14s, 372.18 MB) indexed in 23.706 seconds (RTF: 0.032, throughput: 30.97 video min/clock min).
+- [x] **Source Media Immutability:** SHA-256 before & after byte-for-byte identical (`efa9062d9cdb7a338e40ad530dfdf234806743f29ae6a1a136b97ece4e588e8f`).
+- [x] **Retrieval & Q&A Baseline:** Recall@5 = 0.4, MRR@10 = 0.2286, p50 latency = 4.95 ms, p95 latency = 5.34 ms; 4 grounded Q&A pairs evaluated with exact timestamp citations.
+- [x] **FastMCP Verification:** All 8 read-only MCP retrieval tools verified against the indexed asset.
+- [x] **Alpha Baseline Reports Published:** 12 benchmark output files in `reports/benchmarks/alpha-baseline/` including `benchmark_run.json` (schema-validated) and `final_report.md`.
+
 ### Staged Release Readiness & Alpha Approval (CURRENT)
 - [x] **Initial Open-Source Alpha (`v0.1.0-alpha`):** APPROVED. All 12 automated checks pass (64 backend/stress/benchmark tests, 6 frontend tests, production build, qualified CycloneDX SBOM, doctor, demo, immutability). Local developer preview ready on `127.0.0.1`.
 - [ ] **Beta Roadmap Gates (`v0.2.0-beta`):** DEFERRED. 3 clean non-developer installs under 5 minutes on independent machines (macOS, Linux Ubuntu); live Claude Desktop & Cursor IDE GUI testing; full media ASR indexing on 500 real videos; real-world video benchmark; dynamic network packet egress inspection; PyPI package distribution.

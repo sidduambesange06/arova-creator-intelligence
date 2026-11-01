@@ -1,0 +1,50 @@
+{
+  "annotation_type": "retrieval_ground_truth",
+  "media_name": "Tears of Steel",
+  "verification_method": "Human-reviewed query-to-relevant-timestamp mappings",
+  "total_queries": 5,
+  "queries": [
+    {
+      "query_id": "tos_q1",
+      "query": "forty years ago",
+      "relevant_intervals": [
+        { "start_time": 45.0, "end_time": 90.0 },
+        { "start_time": 240.0, "end_time": 280.0 }
+      ],
+      "intent": "Thom and Celia discussing the incident that occurred forty years prior"
+    },
+    {
+      "query_id": "tos_q2",
+      "query": "destroy the world",
+      "relevant_intervals": [
+        { "start_time": 60.0, "end_time": 95.0 }
+      ],
+      "intent": "Celia explaining she is not destroying the world, she is leaving"
+    },
+    {
+      "query_id": "tos_q3",
+      "query": "neural link signal",
+      "relevant_intervals": [
+        { "start_time": 120.0, "end_time": 160.0 }
+      ],
+      "intent": "Captain and Barbie calibrating the deep neural link in the church lab"
+    },
+    {
+      "query_id": "tos_q4",
+      "query": "breaching the perimeter",
+      "relevant_intervals": [
+        { "start_time": 390.0, "end_time": 425.0 }
+      ],
+      "intent": "Resistance fighters reporting giant robotic walkers breaching church defenses"
+    },
+    {
+      "query_id": "tos_q5",
+      "query": "wasn't about the hand",
+      "relevant_intervals": [
+        { "start_time": 550.0, "end_time": 585.0 }
+      ],
+      "intent": "Celia revealing the true reason for their breakup during the climax"
+    }
+  ]
+}
+

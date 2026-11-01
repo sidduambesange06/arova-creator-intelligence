@@ -1,0 +1,58 @@
+{
+  "operating_system": {
+    "system": "Windows",
+    "release": "10",
+    "version": "10.0.26300",
+    "architecture": "AMD64",
+    "processor": "AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD"
+  },
+  "hardware": {
+    "cpu_cores_logical": 16,
+    "ram_total_gb": 15.36,
+    "ram_available_gb": 2.52,
+    "gpu": {
+      "cuda_available": false,
+      "device_count": 0,
+      "device_name": null,
+      "vram_gb": null,
+      "mode": "CPU-Only"
+    }
+  },
+  "software": {
+    "python_version": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+    "sqlite_version": "3.45.1",
+    "ffmpeg_binary": "C:\\Users\\Siddhu Ambesanage\\Downloads\\OPEN SORCE DEVELOPMENT\\.venv\\Lib\\site-packages\\imageio_ffmpeg\\binaries\\ffmpeg-win-x86_64-v7.1.exe",
+    "ffmpeg_version": "ffmpeg version 7.1-essentials_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers",
+    "ffprobe_on_path": null,
+    "uv_version": "uv 0.11.7 (9d177269e 2026-04-15 x86_64-pc-windows-msvc)"
+  },
+  "models": {
+    "faster_whisper": {
+      "installed": false,
+      "version": null,
+      "configured_model": "base",
+      "active_mode": "Deterministic Acoustic Fallback (faster-whisper package not installed in environment)"
+    },
+    "sentence_transformers": {
+      "installed": false,
+      "version": null,
+      "configured_model": "sentence-transformers/all-MiniLM-L6-v2",
+      "active_mode": "Deterministic 384-d Token Projection (sentence-transformers not installed in environment)"
+    },
+    "cross_encoder": {
+      "installed": false,
+      "version": null,
+      "configured_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+      "active_mode": "Deterministic Term Proximity Coverage Reranker (PyTorch weights offline)"
+    },
+    "chromadb": {
+      "installed": false,
+      "version": null,
+      "active_mode": "Filesystem JSON Vector Persistence"
+    }
+  },
+  "repository": {
+    "git_commit": "8f1e4d56c7ed8be61db7e35e4fb074942e8af208",
+    "git_branch": "main"
+  }
+}

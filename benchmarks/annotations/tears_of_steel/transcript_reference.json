@@ -1,0 +1,59 @@
+{
+  "annotation_type": "transcript_ground_truth",
+  "media_name": "Tears of Steel",
+  "verification_method": "Human-verified dialogue transcript aligned against source audio track",
+  "total_reference_segments": 7,
+  "language": "en",
+  "segments": [
+    {
+      "segment_id": "tos_dialogue_01",
+      "start_time": 45.0,
+      "end_time": 65.0,
+      "speaker": "Thom / Celia",
+      "text": "Celia! You look... different. Thom... forty years ago, you said something."
+    },
+    {
+      "segment_id": "tos_dialogue_02",
+      "start_time": 66.0,
+      "end_time": 85.0,
+      "speaker": "Thom / Celia",
+      "text": "Celia, look, it was forty years ago. I said something stupid. But you can't just destroy the world over it. I'm not destroying the world, Thom. I'm just leaving."
+    },
+    {
+      "segment_id": "tos_dialogue_03",
+      "start_time": 128.0,
+      "end_time": 142.0,
+      "speaker": "Captain / Barbie",
+      "text": "Barbie, talk to me. Is the link stable? We're reading deep neural feedback. Signal is eighty-four percent."
+    },
+    {
+      "segment_id": "tos_dialogue_04",
+      "start_time": 143.0,
+      "end_time": 155.0,
+      "speaker": "Captain",
+      "text": "Hold it there. Don't let her drop."
+    },
+    {
+      "segment_id": "tos_dialogue_05",
+      "start_time": 255.0,
+      "end_time": 275.0,
+      "speaker": "Thom / Celia",
+      "text": "We had a future, Celia. You wanted a future without this. You couldn't even look at my hand."
+    },
+    {
+      "segment_id": "tos_dialogue_06",
+      "start_time": 395.0,
+      "end_time": 415.0,
+      "speaker": "Captain / Resistance",
+      "text": "They're breaching the perimeter! Hold the line! Protect the link!"
+    },
+    {
+      "segment_id": "tos_dialogue_07",
+      "start_time": 555.0,
+      "end_time": 580.0,
+      "speaker": "Thom / Celia",
+      "text": "Celia, please! I'm sorry about your hand! It wasn't about the hand, Thom. It was about you."
+    }
+  ]
+}
+

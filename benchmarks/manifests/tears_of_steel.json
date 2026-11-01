@@ -1,0 +1,27 @@
+{
+  "manifest_version": "1.0.0",
+  "video_name": "Tears of Steel",
+  "source_url": "https://download.blender.org/demo/movies/ToS/tears_of_steel_720p.mov",
+  "license": "Creative Commons Attribution 3.0 Unported (CC-BY 3.0)",
+  "attribution": "(CC) Blender Foundation | mango.blender.org",
+  "expected_sha256": "efa9062d9cdb7a338e40ad530dfdf234806743f29ae6a1a136b97ece4e588e8f",
+  "expected_file_size": 372178639,
+  "expected_duration": 734.17,
+  "default_path_override": "C:\\Arova-Benchmark\\media\\tears_of_steel_720p.mov",
+  "technical_metadata": {
+    "width": 1280,
+    "height": 534,
+    "fps": 24.0,
+    "video_codec": "h264",
+    "audio_codec": "mp3",
+    "audio_channels": 2,
+    "audio_sample_rate": 44100
+  },
+  "annotations": {
+    "transcript_reference": "../annotations/tears_of_steel/transcript_reference.json",
+    "scene_reference": "../annotations/tears_of_steel/scene_reference.json",
+    "retrieval_queries": "../annotations/tears_of_steel/retrieval_queries.json",
+    "grounded_qa_reference": "../annotations/tears_of_steel/grounded_qa_reference.json"
+  }
+}
+
