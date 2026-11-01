@@ -1,5 +1,14 @@
+import sys
 from collections.abc import Generator
 from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+BACKEND_DIR = ROOT_DIR / "backend"
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -156,7 +165,7 @@ def test_all_eight_mcp_tools(db_session: Session) -> None:
     assert stats["total_duration_sec"] == 75.0
     assert stats["total_transcripts_indexed"] == 1
 
-    # 9. export_video_clip
+    # 9. export_video_clip (direct tool function check)
     clip_res = video_tools.export_video_clip(video_id=video_id, start_time=0.2, end_time=1.0, db=db_session)
     assert clip_res["video_id"] == video_id
     assert clip_res["start_time"] == 0.2
@@ -164,5 +173,39 @@ def test_all_eight_mcp_tools(db_session: Session) -> None:
     assert clip_res["duration"] == 0.8
     assert clip_res["file_size"] > 0
     assert Path(clip_res["clip_path"]).is_file()
+
+
+@pytest.mark.anyio
+async def test_mcp_server_default_tools_are_eight_read_only() -> None:
+    from mcp_server.server import create_mcp_server
+    server = create_mcp_server(enable_exports=False)
+    tools = await server.list_tools()
+    tool_names = [t.name for t in tools]
+
+    expected_eight = [
+        "list_videos",
+        "get_video_metadata",
+        "search_video_content",
+        "search_transcripts",
+        "find_video_clips",
+        "summarize_video",
+        "get_video_chapters",
+        "get_media_library_stats",
+    ]
+    assert len(tools) == 8
+    assert tool_names == expected_eight
+    assert "export_video_clip" not in tool_names
+
+
+@pytest.mark.anyio
+async def test_mcp_server_opt_in_exports() -> None:
+    from mcp_server.server import create_mcp_server
+    server = create_mcp_server(enable_exports=True)
+    tools = await server.list_tools()
+    tool_names = [t.name for t in tools]
+
+    assert len(tools) == 9
+    assert "export_video_clip" in tool_names
+
 
 

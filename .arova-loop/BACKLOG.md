@@ -5,7 +5,7 @@
 **Priority Tiers:**
 - **P0:** Critical Security, Data Integrity, or Release Blocker
 - **P1:** Launch-Critical Approved Launch 01 Scope
-- **P2:** Non-blocking Post-Launch Improvement (Blocked until Launch 01 release)
+- **P2:** Non-blocking Post-Launch Improvement (Held until Launch 01 release)
 - **P3:** Gated Research Tracks (Deferred after Release 3)
 
 ---
@@ -17,31 +17,32 @@
 - **`WS-CLI` (Developer Interfaces & SDK):** `arova doctor`, `arova demo`, thin Python client wrapper.
 - **`WS-SEC` (Security, Boundary & Privacy):** Local loopback default, traversal protection, source immutability, licenses.
 - **`WS-QA` (Quality Assurance & Benchmarks):** Regression test suites, ML evaluation harness, health audits.
-- **`WS-DOC` (Obsidian Main Brain & Governance):** `docs/` vault synchronization, ADRs, user guides.
+- **`WS-DOC` (Obsidian Main Brain & Governance):** `docs/` vault synchronization, ADRs, user guides, community files.
 
 ---
 
-## 1. P0 Backlog Items (Release Blockers & Immediate Actions)
+## 1. P0 Completed Items (Verified Foundation)
 
-| Task ID | Workstream | Description | Status | Dependencies | Deliverables |
+| Task ID | Workstream | Description | Status | Dependencies | Deliverables & Verification |
 |---|---|---|---|---|---|
-| **TASK-001** | `WS-SEC` | Path Traversal & Source Media Immutability Verification | `DONE` | `backend/app/core/config.py` | Automated tests verifying `ALLOWED_MEDIA_ROOTS` and zero modification of source media. |
-| **TASK-002** | `WS-MCP` | FastMCP STDIO Protocol & 8 Read-Only Tools Certification | `DONE` | `mcp_server/server.py` | STDIO transport with verified tool schemas and error handling. |
-| **TASK-003** | `WS-ENG` | Two-Stage Hybrid Video RAG Engine (Dense + Lexical + Cross-Encoder) | `DONE` | ChromaDB + SQLite FTS5 | Reciprocal Rank Fusion ($k=60$) and PyTorch Cross-Encoder re-ranker. |
-| **TASK-004** | `WS-SEC` | Resolve Source Conflicts in `.arova-loop/SOURCE_CONFLICTS.md` | `DONE` | Spec v1.1 | Official register reconciling Night Shift, CLI/SDK boundary, and FFmpeg licensing. |
-| **TASK-005** | `WS-QA` | System Baseline & Security Control Gap Audit Reports | `DONE` | Test harness | `reports/audit/BASELINE.md`, `reports/security/CONTROL_GAP_ASSESSMENT.md`. |
+| **TASK-001** | `WS-SEC` | Path Traversal & Source Media Immutability Verification | `DONE` | `backend/app/core/config.py` | `test_path_traversal_protection_and_discovery`, `test_import_list_stream_and_safe_delete_index` |
+| **TASK-002** | `WS-MCP` | FastMCP STDIO Protocol & 8 Read-Only Tools Isolation | `DONE` | `mcp_server/server.py` | `test_mcp_server_default_tools_are_eight_read_only`, `test_mcp_server_opt_in_exports` (3/3 passed) |
+| **TASK-003** | `WS-ENG` | Two-Stage Hybrid Video RAG Engine (Dense + Lexical + Cross-Encoder) | `DONE` | ChromaDB + SQLite FTS5 | RRF ($k=60$) & Cross-Encoder re-ranker verified (`test_hybrid_rerank.py`) |
+| **TASK-004** | `WS-SEC` | Resolve Source Conflicts in `.arova-loop/SOURCE_CONFLICTS.md` | `DONE` | Spec v1.1 | Categorized into Enforced, Awaiting Approval, and Unresolved Questions |
+| **TASK-005** | `WS-QA` | System Baseline & Security Control Gap Audit Reports | `DONE` | Test harness | `reports/audit/BASELINE.md`, `reports/security/CONTROL_GAP_ASSESSMENT.md` |
 
 ---
 
-## 2. P1 Backlog Items (Launch 01 Immediate Deliverables)
+## 2. P1 Launch 01 Sequential Implementation Plan
 
-| Task ID | Workstream | Description | Priority | Dependencies | Acceptance Criteria |
-|---|---|---|---|---|---|
-| **TASK-006** | `WS-CLI` | Implement `arova doctor` Diagnostic CLI Command | `P1` | `ffprobe`, Python runtime | Inspects Python version, FFmpeg presence, SQLite FTS5, disk space, and MCP readiness. |
-| **TASK-007** | `WS-CLI` | Implement `arova demo` Synthetic First-Use Workflow | `P1` | `scripts/seed_demo_media.py` | Runs complete probe, transcribe, index, and search flow on synthetic media in < 15s. |
-| **TASK-008** | `WS-CLI` | Package Thin Python Client Wrapper (`arova-client`) | `P1` | FastAPI REST endpoints | Clean, typed Python wrapper exposing `health()`, `search()`, `videos()`, `ask()`. |
-| **TASK-009** | `WS-DOC` | Finalize Client Setup Walkthroughs (`docs/INTEGRATIONS.md`) | `P1` | MCP Server | Step-by-step guides for Claude Desktop, Cursor, and Gemini Antigravity. |
-| **TASK-010** | `WS-QA` | Automated End-to-End Release Gate Script (`scripts/release_gate.py`) | `P1` | Pytest + Vitest | Single-command release verification validating all tests and licenses before tagging. |
+| Task ID | REQ ID | Workstream | Description | Dependencies | Acceptance Criteria | Planned Tests |
+|---|---|---|---|---|---|---|
+| **TASK-006** | `REQ-024` | `WS-CLI` | Implement `arova doctor` Diagnostic CLI Command | `ffprobe`, Python runtime | Non-destructive check of Python >= 3.11, FFmpeg/ffprobe presence, SQLite FTS5, disk space, and MCP readiness. Does not download models. | `tests/cli/test_doctor.py` |
+| **TASK-007** | `REQ-025`, `REQ-032` | `WS-CLI` | Implement `arova demo` Synthetic First-Use Workflow | `scripts/seed_demo_media.py` | Indexes a 2-second synthetic fixture and performs test search in < 15s without network or credentials. | `tests/cli/test_demo.py` |
+| **TASK-008** | `REQ-023` | `WS-CLI` | Package Thin Python Client Wrapper (`arova-client`) | FastAPI REST endpoints | Lightweight, typed Python wrapper exposing `health()`, `search()`, `videos()`, `ask()`. | `tests/sdk/test_client.py` |
+| **TASK-009** | `REQ-033` | `WS-DOC` | Finalize Tested Client Matrices (`docs/INTEGRATIONS.md`) | MCP Server | Tested configurations for Claude Desktop, Cursor, and Gemini Antigravity with verified screenshots/logs. | Manual / E2E checklist |
+| **TASK-010** | `REQ-031` | `WS-DOC` | Open-Source Governance & Community Documents | Spec §10.2 | Create root `NOTICE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`. | Document review & markdown link checks |
+| **TASK-011** | `REQ-029`, Release Gate | `WS-QA` | Automated End-to-End Release Gate Script (`scripts/release_gate.py`) | Pytest + Vitest | Single-command gate validating all 31+ unit tests, frontend build, source immutability, and license inventory. | `python scripts/release_gate.py` |
 
 ---
 
@@ -49,10 +50,10 @@
 
 | Task ID | Workstream | Description | Priority | Status |
 |---|---|---|---|---|
-| **TASK-011** | `WS-ENG` | Advanced Subtitle SRT/VTT Ingestion | `P2` | `HELD` (Wait for v0.1 release) |
-| **TASK-012** | `WS-ENG` | Multi-collection Drag & Drop in Frontend | `P2` | `HELD` (Wait for v0.1 release) |
-| **TASK-013** | `WS-CLI` | Rich Interactive Terminal UI for CLI | `P2` | `HELD` (Wait for v0.1 release) |
-| **TASK-014** | `WS-MCP` | Claude Desktop `.mcpb` Extension Package | `P2` | `HELD` (Wait for v0.1 release) |
+| **TASK-012** | `WS-ENG` | Advanced Subtitle SRT/VTT Ingestion | `P2` | `HELD` (Wait for v0.1 release) |
+| **TASK-013** | `WS-ENG` | Multi-collection Drag & Drop in Frontend | `P2` | `HELD` (Wait for v0.1 release) |
+| **TASK-014** | `WS-CLI` | Rich Interactive Terminal UI for CLI | `P2` | `HELD` (Wait for v0.1 release) |
+| **TASK-015** | `WS-MCP` | Claude Desktop `.mcpb` Extension Package | `P2` | `HELD` (Wait for v0.1 release) |
 
 ---
 
@@ -60,6 +61,6 @@
 
 | Task ID | Workstream | Description | Priority | Status |
 |---|---|---|---|---|
-| **TASK-015** | `WS-ENG` | Night Shift Autonomous Background Directory Watcher | `P3` | `GATED_RESEARCH` (Post-Release 3) |
-| **TASK-016** | `WS-ENG` | Multilingual Cross-Language Semantic Projection | `P3` | `GATED_RESEARCH` (Post-Release 3) |
-| **TASK-017** | `WS-ENG` | Local Vision-Language Model (VLM) Frame Reasoning | `P3` | `GATED_RESEARCH` (Post-Release 3) |
+| **TASK-016** | `WS-ENG` | Night Shift Autonomous Background Directory Watcher | `P3` | `GATED_RESEARCH` (Post-Release 3) |
+| **TASK-017** | `WS-ENG` | Multilingual Cross-Language Semantic Projection | `P3` | `GATED_RESEARCH` (Post-Release 3) |
+| **TASK-018** | `WS-ENG` | Local Vision-Language Model (VLM) Frame Reasoning | `P3` | `GATED_RESEARCH` (Post-Release 3) |
