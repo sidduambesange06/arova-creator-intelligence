@@ -144,3 +144,4 @@ def test_export_clip_not_found(client: TestClient) -> None:
 def test_download_clip_path_traversal(client: TestClient) -> None:
     resp = client.get("/api/v1/videos/clips/..%2F..%2Fsecret.txt")
     assert resp.status_code in (400, 404)
+

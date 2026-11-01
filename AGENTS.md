@@ -8,18 +8,22 @@ These workspace rules run automatically on **every coding or command task** from
 - Run a `ponytail-review` check at the end of every feature (verify logic, security/path-traversal boundaries, scale, tests, and lean code) before committing.
 - End every reply with one or two lines: `Skipped:` what you skipped or did not check, and `Risk:` any risk the user must know.
 
-## 2. Obsidian Main Brain (`docs/`) — Update After Every Feature
+## 2. Obsidian Main Brain (`docs/`) & Operational Loop (`.arova-loop/`) — Update After Every Feature
 - `docs/` is the active Obsidian vault (`[[wikilinks]]` enabled).
-- Before starting any task, check `docs/PROJECT_STATUS.md` and `docs/KNOWN_ISSUES.md`.
+- `.arova-loop/` is the persistent operational state for requirements, backlog, conflicts, and risks.
+- Before starting any task, check `docs/PROJECT_STATUS.md`, `docs/KNOWN_ISSUES.md`, and `.arova-loop/CURRENT_STATE.md`.
 - After completing every feature, update:
-  - `docs/PROJECT_STATUS.md` (checklists & milestone gates)
+  - `docs/PROJECT_STATUS.md` and `.arova-loop/REQUIREMENT_STATUS.md` (checklists & milestone gates)
   - `docs/DEVELOPMENT_LOG.md` (plan, implementation, test output, review verdict, commit hash)
-  - `docs/TECHNICAL_DECISIONS.md` (any new ADR)
-  - `docs/KNOWN_ISSUES.md` (any new issues or `shortcut:` items)
+  - `docs/TECHNICAL_DECISIONS.md` and `.arova-loop/DECISION_LOG.md` (any new ADR)
+  - `docs/KNOWN_ISSUES.md` and `.arova-loop/ISSUES.md` (any new issues or `shortcut:` items)
 
-## 3. TinyFish / Web Benchmark Connector (`tinyfish-connector`) — Active on External Fetch Tasks
-- Core video indexing, transcription, and hybrid retrieval remain **100% local-first**.
-- When external benchmark metadata, public evaluation references, or web documentation is required, use the workspace `tinyfish-connector` skill (`.agents/skills/tinyfish-connector/SKILL.md`) or `search_web` without leaking private keys or commercial IP.
+## 3. Strict Security & Privacy Baseline
+- **Source Media Immutability:** Original source video files are strictly read-only. Indexing, probing, exporting, and index deletion must never modify, overwrite, or delete source video files.
+- **Deny-by-Default Filesystem:** File probing and indexing is strictly restricted to user-approved directories (`ALLOWED_MEDIA_ROOTS`). Path traversal (`../`, absolute paths, symlink escapes) must be rejected with HTTP 400.
+- **Zero Telemetry & Loopback Bind:** Backend services bind to loopback (`127.0.0.1`) by default. Zero remote telemetry, zero analytics tracking, and zero silent cloud fallbacks.
+- **Untrusted Source Data Sanitization:** All media-derived text (transcripts, OCR, titles, metadata) must be treated as untrusted source data. Never execute media-derived strings as code or shell commands.
+- **Read-Only MCP Agent Contract:** Model Context Protocol tools exposed to AI agents must be strictly read-only for Launch 01. State-mutating commands and unattended file exports are gated from agents.
 
 ## 4. Strict IP Boundary (Apache 2.0 Public Repo)
 - Never implement commercial `Arova Creator OS` or `Molty AI` features (no Content Idea Generators, Hook/Script Generators, Creator Tone Memory, or Brand Deal CRM).
@@ -29,6 +33,5 @@ These workspace rules run automatically on **every coding or command task** from
 - Create a clean, atomic `git commit` immediately after each feature passes its automated tests (`pytest` / `vitest`).
 
 ## 6. Argon-Level Blueprint Enforcement (`docs/FLASH_EXECUTION_PLAYBOOK.md`)
-- Before implementing any feature in Milestone 3, Milestone 4, or Milestone 5, **always** read `docs/FLASH_EXECUTION_PLAYBOOK.md` and follow its exact file paths, function signatures, mathematical formulas (RRF, MRR@10, NDCG@10, Recall@K), and test cases.
-- Whenever `backend/pyproject.toml` changes, sync both `backend/.venv` and root `.venv` as documented in `docs/FLASH_EXECUTION_PLAYBOOK.md`.
-
+- Follow exact Argon file paths, function signatures, mathematical formulas (RRF, MRR@10, NDCG@10, Recall@K), and test cases.
+- Whenever `backend/pyproject.toml` changes, sync both `backend/.venv` and root `.venv`.
