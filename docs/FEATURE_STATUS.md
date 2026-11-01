@@ -31,7 +31,7 @@ Every claim in the project documentation and `README.md` is mapped below to its 
 | **Hallmark Studio Workstation UI** | `frontend/src/features/media-library/MediaLibraryView.tsx`, `frontend/src/features/video-search/HybridSearchView.tsx` | `npm test --prefix frontend`, `npm run build --prefix frontend` | `WORKING` | 12-column responsive layout, precision scrubber, variable speeds, multi-track timeline. |
 | **CLI `arova doctor`** | `backend/app/cli/doctor.py`, `backend/app/cli/main.py` | `pytest backend/tests/cli/test_doctor.py` | `WORKING` | Non-destructive diagnostic checking Python, FFmpeg, SQLite FTS5, disk, and MCP readiness (text & json modes). |
 | **CLI `arova demo`** | `backend/app/cli/demo.py`, `backend/app/cli/main.py` | `pytest backend/tests/cli/test_demo.py` | `WORKING` | 5-minute synthetic first-use flow without external credentials (verified in < 1s). |
-| **Thin Python SDK Wrapper** | Proposed in Spec §4.2 | Not yet extracted into standalone `arova-client` | `PLANNED` | REST API exists; thin client wrapper to be packaged. |
+| **Thin Python SDK Wrapper** | `arova/client.py` | `pytest backend/tests/cli/test_client.py` | `WORKING` | Zero-dependency REST client wrapper (`ArovaClient`) for health, videos, search, and Q&A. |
 | **Night Shift Background Ingestion** | Older Master Plan | Excluded from Launch 01 by Spec v1.1 | `DEFERRED` | Gated research track after Release 3. |
 | **Commercial Studio / Creator OS** | Private Roadmap | Excluded by Open Source Spec & AGENTS rules | `EXCLUDED` | Zero commercial IP permitted in this repository. |
 

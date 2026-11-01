@@ -51,7 +51,7 @@ Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PL
 ### Phase 1 Sequential Backlog
 - [x] **TASK-006 (WS-CLI, REQ-024):** `arova doctor` diagnostic CLI command (COMPLETED; non-destructive check of Python, FFmpeg, SQLite, disk space, and MCP readiness; 10 unit tests passed).
 - [x] **TASK-007 (WS-CLI, REQ-025, REQ-032):** `arova demo` synthetic first-use flow (COMPLETED; 2s synthetic fixture probed, transcribed, indexed, and searched in < 1s; 4 tests passed).
-- [ ] **TASK-008 (WS-CLI, REQ-023):** Thin Python client wrapper `arova-client` (NOT IMPLEMENTED; strictly frozen to thin REST client for health, search, videos, ask).
+- [x] **TASK-008 (WS-CLI, REQ-023):** Thin Python client wrapper `arova-client` (COMPLETED; zero-dependency `ArovaClient` calling health, videos, search, ask; 4 tests passed).
 - [ ] **TASK-009 (WS-DOC, REQ-033):** Tested client integration matrices in `docs/INTEGRATIONS.md` (NOT IMPLEMENTED; Claude Desktop, Cursor, Gemini Antigravity).
 - [ ] **TASK-010 (WS-DOC, REQ-031):** Open-source community governance documents (NOT IMPLEMENTED; `NOTICE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`).
 - [ ] **TASK-011 (WS-QA, REQ-029):** Automated release gate verification script `scripts/release_gate.py` (NOT IMPLEMENTED; end-to-end verification gate).
