@@ -277,5 +277,31 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - Full suite: `pytest backend/tests mcp_server/tests -v` -> 31/31 passed in 5.09s.
 - **Resulting Behavior:** Default MCP server discovery lists strictly the 8 read-only tools. Any client attempting to call `export_video_clip` without opt-in receives an unknown tool error.
 
+---
+
+### Feature 6.1 (TASK-006): Implementation of `arova doctor` Diagnostic CLI Command
+- **Date:** 2026-11-01
+- **Task & REQ ID:** `TASK-006` (`REQ-024`)
+- **Scope & Plan:**
+  1. Implement non-destructive system diagnostics in `backend/app/cli/doctor.py`: Python runtime version (>= 3.11), FFmpeg/ffprobe presence (version & remediation advice), SQLite FTS5 extension probe, storage & write permissions check, model cache size inspection without downloading weights, and FastMCP server 8 read-only tools isolation verification.
+  2. Implement CLI dispatcher in `backend/app/cli/main.py` supporting `arova doctor` with human-readable terminal output and `--json` flag for machine-readable output.
+  3. Register package entry point in `backend/pyproject.toml` (`[project.scripts] arova = "app.cli.main:main"`) and root shim `arova/__main__.py`.
+  4. Write comprehensive automated test suite in `backend/tests/cli/test_doctor.py`.
+- **Implementation:**
+  - `backend/app/cli/doctor.py`: Complete diagnostic routines and formatters.
+  - `backend/app/cli/main.py`: `argparse` CLI supporting `doctor` and `--json`.
+  - `backend/app/processing/metadata.py`: Added `get_ffprobe_binary()`.
+  - `backend/pyproject.toml`: Added `[project.scripts] arova = "app.cli.main:main"`.
+  - `arova/__init__.py` & `arova/__main__.py`: Added package entrypoint.
+  - `backend/tests/cli/test_doctor.py`: 10 comprehensive tests.
+- **Verification Evidence:**
+  - `pytest backend/tests/cli/test_doctor.py -v` -> 10/10 passed in 2.32s.
+  - Full suite: `pytest backend/tests mcp_server/tests -q` -> 41/41 passed in 6.39s.
+  - Frontend: `npm test --prefix frontend -- --run` -> 4/4 suites passed (6 tests) in 3.61s.
+  - Manual execution: Tested `python -m arova doctor` and `python -m arova doctor --json` successfully.
+  - Non-destructive verification: `test_doctor_is_strictly_non_destructive` confirmed zero file modification or model downloads.
+- **Review (`ponytail-review`):** Minimal, zero extra CLI dependencies (standard library `argparse` used). Verified non-destructive.
+
+
 
 

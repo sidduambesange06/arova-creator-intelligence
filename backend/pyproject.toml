@@ -16,6 +16,9 @@ dependencies = [
     "mcp>=2.3.0",
 ]
 
+[project.scripts]
+arova = "app.cli.main:main"
+
 [dependency-groups]
 dev = [
     "pytest>=8.3.0",

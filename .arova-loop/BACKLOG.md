@@ -37,7 +37,7 @@
 
 | Task ID | REQ ID | Workstream | Description | Dependencies | Acceptance Criteria | Planned Tests |
 |---|---|---|---|---|---|---|
-| **TASK-006** | `REQ-024` | `WS-CLI` | Implement `arova doctor` Diagnostic CLI Command | `ffprobe`, Python runtime | Non-destructive check of Python >= 3.11, FFmpeg/ffprobe presence, SQLite FTS5, disk space, and MCP readiness. Does not download models. | `tests/cli/test_doctor.py` |
+| **TASK-006** | `REQ-024` | `WS-CLI` | Implement `arova doctor` Diagnostic CLI Command | `DONE` | Non-destructive check of Python >= 3.11, FFmpeg/ffprobe presence, SQLite FTS5, disk space, and MCP readiness. Does not download models. | `tests/cli/test_doctor.py` (10 passed) |
 | **TASK-007** | `REQ-025`, `REQ-032` | `WS-CLI` | Implement `arova demo` Synthetic First-Use Workflow | `scripts/seed_demo_media.py` | Indexes a 2-second synthetic fixture and performs test search in < 15s without network or credentials. | `tests/cli/test_demo.py` |
 | **TASK-008** | `REQ-023` | `WS-CLI` | Package Thin Python Client Wrapper (`arova-client`) | FastAPI REST endpoints | Lightweight, typed Python wrapper exposing `health()`, `search()`, `videos()`, `ask()`. | `tests/sdk/test_client.py` |
 | **TASK-009** | `REQ-033` | `WS-DOC` | Finalize Tested Client Matrices (`docs/INTEGRATIONS.md`) | MCP Server | Tested configurations for Claude Desktop, Cursor, and Gemini Antigravity with verified screenshots/logs. | Manual / E2E checklist |

@@ -29,7 +29,8 @@ Every claim in the project documentation and `README.md` is mapped below to its 
 | **FastMCP STDIO Server (8 Read-Only Tools)** | `mcp_server/server.py`, `mcp_server/tools/video_tools.py` | `mcp_server/server.py` | `WORKING` | Exposes 8 read-only retrieval tools over STDIO with JSON-RPC. |
 | **Lossless Subclip Export** | `backend/app/processing/clip_export.py` | `pytest backend/tests/integration/test_clip_export.py` | `WORKING` | FFmpeg stream-copy subclip export bounded to `ALLOWED_MEDIA_ROOTS`. |
 | **Hallmark Studio Workstation UI** | `frontend/src/features/media-library/MediaLibraryView.tsx`, `frontend/src/features/video-search/HybridSearchView.tsx` | `npm test --prefix frontend`, `npm run build --prefix frontend` | `WORKING` | 12-column responsive layout, precision scrubber, variable speeds, multi-track timeline. |
-| **CLI `arova doctor` & `arova demo`** | Proposed in Spec §4.3 | Not yet implemented in root CLI package | `PLANNED` | Required for Launch 01 first-use experience. |
+| **CLI `arova doctor`** | `backend/app/cli/doctor.py`, `backend/app/cli/main.py` | `pytest backend/tests/cli/test_doctor.py` | `WORKING` | Non-destructive diagnostic checking Python, FFmpeg, SQLite FTS5, disk, and MCP readiness (text & json modes). |
+| **CLI `arova demo`** | Proposed in Spec §4.3 | Scheduled for TASK-007 | `PLANNED` | 5-minute synthetic first-use flow without external credentials. |
 | **Thin Python SDK Wrapper** | Proposed in Spec §4.2 | Not yet extracted into standalone `arova-client` | `PLANNED` | REST API exists; thin client wrapper to be packaged. |
 | **Night Shift Background Ingestion** | Older Master Plan | Excluded from Launch 01 by Spec v1.1 | `DEFERRED` | Gated research track after Release 3. |
 | **Commercial Studio / Creator OS** | Private Roadmap | Excluded by Open Source Spec & AGENTS rules | `EXCLUDED` | Zero commercial IP permitted in this repository. |

@@ -48,8 +48,8 @@ Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PL
 - [x] **Antigravity Skills Installed:** `arova-project-management`, `arova-engineering-loop`, `arova-obsidian-sync`, `arova-release-gate`.
 - [x] **Approval Gate Reached:** Stopping for user review of Phase 1 proposal before routine loop iterations.
 
-### Phase 1 Sequential Backlog (NOT IMPLEMENTED — Awaiting Phase 1 Approval)
-- [ ] **TASK-006 (WS-CLI, REQ-024):** `arova doctor` diagnostic CLI command (NOT IMPLEMENTED; non-destructive check of Python, FFmpeg, SQLite, disk space, and MCP readiness).
+### Phase 1 Sequential Backlog
+- [x] **TASK-006 (WS-CLI, REQ-024):** `arova doctor` diagnostic CLI command (COMPLETED; non-destructive check of Python, FFmpeg, SQLite, disk space, and MCP readiness; 10 unit tests passed).
 - [ ] **TASK-007 (WS-CLI, REQ-025, REQ-032):** `arova demo` synthetic first-use flow (NOT IMPLEMENTED; 2s synthetic fixture tested in < 15s).
 - [ ] **TASK-008 (WS-CLI, REQ-023):** Thin Python client wrapper `arova-client` (NOT IMPLEMENTED; strictly frozen to thin REST client for health, search, videos, ask).
 - [ ] **TASK-009 (WS-DOC, REQ-033):** Tested client integration matrices in `docs/INTEGRATIONS.md` (NOT IMPLEMENTED; Claude Desktop, Cursor, Gemini Antigravity).

@@ -23,6 +23,10 @@ def get_ffmpeg_binary() -> str:
     return shutil.which("ffmpeg") or imageio_ffmpeg.get_ffmpeg_exe()
 
 
+def get_ffprobe_binary() -> str | None:
+    return shutil.which("ffprobe")
+
+
 def _parse_fps(raw_fps: str) -> float:
     if "/" in raw_fps:
         num, den = raw_fps.split("/", 1)

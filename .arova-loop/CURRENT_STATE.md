@@ -38,8 +38,8 @@ Arova Creator Intelligence is an open-source, local-first video intelligence eng
 ## 2. Current Verified State
 
 ### 2.1 Codebase Health
-- **Backend & MCP Tests:** 31 passed out of 31 unit/integration tests (`pytest backend/tests mcp_server/tests -v`, 5.09s).
-- **Frontend Tests:** 4 test suites passed (6 tests) (`vitest run`, 3.05s).
+- **Backend, CLI & MCP Tests:** 41 passed out of 41 unit/integration tests (`pytest backend/tests mcp_server/tests -v`, 6.39s).
+- **Frontend Tests:** 4 test suites passed (6 tests) (`vitest run`, 3.61s).
 - **Production Web Build:** `tsc -b && vite build` succeeded (bundle size 202.57 KB, 0 errors).
 - **System Health Audit:** `scripts/system_health_audit.py` passed with status `HEALTHY` (7/7 checks passed).
 - **Git Working Tree:** Branch `main`, tracking `origin/main`.
@@ -48,9 +48,10 @@ Arova Creator Intelligence is an open-source, local-first video intelligence eng
 - **Backend API:** FastAPI running locally on `http://127.0.0.1:8000` (loopback bound).
 - **Frontend Workstation:** Vite running locally on `http://127.0.0.1:5173`.
 - **MCP Server:** Available via `python -m mcp_server.server` over STDIO (8 read-only tools by default).
+- **CLI:** Available via `python -m arova` and `arova` (`arova doctor` verified).
 
-### 2.3 Phase 1 Sequential Backlog Status (Awaiting Phase 1 Approval)
-- `TASK-006` (`arova doctor` diagnostic CLI): `NOT IMPLEMENTED`
+### 2.3 Phase 1 Sequential Backlog Status
+- `TASK-006` (`arova doctor` diagnostic CLI): `DONE` (Verified by 10 unit tests)
 - `TASK-007` (`arova demo` synthetic first-use flow): `NOT IMPLEMENTED`
 - `TASK-008` (Thin Python REST client wrapper): `NOT IMPLEMENTED` (frozen scope: thin REST client only)
 - `TASK-009` (Client setup matrices in `docs/INTEGRATIONS.md`): `NOT IMPLEMENTED`
