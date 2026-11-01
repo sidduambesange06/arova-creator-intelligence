@@ -1,0 +1,19 @@
+Arova Creator Intelligence
+Copyright 2026 Siddhu Ambesange and project contributors.
+
+This product includes software developed as part of the open-source
+Arova Creator Intelligence engine (https://github.com/sidduambesange06/arova-creator-intelligence).
+
+This software includes and relies upon third-party open-source components:
+- FastAPI (MIT License) - Copyright (c) Sebastián Ramírez
+- Uvicorn (BSD-3-Clause) - Copyright (c) Encode OSS Ltd.
+- SQLAlchemy (MIT License) - Copyright (c) Mike Bayer
+- ChromaDB (Apache-2.0 License) - Copyright (c) Chroma
+- Sentence-Transformers (Apache-2.0 License) - Copyright (c) UKP Lab
+- PyTorch (BSD-3-Clause License) - Copyright (c) Meta Platforms, Inc. and affiliates
+- faster-whisper (MIT License) - Copyright (c) Guillaume Klein
+- PySceneDetect (BSD-3-Clause License) - Copyright (c) Brandon Castellano
+- Model Context Protocol Python SDK (MIT License) - Copyright (c) Anthropic, PBC
+- React & React-DOM (MIT License) - Copyright (c) Meta Platforms, Inc.
+- Vite (MIT License) - Copyright (c) Yuxi (Evan) You and Vite contributors
+- Lucide React (ISC License) - Copyright (c) Lucide Project

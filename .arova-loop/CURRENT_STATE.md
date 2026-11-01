@@ -55,5 +55,5 @@ Arova Creator Intelligence is an open-source, local-first video intelligence eng
 - `TASK-007` (`arova demo` synthetic first-use flow): `DONE` (Verified by 4 unit/integration tests; completed in < 1s)
 - `TASK-008` (Thin Python REST client wrapper): `DONE` (Verified by 4 unit tests; zero-dependency `ArovaClient`)
 - `TASK-009` (Client setup matrices in `docs/INTEGRATIONS.md`): `DONE` (4-tier support policy and configurations verified)
-- `TASK-010` (Open-source governance: `NOTICE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`): `NOT IMPLEMENTED`
+- `TASK-010` (Open-source governance: `NOTICE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`): `DONE` (All files verified)
 - `TASK-011` (Automated release gate script `scripts/release_gate.py`): `NOT IMPLEMENTED`

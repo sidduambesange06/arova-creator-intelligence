@@ -357,6 +357,21 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - Zero unauthenticated remote HTTP exposure in v0.1.
 - **Review (`ponytail-review`):** Honest, unvarnished classification distinguishing tested clients from documented examples.
 
+---
+
+### Feature 6.5 (TASK-010): Open-Source Community Governance & Legal Compliance Files
+- **Date:** 2026-11-01
+- **Task & REQ ID:** `TASK-010` (`REQ-031`)
+- **Scope & Plan:**
+  1. Author all mandatory open-source project documents specified in Open Source Spec v1.1 (§10.2): `NOTICE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `CHANGELOG.md`.
+  2. Embed privacy boundaries, vulnerability disclosure SLA, Ponytail code review criteria, and Apache 2.0 attribution notices.
+- **Implementation:**
+  - Created `NOTICE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`.
+- **Verification Evidence:**
+  - All 8 community documents (`README.md`, `LICENSE`, `NOTICE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`, `AGENTS.md`) verified present and markdown-validated.
+- **Review (`ponytail-review`):** Standardized, professional community setup without bloated or unmaintained documents.
+
+
 
 
 
