@@ -66,13 +66,14 @@ Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PL
 - [x] **Release Gate Script Hardened:** Reports passed, failed, warnings, not-yet-implemented gates, and manual requirements.
 
 ### Automated Hardening & Stress Gates (COMPLETED)
-- [x] **500-Video Library Stress & Recovery:** Directory scanning, SHA-256 deduplication, mid-run abort at video 250, and resumption recovery without duplicate writes (`backend/tests/stress/test_large_library_stress.py`).
+- [x] **500-Video Discovery & Recovery Stress Suite:** Directory scanning, SHA-256 deduplication, mid-run abort at video 250, and resumption recovery without duplicate writes (`backend/tests/stress/test_large_library_stress.py`). *(Note: Validates discovery and recovery mechanics; distinct from full end-to-end media ASR/OCR indexing).*
 - [x] **200+ Prompt-Injection Red-Team Corpus:** 215 diverse adversarial test cases across 9 attack vectors with prompt sanitization defense (`sample_data/redteam_prompt_injections.json`, `backend/tests/security/test_prompt_injection_redteam.py`).
-- [x] **100-Query Multimodal Visual Retrieval Benchmark:** 100 queries evaluated on speech and on-screen OCR text; Stage 2 Cross-Encoder achieved MRR@10=1.0000, NDCG@10=1.0000; p50 total latency 15.91ms (`sample_data/visual_retrieval_golden_100.json`, `reports/audit/BENCHMARK_100_QUERIES.md`).
+- [x] **100-Query Synthetic Multimodal Benchmark:** 100 queries evaluated on curated synthetic speech and on-screen OCR text; Stage 2 Cross-Encoder achieved MRR@10=1.0000, NDCG@10=1.0000 (`sample_data/visual_retrieval_golden_100.json`, `reports/audit/BENCHMARK_100_QUERIES.md`). *(Note: Real-world video validation deferred to Beta roadmap).*
 - [x] **Fault-Injection Resiliency:** ENOSPC disk-full cleanup, zero-byte/truncated media rejection, worker SIGINT abort handling, and SQLite WAL crash recovery verified (`backend/tests/stress/test_fault_injection.py`).
+- [x] **Qualified CycloneDX SBOM:** Generated SBOM at `reports/audit/SBOM.json` distinguishing direct dependencies, transitive runtimes, bundled LGPL/GPL FFmpeg binary, and runtime model artefacts.
 - [x] **Automated Release Gate Passing:** 12/12 automated checks pass in `scripts/release_gate.py`.
 
 ### Staged Release Readiness & Alpha Approval (CURRENT)
-- [x] **Initial Open-Source Alpha (`v0.1.0-alpha`):** APPROVED. All 12 automated checks pass (64 backend/stress/benchmark tests, 6 frontend tests, production build, CycloneDX SBOM, doctor, demo, immutability). Local developer preview ready on `127.0.0.1`.
-- [ ] **Beta Roadmap Gates (`v0.2.0-beta`):** DEFERRED. 3 clean non-developer installs under 5 minutes on independent machines (macOS, Linux Ubuntu); live Claude Desktop & Cursor IDE GUI testing; PyPI package distribution.
+- [x] **Initial Open-Source Alpha (`v0.1.0-alpha`):** APPROVED. All 12 automated checks pass (64 backend/stress/benchmark tests, 6 frontend tests, production build, qualified CycloneDX SBOM, doctor, demo, immutability). Local developer preview ready on `127.0.0.1`.
+- [ ] **Beta Roadmap Gates (`v0.2.0-beta`):** DEFERRED. 3 clean non-developer installs under 5 minutes on independent machines (macOS, Linux Ubuntu); live Claude Desktop & Cursor IDE GUI testing; full media ASR indexing on 500 real videos; real-world video benchmark; dynamic network packet egress inspection; PyPI package distribution.
 - [ ] **Stable v1.0.0 Release:** GATED. Model Context Protocol official registry publication and long-term backwards compatibility. Strictly held; zero remote git pushes or public releases without explicit user approval.

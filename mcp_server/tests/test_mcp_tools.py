@@ -176,9 +176,10 @@ def test_all_eight_mcp_tools(db_session: Session) -> None:
 
 
 @pytest.mark.anyio
-async def test_mcp_server_default_tools_are_eight_read_only() -> None:
-    from mcp_server.server import create_mcp_server
-    server = create_mcp_server(enable_exports=False)
+async def test_mcp_server_default_tools_are_eight_read_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("AROVA_ENABLE_MCP_EXPORTS", raising=False)
+    from mcp_server.server import create_mcp_server, mcp
+    server = create_mcp_server()
     tools = await server.list_tools()
     tool_names = [t.name for t in tools]
 
@@ -195,6 +196,12 @@ async def test_mcp_server_default_tools_are_eight_read_only() -> None:
     assert len(tools) == 8
     assert tool_names == expected_eight
     assert "export_video_clip" not in tool_names
+
+    # Also verify module-level singleton instance executed by stdio runner
+    singleton_tools = await mcp.list_tools()
+    singleton_tool_names = [t.name for t in singleton_tools]
+    assert len(singleton_tools) == 8
+    assert "export_video_clip" not in singleton_tool_names
 
 
 @pytest.mark.anyio

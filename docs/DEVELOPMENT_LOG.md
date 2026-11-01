@@ -471,6 +471,34 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - Full automated suite: 64 backend/CLI/stress tests and 6 frontend tests passing.
 - **Review (`ponytail-review`):** Lean release governance. Honest scope boundaries: developer preview Alpha approved for local evaluation; external multi-machine setup cleanly staged on Beta roadmap. Zero unrequested code added.
 
+---
+
+### Feature 6.10: Final Claim-Accuracy & Alpha-Readiness Hardening Pass
+- **Date:** 2026-11-01
+- **Scope & Plan:**
+  1. Correct 500-video scale description across docs and release gate to accurately specify filesystem discovery, deduplication, and crash recovery, distinct from full end-to-end media ASR/OCR indexing.
+  2. Clearly label 100-query benchmark as a curated synthetic multimodal evaluation golden set until validated on independently labelled real video footage (Beta roadmap).
+  3. Qualify CycloneDX SBOM (`reports/audit/SBOM.json`) into 4 explicit categories: direct runtime dependencies (11), transitive runtimes (5), bundled binaries (imageio-ffmpeg LGPL/GPL binary), and Hugging Face model artefacts (4).
+  4. Verify `export_video_clip` is absent from default MCP `tools/list` response (tested in `test_mcp_tools.py` for both custom and module-level singleton instances).
+  5. Correct privacy wording in security audit and README so static code audit and loopback binding are not presented as dynamic network-egress packet capture.
+  6. Execute clean installation test from a fresh git clone in a clean virtual environment (`$env:TEMP/arova-fresh-install-test`), capturing exact commands and timing (`arova doctor`, `arova demo` in 0.536s, FastMCP 8 tools, FastAPI app import).
+  7. Verify and expand README quickstart instructions (doctor, demo, backend API, FastMCP, Web Workstation, Python client SDK).
+  8. Update release gate warnings and staged roadmap verdict to clearly separate Alpha approval from Beta/Stable readiness.
+  9. Update `docs/FEATURE_STATUS.md`, `docs/KNOWN_ISSUES.md`, and `.arova-loop/ISSUES.md` with active disclosures (ISS-004 through ISS-008).
+- **Implementation:**
+  - `backend/tests/stress/test_large_library_stress.py`: Updated docstrings to clarify discovery/recovery scope.
+  - `backend/tests/benchmarks/test_visual_retrieval_benchmark.py` & `reports/audit/BENCHMARK_100_QUERIES.md`: Labeled benchmark as synthetic multimodal golden set.
+  - `mcp_server/tests/test_mcp_tools.py`: Added test verifying default module-level MCP instance has strictly 8 tools and excludes `export_video_clip`.
+  - `scripts/release_gate.py`: Updated checks, qualified SBOM (20 components), qualified warnings, and staged roadmap report.
+  - `README.md`: Added comprehensive quickstart, doctor, demo, FastMCP agent instructions, privacy baseline, and Alpha release status.
+  - `reports/security/CONTROL_GAP_ASSESSMENT.md`: Qualified privacy verification to static code & loopback audit.
+  - `docs/FEATURE_STATUS.md`, `docs/KNOWN_ISSUES.md`, `docs/PROJECT_STATUS.md`, `.arova-loop/CURRENT_STATE.md`, `.arova-loop/ISSUES.md`: Updated with qualified disclosures.
+- **Verification Evidence:**
+  - `pytest backend/tests mcp_server/tests -q`: 64 passed in 13.54s (100% pass rate).
+  - `python scripts/release_gate.py`: 12/12 automated checks PASSED in 22.4s. Verdict: `APPROVED (v0.1.0-alpha Developer Preview)`.
+  - Fresh git clone clean install: `arova doctor` passed (6 checks), `arova demo` passed in 0.536s, FastMCP 8 tools verified.
+- **Review (`ponytail-review`):** Zero unrequested code, absolute claim accuracy. Every boundary honestly qualified. Ready for public GitHub push upon user authorization.
+
 
 
 

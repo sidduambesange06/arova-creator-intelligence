@@ -20,9 +20,10 @@
 ---
 
 ## 2. Assessment Summary
-The core local-first architecture satisfies the required Launch 01 security baseline:
-- Source media immutability is guaranteed.
-- Loopback-only binding is enforced by default.
-- Zero telemetry and zero remote data leakage.
-- AI agent access via FastMCP is restricted to read-only retrieval tools.
+The core local-first architecture satisfies the required Launch 01 Alpha security baseline:
+- Source media immutability is guaranteed and verified by cryptographic SHA-256 pre/post hashing tests.
+- Loopback-only binding (`127.0.0.1`) is enforced by default in server configuration.
+- Zero telemetry endpoints in source code; verified via static code audit and dependency license inspection. (Note: Independent dynamic network-egress packet capture under an isolated OS harness has not been conducted; staged on the Beta roadmap).
+- AI agent access via FastMCP is strictly restricted to 8 read-only retrieval tools by default; subclip export requires explicit developer opt-in.
+- Untrusted media text is defanged and boundary-isolated via regex and XML tagging, passing 215 adversarial red-team test cases.
 

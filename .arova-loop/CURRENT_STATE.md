@@ -66,8 +66,8 @@ Arova Creator Intelligence is an open-source, local-first video intelligence eng
 |---|---|---|
 | **Phase 1 Implementation** | **COMPLETE** | All backlog tasks (TASK-006 through TASK-011) implemented and verified. |
 | **Automated Tests** | **PASSING** | 64 backend/CLI/MCP/stress/benchmark tests passing; 6 frontend Vitest tests passing; 0 regressions. |
-| **Essential Security Audit** | **VERIFIED (8 Pillars)** | Parameterized SQL, path traversal boundary, safe subprocesses, prompt injection defanging, 8 read-only MCP tools, loopback binding (`127.0.0.1`), zero committed secrets/weights, and CycloneDX SBOM. |
-| **Stress & Resiliency** | **COMPLETE** | 500-video indexing/recovery test, 215 prompt-injection red-team cases, 100-query visual retrieval benchmark, and fault injection tests implemented and passing. |
+| **Essential Security Audit** | **VERIFIED (8 Pillars)** | Parameterized SQL, path traversal boundary, safe subprocesses, prompt injection defanging, 8 read-only MCP tools, loopback binding (`127.0.0.1; static audit`), zero committed secrets/weights, and qualified CycloneDX SBOM. |
+| **Stress & Resiliency** | **COMPLETE** | 500-video discovery/recovery test (non-indexing), 215 prompt-injection red-team cases, 100-query synthetic visual retrieval benchmark, and fault injection tests implemented and passing. |
 | **Initial Open-Source Alpha** | **APPROVED (v0.1.0-alpha)** | All 12 automated checks pass (100% automated coverage); ready for developer preview testing. |
-| **Beta Roadmap Gates** | **DEFERRED (v0.2.0-beta)** | 3 external non-developer physical installs and live Claude Desktop / Cursor GUI click-through deferred to Beta roadmap. |
+| **Beta Roadmap Gates** | **DEFERRED (v0.2.0-beta)** | 3 external non-developer physical installs, live Claude/Cursor desktop GUI QA, 500-video full ASR indexing, real-world video benchmark, and dynamic packet inspection deferred to Beta. |
 | **Public Release Authorization** | **STRICTLY BLOCKED** | No remote push to GitHub or public registry publication without explicit user approval. |

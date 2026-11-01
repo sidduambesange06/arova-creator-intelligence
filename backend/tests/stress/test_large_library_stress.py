@@ -85,8 +85,12 @@ def test_500_video_discovery_and_deduplication(tmp_path: Path, monkeypatch: pyte
 
 
 def test_500_video_interruption_and_recovery_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Stress test: simulate batch indexing of 500 videos, mid-run interruption at video 250,
-    and subsequent recovery without duplicate processing or source corruption.
+    """Stress test: simulate library registration and discovery of 500 videos, mid-run worker
+    interruption at video 250, and subsequent resumption recovery without duplicate database entries
+    or source file corruption.
+    
+    Note: This suite tests filesystem discovery, SHA-256 deduplication, and worker crash recovery;
+    it is distinct from full end-to-end media ASR/OCR/scene indexing across 500 full-length videos.
     """
     media_dir = tmp_path / "stress_media"
     monkeypatch.setattr(settings, "ALLOWED_MEDIA_ROOTS", str(media_dir))
