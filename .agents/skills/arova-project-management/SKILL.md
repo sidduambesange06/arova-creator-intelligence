@@ -24,3 +24,4 @@ Enforces rigorous project management for Arova Creator Intelligence according to
    - Ensure every implemented feature links to observable acceptance criteria and automated test evidence.
 4. **Conflict Resolution:**
    - Record and resolve scope conflicts in `.arova-loop/SOURCE_CONFLICTS.md` with explicit user approval gates.
+

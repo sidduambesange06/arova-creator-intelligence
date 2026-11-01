@@ -48,3 +48,4 @@
 | `lucide-react` | 0.475.0 | SVG Icons | ISC |
 | `vitest` | 2.1.9 | Frontend Unit Testing | MIT |
 | `@testing-library/react` | 16.2.0 | Component DOM Testing | MIT |
+

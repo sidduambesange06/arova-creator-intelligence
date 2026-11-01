@@ -16,3 +16,4 @@
 | **RISK-005** | Legal | GPL License Contagion from Bundled Binaries | Low | High | **High** | No bundled FFmpeg binary; rely on host system FFmpeg verified via non-destructive `arova doctor`. Clear attribution in `NOTICE`. | `MITIGATED` |
 | **RISK-006** | Performance | Heavy ML Model Startup Blocking MCP Discovery | Medium | Medium | **Medium** | FastMCP server uses lazy model loading; tool discovery and inventory listing run in < 100ms without importing PyTorch or Whisper weights. | `MITIGATED` |
 | **RISK-007** | Reliability | Missing Weights or Cold Start Failure in Offline Mode | Medium | Medium | **Medium** | Deterministic fallback pipelines for transcription and embeddings when local weights are uninitialized, preventing hard application crashes. | `MITIGATED` |
+

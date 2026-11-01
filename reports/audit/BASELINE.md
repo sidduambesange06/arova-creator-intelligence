@@ -73,3 +73,4 @@
 | **Hybrid Search + Re-ranking p50** | < 200ms | 38.4ms | `EXCEEDS` |
 | **Grounded Q&A Citation Latency** | < 500ms | 52.1ms | `EXCEEDS` |
 | **Production Frontend Bundle Size** | < 500 kB | 202.57 kB | `EXCEEDS` |
+

@@ -15,3 +15,4 @@ Drives continuous feature delivery with zero regressions, strict test evidence, 
 4. **Ponytail Review:** Verify logic correctness, security/traversal checks, performance under load, and code lean-ness.
 5. **Obsidian Sync:** Update `docs/PROJECT_STATUS.md`, `DEVELOPMENT_LOG.md`, `TECHNICAL_DECISIONS.md`, and `KNOWN_ISSUES.md`.
 6. **Atomic Git Commit:** Commit with a conventional semantic message describing the verified deliverable.
+

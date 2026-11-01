@@ -25,3 +25,4 @@ The core local-first architecture satisfies the required Launch 01 security base
 - Loopback-only binding is enforced by default.
 - Zero telemetry and zero remote data leakage.
 - AI agent access via FastMCP is restricted to read-only retrieval tools.
+

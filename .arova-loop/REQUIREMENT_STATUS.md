@@ -45,3 +45,4 @@
 | **REQ-033** | Spec §15.2 | Client Integration Guides | `WS-DOC` | Tested configurations for Claude Desktop, Cursor, Gemini Antigravity. | `docs/mcp-guide.md`, `docs/MCP_TOOLS.md` | `VERIFIED` |
 | **REQ-034** | Spec §1.4 | Strict Commercial IP Exclusion | `WS-SEC` | Zero Creator OS / Molty AI / Brand Deal CRM / cloud studio code. | Verified by codebase scan | `VERIFIED` |
 | **REQ-035** | Spec §1.2 | Hallmark Fullscreen Workstation UI | `WS-ENG` | Tokenized dark workstation UI with precision scrubber and multi-track timeline. | `vitest run`, `vite build` | `VERIFIED` |
+

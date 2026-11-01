@@ -15,3 +15,4 @@ Ensures complete, continuous alignment between real repository code, runtime tes
 - `docs/KNOWN_ISSUES.md`: Active bug tracking, environmental quirks, and `shortcut:` debt items.
 - `docs/FEATURE_STATUS.md`: Feature verification reality matrix (`WORKING`, `PARTIAL`, `EXPERIMENTAL`, `PLANNED`, `BROKEN`, `UNVERIFIED`).
 - `docs/MCP_TOOLS.md`: Protocol specification and schemas for the 8 read-only tools.
+

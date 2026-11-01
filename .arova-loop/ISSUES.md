@@ -19,3 +19,4 @@
 
 - `shortcut: ALLOWED_MEDIA_ROOTS allows relative parents for demo imports; in hardened multi-tenant environments, restrict to absolute directory path.`
 - `shortcut: Deterministic fallback used when Whisper/MiniLM weights are absent; full neural accuracy requires downloading pinned local model weights.`
+

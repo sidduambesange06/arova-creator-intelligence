@@ -35,3 +35,4 @@
 - **Context:** Creators and developers need factual answers to specific questions about video content with verifiable receipts rather than hallucinated summaries.
 - **Decision:** Synthesize grounded Q&A responses strictly from retrieved transcript passages, formatting citations as clickable time intervals `[mm:ss - mm:ss]` that allow one-click video player seeking.
 - **Consequences:** Eliminates hallucination risk; every claim is tied to verified video evidence.
+

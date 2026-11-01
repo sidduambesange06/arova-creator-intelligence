@@ -54,3 +54,4 @@ All core software components, libraries, and frameworks distributed within Arova
 ## 4. Media & Codec Audit
 - **Sample Media:** Synthetic sample media in `sample_data/` is generated locally using standard `color` and `sine` test patterns via FFmpeg or licensed under CC0 Public Domain. No copyrighted third-party videos are included.
 - **Weights & Models:** Embedding models (`all-MiniLM-L6-v2`, `ms-marco-MiniLM-L-6-v2`) are licensed under Apache-2.0.
+

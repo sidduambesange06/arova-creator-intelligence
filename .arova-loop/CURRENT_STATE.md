@@ -48,3 +48,4 @@ Arova Creator Intelligence is an open-source, local-first video intelligence eng
 - **Backend API:** FastAPI running locally on `http://127.0.0.1:8000` (loopback bound).
 - **Frontend Workstation:** Vite running locally on `http://127.0.0.1:5173`.
 - **MCP Server:** Available via `python -m mcp_server.server` over STDIO.
+
