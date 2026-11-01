@@ -302,6 +302,27 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - Non-destructive verification: `test_doctor_is_strictly_non_destructive` confirmed zero file modification or model downloads.
 - **Review (`ponytail-review`):** Minimal, zero extra CLI dependencies (standard library `argparse` used). Verified non-destructive.
 
+---
+
+### Feature 6.2 (TASK-007): Implementation of `arova demo` Synthetic First-Use Workflow
+- **Date:** 2026-11-01
+- **Task & REQ ID:** `TASK-007` (`REQ-025`, `REQ-032`)
+- **Scope & Plan:**
+  1. Build self-contained synthetic first-use demonstration workflow in `backend/app/cli/demo.py`: generates a lightweight synthetic test MP4 with audio via FFmpeg, imports it via `media_service.import_videos`, runs end-to-end `run_video_pipeline` (ASR, scene cuts, timestamped chunking, dual index in SQLite FTS5 + ChromaDB), executes a hybrid two-stage search query, synthesizes grounded Q&A with timecode citations, and reports clean timings.
+  2. Implement CLI flags in `backend/app/cli/main.py`: `--duration` (default 2.0s), `--query` (default "demo"), `--json` (machine-readable), and `--clean` (unlinks synthetic test file and index records).
+  3. Write automated unit and integration tests in `backend/tests/cli/test_demo.py`.
+- **Implementation:**
+  - `backend/app/cli/demo.py`: Created `synthesize_synthetic_clip`, `run_demo_workflow`, and `run_demo_cli`.
+  - `backend/app/cli/main.py`: Connected `demo` subparser to `run_demo_cli`.
+  - `backend/tests/cli/test_demo.py`: Added 4 automated tests verifying clip synthesis, end-to-end workflow execution, text and JSON output, and CLI argument parsing.
+- **Verification Evidence:**
+  - `pytest backend/tests/cli/test_demo.py -v` -> 4/4 passed in 4.83s.
+  - Full suite: `pytest backend/tests mcp_server/tests -v` -> 45/45 passed in 9.18s.
+  - Frontend: `npm test --prefix frontend -- --run` -> 4/4 suites passed (6 tests) in 3.53s.
+  - Performance: Synthetic demo workflow executed in 0.74 seconds (far surpassing the < 300s acceptance requirement for REQ-032).
+- **Review (`ponytail-review`):** Reuses existing core pipelines (`media_service`, `pipeline_runner`, `hybrid_search`, `summary_service`) without code duplication. Zero external API calls or network dependencies.
+
+
 
 
 

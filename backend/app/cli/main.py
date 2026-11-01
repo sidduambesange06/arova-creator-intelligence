@@ -2,6 +2,7 @@ import argparse
 import sys
 from typing import Sequence
 
+from app.cli.demo import run_demo_cli
 from app.cli.doctor import run_doctor_cli
 
 
@@ -23,7 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output diagnostics in structured JSON format",
     )
 
-    # arova demo (placeholder for TASK-007)
+    # arova demo
     demo_parser = subparsers.add_parser(
         "demo",
         help="Run 5-minute synthetic first-use workflow without external credentials",
@@ -33,6 +34,22 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=2.0,
         help="Synthetic video duration in seconds (default: 2.0)",
+    )
+    demo_parser.add_argument(
+        "--query",
+        type=str,
+        default="demo",
+        help="Natural language query to test against indexed demo clip (default: 'demo')",
+    )
+    demo_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output demo execution results in structured JSON format",
+    )
+    demo_parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Automatically clean up synthetic test files and index after completion",
     )
 
     return parser
@@ -50,11 +67,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         return run_doctor_cli(as_json=args.json)
 
     if args.subcommand == "demo":
-        print("Command 'arova demo' is scheduled for TASK-007. Run 'arova doctor' for diagnostics.")
-        return 0
+        return run_demo_cli(
+            duration=args.duration,
+            query=args.query,
+            as_json=args.json,
+            keep_demo=not args.clean,
+        )
 
     parser.print_help()
     return 0
+
 
 
 if __name__ == "__main__":
