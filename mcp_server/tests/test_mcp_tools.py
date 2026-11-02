@@ -1,6 +1,10 @@
-import sys
 from collections.abc import Generator
+import json
 from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 BACKEND_DIR = ROOT_DIR / "backend"
@@ -13,14 +17,61 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
-
-import subprocess
 from app.ai.providers.embeddings import index_video_chunks
 from app.core.config import settings
 from app.database.session import Base, init_db
 from app.models.entities import Transcript, TranscriptSegment, Video
-from app.processing.metadata import get_ffmpeg_binary, probe_video_metadata
+from app.processing.metadata import get_ffmpeg_binary
 from mcp_server.tools import video_tools
+
+
+def _independent_test_probe_ffprobe_duration(clip_path: Path) -> float:
+    """Direct test-side FFprobe subprocess invocation.
+
+    Does NOT reuse the production probe_video_metadata() helper.
+    """
+    ffprobe_bin = shutil.which("ffprobe")
+    if ffprobe_bin:
+        cmd = [
+            ffprobe_bin,
+            "-v",
+            "quiet",
+            "-print_format",
+            "json",
+            "-show_format",
+            "-show_streams",
+            str(clip_path),
+        ]
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=True,
+            timeout=15,
+        )
+        info = json.loads(proc.stdout)
+        dur = info.get("format", {}).get("duration")
+        if dur:
+            return round(float(dur), 3)
+        for s in info.get("streams", []):
+            if s.get("codec_type") == "video" and s.get("duration"):
+                return round(float(s["duration"]), 3)
+
+    ffmpeg_bin = shutil.which("ffmpeg") or get_ffmpeg_binary()
+    proc = subprocess.run(
+        [ffmpeg_bin, "-hide_banner", "-i", str(clip_path)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=15,
+    )
+    match = re.search(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", proc.stderr or "")
+    if not match:
+        raise RuntimeError(f"Independent test probe failed on {clip_path}")
+    return round(int(match.group(1)) * 3600 + int(match.group(2)) * 60 + float(match.group(3)), 3)
 
 
 def _make_test_mp4(target: Path, duration: float = 2.0) -> Path:
@@ -171,12 +222,13 @@ def test_all_eight_mcp_tools(db_session: Session) -> None:
     assert clip_res["start_time"] == 0.2
     assert clip_res["end_time"] == 1.0
 
-    # Independently inspect the generated output file using FFprobe
+    # Independently inspect the generated output file using direct test-side FFprobe subprocess
+    # (does NOT reuse production probe_video_metadata helper)
     clip_file = Path(clip_res["clip_path"])
     assert clip_file.is_file()
-    probed = probe_video_metadata(clip_file)
+    independent_duration = _independent_test_probe_ffprobe_duration(clip_file)
     # Justified tolerance: container header format duration rounded to millisecond precision (0.005s)
-    assert clip_res["duration"] == pytest.approx(probed.duration, abs=0.005)
+    assert clip_res["duration"] == pytest.approx(independent_duration, abs=0.005)
     assert clip_res["file_size"] == clip_file.stat().st_size
 
 

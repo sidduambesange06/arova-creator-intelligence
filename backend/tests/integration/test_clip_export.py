@@ -2,9 +2,12 @@ from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor
 import errno
 import hashlib
+import json
 import math
 import os
 from pathlib import Path
+import re
+import shutil
 import subprocess
 
 from fastapi.testclient import TestClient
@@ -25,6 +28,56 @@ from app.processing.clip_export import (
 )
 from app.processing.metadata import get_ffmpeg_binary, probe_video_metadata
 from mcp_server.tools.video_tools import export_video_clip as mcp_export_video_clip
+
+
+def _independent_test_probe_ffprobe_duration(clip_path: Path) -> float:
+    """Direct test-side FFprobe subprocess invocation.
+
+    Does NOT reuse the production probe_video_metadata() helper.
+    Directly spawns ffprobe with json output and parses format.duration.
+    """
+    ffprobe_bin = shutil.which("ffprobe")
+    if ffprobe_bin:
+        cmd = [
+            ffprobe_bin,
+            "-v",
+            "quiet",
+            "-print_format",
+            "json",
+            "-show_format",
+            "-show_streams",
+            str(clip_path),
+        ]
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=True,
+            timeout=15,
+        )
+        info = json.loads(proc.stdout)
+        dur = info.get("format", {}).get("duration")
+        if dur:
+            return round(float(dur), 3)
+        for s in info.get("streams", []):
+            if s.get("codec_type") == "video" and s.get("duration"):
+                return round(float(s["duration"]), 3)
+
+    ffmpeg_bin = shutil.which("ffmpeg") or get_ffmpeg_binary()
+    proc = subprocess.run(
+        [ffmpeg_bin, "-hide_banner", "-i", str(clip_path)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=15,
+    )
+    match = re.search(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", proc.stderr or "")
+    if not match:
+        raise RuntimeError(f"Independent test probe failed on {clip_path}")
+    return round(int(match.group(1)) * 3600 + int(match.group(2)) * 60 + float(match.group(3)), 3)
 
 
 def _make_test_mp4(target: Path, duration: float = 3.0) -> Path:
@@ -438,12 +491,13 @@ def test_export_clip_actual_duration_and_success(test_env: dict) -> None:
     assert data["start_time"] == 0.5
     assert data["end_time"] == 2.0
 
-    # Independently inspect the generated output using probe_video_metadata (FFprobe)
+    # Independently inspect the generated output using direct test-side FFprobe subprocess
+    # (does NOT reuse production probe_video_metadata helper)
     exported_path = test_env["clips_dir"] / data["clip_filename"]
     assert exported_path.is_file()
-    probed_meta = probe_video_metadata(exported_path)
+    independent_duration = _independent_test_probe_ffprobe_duration(exported_path)
     # Justified tolerance: container header format duration rounded to millisecond precision (0.005s)
-    assert data["duration"] == pytest.approx(probed_meta.duration, abs=0.005)
+    assert data["duration"] == pytest.approx(independent_duration, abs=0.005)
     assert data["duration"] > 0
     assert data["file_size"] == exported_path.stat().st_size
     assert "download_url" in data

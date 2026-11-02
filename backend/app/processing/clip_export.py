@@ -141,17 +141,22 @@ def _atomically_claim_and_move(temp_path: Path, target_path: Path) -> bool:
         return False
     except Exception:
         # Promotion failed after we reserved the empty slot; clean up ONLY our reservation
-        # by establishing file identity (inode/device on POSIX/NTFS and 0-byte size)
-        if reserved_by_us and reserved_stat is not None:
+        # by establishing file identity (inode/device on POSIX/NTFS and 0-byte size).
+        # Note on stat-to-unlink race & threat model:
+        # In a multi-user environment where an untrusted local user has write access to clips_dir,
+        # a hostile process could theoretically replace the file between os.stat and target_path.unlink.
+        # We do not claim absolute protection against hostile concurrent replacement on shared mounts;
+        # Arova's threat model is single-user local storage where clips_dir is in the user's private storage.
+        # Furthermore, if filesystem identity is unavailable (st_ino == 0), we fail safe by leaving
+        # the orphan reservation rather than risking deleting an unverified file.
+        if reserved_by_us and reserved_stat is not None and reserved_stat.st_ino != 0:
             try:
                 curr_stat = os.stat(str(target_path))
-                is_our_file = curr_stat.st_size == 0
-                if reserved_stat.st_ino != 0:
-                    is_our_file = is_our_file and (
-                        (curr_stat.st_dev, curr_stat.st_ino)
-                        == (reserved_stat.st_dev, reserved_stat.st_ino)
-                    )
-                if is_our_file:
+                if (
+                    curr_stat.st_size == 0
+                    and (curr_stat.st_dev, curr_stat.st_ino)
+                    == (reserved_stat.st_dev, reserved_stat.st_ino)
+                ):
                     target_path.unlink(missing_ok=True)
             except OSError:
                 pass
