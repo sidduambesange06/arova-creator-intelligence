@@ -66,3 +66,9 @@ class ClipExportResponse(BaseModel):
     download_url: str
 
 
+class SubtitleIngestRequest(BaseModel):
+    content: str = Field(..., min_length=1, description="Raw SRT or WebVTT content string")
+    filename: str = Field(default="subtitles.srt", description="Original filename or format hint (.srt or .vtt)")
+    language: str = Field(default="en", max_length=32)
+
+

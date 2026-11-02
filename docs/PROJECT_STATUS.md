@@ -81,7 +81,8 @@ Related notes: [[architecture]] | [[AGENTS_ARCHITECTURE]] | [[FLASH_EXECUTION_PL
 - [x] **Memory Guard Verification:** Enforces 4.0 GB available RAM safety threshold; halts before neural Whisper weights download when host RAM is constrained (2.24 GB available).
 - [x] **Benchmark Run 2 Published:** Published to `reports/benchmarks/run-2-evaluation/` preserving `reports/benchmarks/alpha-baseline/` completely intact.
 - [x] **Product Scope & Commercial Boundary:** Published factual public scope in `docs/PRODUCT_SCOPE.md` and confidential strategy in `C:\Arova-Private\AROVA_INTERNAL_PRODUCT_AND_FINANCIAL_STRATEGY.md`.
-- [x] **Clip Export Hardening (Directives 01-03):** Deterministic collision avoidance, strict timestamp bounds, atomic reservation ownership verification, genuine media container measurement, and Unicode filename support verified across 17 integration and 4 MCP tests.
+- [x] **Clip Export Hardening (Directives 01-04):** Deterministic collision avoidance, strict timestamp bounds, atomic reservation ownership verification, stat-to-unlink race documentation, genuine media container measurement via direct test-side FFprobe, and Unicode filename support verified across 17 integration and 4 MCP tests (commits `b318970`, `3497e21`).
+- [x] **Advanced Subtitle SRT/VTT Ingestion (TASK-012):** Zero-dependency parser for SRT and WebVTT (`subtitles.py`), sidecar subtitle auto-discovery in pipeline runner bypassing ASR, REST API `POST /api/v1/videos/{video_id}/subtitles`, and automatic hybrid RAG re-indexing (10 unit/integration tests passing; 90 total tests passing).
 
 ### Staged Release Readiness & Alpha Approval (CURRENT)
 - [x] **Initial Open-Source Alpha (`v0.1.0-alpha`):** APPROVED. All 12 automated checks pass (64 backend/stress/benchmark tests, 6 frontend tests, production build, qualified CycloneDX SBOM, doctor, demo, immutability). Local developer preview ready on `127.0.0.1`.

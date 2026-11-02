@@ -605,6 +605,53 @@ Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[TECHNICAL_DECISIONS]] |
   - Source media immutability: Tears of Steel (`efa9062d9cdb7a338e40ad530dfdf234806743f29ae6a1a136b97ece4e588e8f`) 100% verified untouched.
 - **Review (`ponytail-review`):** Minimal standard-library diff, zero mock data, zero speculative locking abstractions. All 6 directive issues resolved.
 
+---
+
+### Feature 6.15: Directive 04 Final Quality Closure — Reservation Identity & Independent Probe
+- **Date:** 2026-11-02
+- **Scope & Plan:**
+  1. Address Supervisor Directive 04 quality closure items.
+  2. Implement strict reservation identity verification: check `curr_stat.st_size == 0` and `(curr_stat.st_dev, curr_stat.st_ino) == (reserved_stat.st_dev, reserved_stat.st_ino)`.
+  3. Enforce fail-safe behavior: if filesystem identity is unavailable (`st_ino == 0`), unlinking is skipped, leaving the 0-byte orphan reservation rather than risking deleting an unverified file.
+  4. Document stat-to-unlink TOCTOU race and single-user local storage threat model.
+  5. Add test-side direct FFprobe subprocess invocation (`_independent_test_probe_ffprobe_duration`) without reusing production `probe_video_metadata()`, asserting duration match within justified tolerance (`0.005s`).
+  6. Document tested filesystems (Windows 10 NTFS) vs theoretically compatible ones (POSIX ext4, XFS, Btrfs, macOS APFS; FAT32/exFAT fallback).
+- **Implementation:**
+  - `backend/app/processing/clip_export.py`: Updated `_atomically_claim_and_move` fallback cleanup.
+  - `backend/tests/integration/test_clip_export.py`: Direct test-side FFprobe subprocess and Case G substitution preservation assertion.
+  - `mcp_server/tests/test_mcp_tools.py`: Direct test-side FFprobe subprocess and tolerance comparison.
+- **Verification Evidence:**
+  - `test_clip_export.py`: 17/17 passed in 9.26s.
+  - `test_mcp_tools.py`: 4/4 passed in 2.11s.
+  - `test_fault_injection.py`: 6/6 passed in 1.47s.
+  - Full suite: 80 passed in 28.78s. Commit `3497e21`.
+
+---
+
+### Feature 6.16: Advanced Subtitle SRT/VTT Ingestion (TASK-012)
+- **Date:** 2026-11-02
+- **Scope & Plan:**
+  1. Implement lightweight, zero-dependency SubRip (.srt) and WebVTT (.vtt) parser with formatting cleanup and timestamp normalization (`backend/app/processing/subtitles.py`).
+  2. Implement sidecar subtitle auto-discovery (`find_sidecar_subtitles`) matching video file stem across `.srt`, `.vtt`, `.en.srt`, `.en.vtt`.
+  3. Implement database ingestion service (`backend/app/services/subtitle_service.py`) populating `Transcript` and `TranscriptSegment`s and refreshing hybrid dense + FTS5 search index.
+  4. Integrate sidecar auto-discovery into background job runner (`backend/app/workers/pipeline_runner.py`), bypassing expensive ASR when sidecar subtitles exist.
+  5. Expose REST API endpoint `POST /api/v1/videos/{video_id}/subtitles` with `SubtitleIngestRequest`.
+  6. Unit and integration tests covering formats, Unicode/BOM, malformed inputs, search indexing, and worker integration.
+- **Implementation:**
+  - `backend/app/processing/subtitles.py`: `parse_subtitle_timestamp`, `parse_subtitles`, `find_sidecar_subtitles`.
+  - `backend/app/services/subtitle_service.py`: `ingest_subtitles_for_video`.
+  - `backend/app/schemas/media.py`: Added `SubtitleIngestRequest`.
+  - `backend/app/api/routes/videos.py`: Added `POST /{video_id}/subtitles` endpoint.
+  - `backend/app/workers/pipeline_runner.py`: Added sidecar subtitle auto-discovery hook.
+  - `backend/tests/unit/test_subtitles.py`: 6 unit tests covering formats, timestamps, tags, Unicode, BOM, sidecar discovery.
+  - `backend/tests/integration/test_subtitle_ingestion.py`: 4 integration tests verifying SRT, WebVTT, 404/400 errors, search indexing, and pipeline runner auto-discovery.
+- **Verification Evidence:**
+  - `test_subtitles.py`: 6/6 passed in 0.08s.
+  - `test_subtitle_ingestion.py`: 4/4 passed in 2.44s.
+  - Full test suite: 90 passed in 24.49s (`pytest backend/tests mcp_server/tests -q`).
+  - Frontend: 4 test suites passed (6 tests in 4.25s).
+- **Review (`ponytail-review`):** Zero external dependencies, pure standard library regex and file operations, zero mock data, robust error handling with safe fallbacks.
+
 
 
 

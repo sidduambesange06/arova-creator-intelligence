@@ -38,7 +38,7 @@ Arova Creator Intelligence is an open-source, local-first video intelligence eng
 ## 2. Current Verified State
 
 ### 2.1 Codebase Health
-- **Backend, CLI, MCP, Stress & Benchmark Tests:** 64 passed out of 64 unit/integration/stress tests (`pytest backend/tests mcp_server/tests -q`, 12.79s).
+- **Backend, CLI, MCP, Stress & Benchmark Tests:** 90 passed out of 90 unit/integration/stress tests (`pytest backend/tests mcp_server/tests -q`, 24.49s).
 - **Frontend Tests:** 4 test suites passed (6 tests) (`vitest run`, 3.53s).
 - **Production Web Build:** `tsc -b && vite build` succeeded (bundle size 202.57 KB, 0 errors).
 - **Hardened Release Gate:** `scripts/release_gate.py` passed all 12 automated checks with zero automated failures.

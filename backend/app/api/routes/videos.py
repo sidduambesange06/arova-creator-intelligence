@@ -19,12 +19,14 @@ from app.processing.clip_export import (
 from app.schemas.media import (
     ClipExportRequest,
     ClipExportResponse,
+    SubtitleIngestRequest,
     VideoImportRequest,
     VideoImportResponse,
     VideoOut,
 )
 from app.schemas.pipeline import TranscriptOut, TranscriptSegmentOut, VideoSceneOut
 from app.services import media_service
+from app.services.subtitle_service import ingest_subtitles_for_video
 from app.workers.pipeline_runner import run_video_pipeline
 
 router = APIRouter(prefix="/api/v1/videos", tags=["videos"])
@@ -335,5 +337,30 @@ def download_clip_endpoint(clip_filename: str) -> FileResponse:
         media_type="video/mp4",
         filename=clip_filename,
     )
+
+
+@router.post("/{video_id}/subtitles", response_model=TranscriptOut)
+def ingest_subtitles_endpoint(
+    video_id: str,
+    payload: SubtitleIngestRequest,
+    db: Session = Depends(get_db),
+) -> TranscriptOut:
+    video = db.query(Video).filter_by(id=video_id).first()
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+
+    try:
+        transcript = ingest_subtitles_for_video(
+            db=db,
+            video=video,
+            content=payload.content,
+            source_name=payload.filename,
+            language=payload.language,
+        )
+        return TranscriptOut.model_validate(transcript)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to ingest subtitles: {exc}") from exc
 
 

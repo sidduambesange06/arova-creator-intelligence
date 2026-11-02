@@ -50,7 +50,7 @@
 
 | Task ID | Workstream | Description | Priority | Status |
 |---|---|---|---|---|
-| **TASK-012** | `WS-ENG` | Advanced Subtitle SRT/VTT Ingestion | `P2` | `HELD` (Wait for v0.1 release) |
+| **TASK-012** | `WS-ENG` | Advanced Subtitle SRT/VTT Ingestion | `P2` | `DONE` (Verified: 10 tests passed; auto-discovers sidecar & REST endpoint) |
 | **TASK-013** | `WS-ENG` | Multi-collection Drag & Drop in Frontend | `P2` | `HELD` (Wait for v0.1 release) |
 | **TASK-014** | `WS-CLI` | Rich Interactive Terminal UI for CLI | `P2` | `HELD` (Wait for v0.1 release) |
 | **TASK-015** | `WS-MCP` | Claude Desktop `.mcpb` Extension Package | `P2` | `HELD` (Wait for v0.1 release) |

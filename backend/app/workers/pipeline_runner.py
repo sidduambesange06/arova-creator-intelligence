@@ -13,6 +13,8 @@ from app.database.session import SessionLocal
 from app.models.entities import ProcessingJob, Video, VideoScene
 from app.processing.audio import extract_audio_wav
 from app.processing.scene_detection import detect_video_scenes
+from app.processing.subtitles import find_sidecar_subtitles
+from app.services.subtitle_service import ingest_subtitles_for_video
 from app.services.transcription_service import transcribe_and_store
 
 
@@ -93,33 +95,53 @@ def _execute_pipeline(
                 )
             )
 
-        # Step 2 (Audio WAV extraction)
-        job.progress = 50.0
-        db.commit()
-        wav_path = extract_audio_wav(
-            video_path=video.file_path,
-            video_id=video.id,
-            output_dir=media_storage_dir,
-        )
+        # Step 2: Auto-discover sidecar subtitles (.srt / .vtt)
+        sidecar_path = find_sidecar_subtitles(video.file_path)
+        used_sidecar = False
+        if sidecar_path and sidecar_path.is_file():
+            try:
+                sub_text = sidecar_path.read_text(encoding="utf-8", errors="replace")
+                ingest_subtitles_for_video(
+                    db=db,
+                    video=video,
+                    content=sub_text,
+                    source_name=sidecar_path.name,
+                    media_storage_dir=media_storage_dir,
+                )
+                used_sidecar = True
+                job.progress = 90.0
+                db.commit()
+            except Exception:
+                used_sidecar = False
 
-        # Step 3 (Whisper ASR Transcription)
-        job.progress = 80.0
-        db.commit()
-        transcribe_and_store(
-            db=db,
-            video=video,
-            audio_path=wav_path,
-            provider=provider,
-        )
+        if not used_sidecar:
+            # Step 2b (Audio WAV extraction)
+            job.progress = 50.0
+            db.commit()
+            wav_path = extract_audio_wav(
+                video_path=video.file_path,
+                video_id=video.id,
+                output_dir=media_storage_dir,
+            )
 
-        # Step 4 (Index Timestamp Windows for Hybrid RAG)
-        job.progress = 90.0
-        db.commit()
-        index_video_chunks(
-            db=db,
-            video_id=video.id,
-            storage_dir=media_storage_dir,
-        )
+            # Step 3 (Whisper ASR Transcription)
+            job.progress = 80.0
+            db.commit()
+            transcribe_and_store(
+                db=db,
+                video=video,
+                audio_path=wav_path,
+                provider=provider,
+            )
+
+            # Step 4 (Index Timestamp Windows for Hybrid RAG)
+            job.progress = 90.0
+            db.commit()
+            index_video_chunks(
+                db=db,
+                video_id=video.id,
+                storage_dir=media_storage_dir,
+            )
 
         # Step 5 (Complete)
         elapsed = time.perf_counter() - start_time
