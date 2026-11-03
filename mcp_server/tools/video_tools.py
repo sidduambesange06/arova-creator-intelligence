@@ -85,10 +85,10 @@ def get_video_metadata(video_id: str, db: Session | None = None) -> dict[str, An
         ]
 
         safe_path = sanitize_file_path_for_display(video.file_path)
-        if safe_path.startswith("/") or (len(safe_path) > 2 and safe_path[1] == ":"):
-            safe_path = Path(safe_path).name
+        if safe_path.startswith("/") or (len(safe_path) > 2 and safe_path[1] == ":") or "\\" in safe_path:
+            safe_path = safe_path.replace("\\", "/").split("/")[-1]
 
-        safe_thumbnail = Path(video.thumbnail_path).name if video.thumbnail_path else None
+        safe_thumbnail = str(video.thumbnail_path).replace("\\", "/").split("/")[-1] if video.thumbnail_path else None
 
         return {
             "id": video.id,

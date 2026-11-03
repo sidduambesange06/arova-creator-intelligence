@@ -72,7 +72,8 @@ def sanitize_file_path_for_display(file_path: str | Path, allowed_roots: list[Pa
                 return str(resolved.relative_to(r).as_posix())
     except Exception:
         pass
-    return path.name
+    # If not within allowed roots, return base filename (cross-platform / and \ support)
+    return str(file_path).replace("\\", "/").split("/")[-1]
 
 
 def discover_video_files(target_path: str | Path, allowed_roots: list[Path] | None = None) -> list[Path]:

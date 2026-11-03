@@ -56,30 +56,33 @@ def probe_video_metadata(video_path: str | Path) -> VideoMetadata:
             "-show_streams",
             str(path),
         ]
-        proc = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=True,
-            timeout=30,
-        )
-        info = json.loads(proc.stdout)
-        streams = info.get("streams", [])
-        v_stream = next((s for s in streams if s.get("codec_type") == "video"), {})
-        has_audio = any(s.get("codec_type") == "audio" for s in streams)
-        fmt = info.get("format", {})
-        return VideoMetadata(
-            duration=round(float(fmt.get("duration") or v_stream.get("duration") or 0.0), 3),
-            width=int(v_stream.get("width") or 0),
-            height=int(v_stream.get("height") or 0),
-            fps=_parse_fps(str(v_stream.get("r_frame_rate") or "0/1")),
-            codec=str(v_stream.get("codec_name") or "unknown"),
-            format=ext_format,
-            file_size=file_size,
-            has_audio=has_audio,
-        )
+        try:
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=True,
+                timeout=30,
+            )
+            info = json.loads(proc.stdout)
+            streams = info.get("streams", [])
+            v_stream = next((s for s in streams if s.get("codec_type") == "video"), {})
+            has_audio = any(s.get("codec_type") == "audio" for s in streams)
+            fmt = info.get("format", {})
+            return VideoMetadata(
+                duration=round(float(fmt.get("duration") or v_stream.get("duration") or 0.0), 3),
+                width=int(v_stream.get("width") or 0),
+                height=int(v_stream.get("height") or 0),
+                fps=_parse_fps(str(v_stream.get("r_frame_rate") or "0/1")),
+                codec=str(v_stream.get("codec_name") or "unknown"),
+                format=ext_format,
+                file_size=file_size,
+                has_audio=has_audio,
+            )
+        except (subprocess.CalledProcessError, json.JSONDecodeError):
+            raise ValueError(f"Unable to probe invalid media file: {path.name}")
 
     ffmpeg_bin = get_ffmpeg_binary()
     proc = subprocess.run(
