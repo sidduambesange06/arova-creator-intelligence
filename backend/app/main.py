@@ -6,7 +6,6 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.routes.collections import router as collections_router
-from app.api.routes.database_explorer import router as db_explorer_router
 from app.api.routes.jobs import router as jobs_router
 from app.api.routes.ml_eval import router as ml_eval_router
 from app.api.routes.search import router as search_router
@@ -15,6 +14,11 @@ from app.core.config import settings
 from app.core.logging import configure_logging
 from app.core.security import require_api_auth, validate_server_binding_and_security
 from app.database.session import init_db
+
+try:
+    from app.api.routes.database_explorer import router as db_explorer_router
+except ImportError:
+    db_explorer_router = None
 
 logger = configure_logging(settings.LOG_LEVEL)
 validate_server_binding_and_security()
@@ -70,7 +74,8 @@ app.include_router(collections_router, dependencies=[Depends(require_api_auth)])
 app.include_router(jobs_router, dependencies=[Depends(require_api_auth)])
 app.include_router(search_router, dependencies=[Depends(require_api_auth)])
 app.include_router(ml_eval_router, dependencies=[Depends(require_api_auth)])
-app.include_router(db_explorer_router)
+if db_explorer_router is not None:
+    app.include_router(db_explorer_router)
 
 
 @app.get("/api/v1/health")

@@ -4,7 +4,11 @@ from typing import Sequence
 
 from app.cli.demo import run_demo_cli
 from app.cli.doctor import run_doctor_cli
-from app.cli.models import run_models_cli
+
+try:
+    from app.cli.models import run_models_cli
+except ImportError:
+    run_models_cli = None
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -87,7 +91,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
 
     if args.subcommand == "models":
-        return run_models_cli(argv=args.models_args)
+        if run_models_cli is not None:
+            return run_models_cli(argv=args.models_args)
+        print("Models manager is not available in base installation.", file=sys.stderr)
+        return 1
 
     parser.print_help()
     return 0
