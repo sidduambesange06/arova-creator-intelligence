@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
+import { DatabaseExplorerView } from "./features/database-explorer/DatabaseExplorerView";
 import { MediaLibraryView } from "./features/media-library/MediaLibraryView";
 import { McpConfigView } from "./features/settings/McpConfigView";
 import { HybridSearchView } from "./features/video-search/HybridSearchView";
 import { fetchHealth, type HealthResponse } from "./services/api";
 
-type NavSection = "media-library" | "hybrid-search" | "mcp-config" | "system";
+type NavSection = "media-library" | "hybrid-search" | "mcp-config" | "database-explorer" | "system";
 
 const SECTIONS: { id: NavSection; label: string; tag: string }[] = [
   { id: "media-library", label: "Studio Media Library", tag: "Workstation" },
   { id: "hybrid-search", label: "Hybrid Video RAG & Q&A", tag: "AI / Search" },
+  { id: "database-explorer", label: "Database Explorer", tag: "Admin" },
   { id: "mcp-config", label: "MCP Agent Server", tag: "Protocol" },
   { id: "system", label: "Engine Telemetry & Health", tag: "Core" },
 ];
@@ -44,7 +46,7 @@ export function App() {
 
   return (
     <div className="min-h-screen flex bg-[#060911] text-slate-100 font-sans selection:bg-slate-700 selection:text-white">
-      {/* Hallmark Studio Sidebar */}
+      {/* Sidebar */}
       <aside className="w-64 border-r border-[#172338] bg-[#090e18] flex flex-col justify-between p-4 shrink-0 h-screen sticky top-0">
         <div className="space-y-6">
           {/* Brand Header */}
@@ -97,38 +99,6 @@ export function App() {
 
         {/* Status Hub in Sidebar */}
         <div className="space-y-2 pt-4 border-t border-[#172338] text-xs">
-          <div
-            data-testid="obsidian-badge"
-            className="p-2.5 rounded-lg border border-[#172338] bg-[#0d1424] space-y-0.5"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-slate-300 font-medium">Obsidian Brain</span>
-              <span className="inline-flex items-center gap-1 font-mono text-emerald-400 text-[11px]">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                connected
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 font-mono truncate">
-              vault: docs/ (wikilinks active)
-            </p>
-          </div>
-
-          <div
-            data-testid="ponytail-badge"
-            className="p-2.5 rounded-lg border border-[#172338] bg-[#0d1424] space-y-0.5"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-slate-300 font-medium">Ponytail Mode</span>
-              <span className="inline-flex items-center gap-1 font-mono text-emerald-400 text-[11px]">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                active
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 font-mono truncate">
-              anti-bluff · zero mock data
-            </p>
-          </div>
-
           <div
             data-testid="health-badge"
             className="p-2.5 rounded-lg border border-[#172338] bg-[#0d1424] space-y-0.5"
@@ -211,7 +181,7 @@ export function App() {
               </div>
 
               {health ? (
-                <dl className="grid grid-cols-2 lg:grid-cols-4 gap-3 hallmark-surface p-5 font-mono text-xs">
+                <dl className="grid grid-cols-2 lg:grid-cols-4 gap-3 arova-surface p-5 font-mono text-xs">
                   <div className="p-3 rounded-md border border-[#172338] bg-[#090e18]">
                     <dt className="text-slate-500">Service</dt>
                     <dd className="text-slate-200 font-medium text-sm mt-0.5">{health.service}</dd>
@@ -248,6 +218,8 @@ export function App() {
             <MediaLibraryView />
           ) : activeSection === "hybrid-search" ? (
             <HybridSearchView />
+          ) : activeSection === "database-explorer" ? (
+            <DatabaseExplorerView />
           ) : activeSection === "mcp-config" ? (
             <McpConfigView />
           ) : null}

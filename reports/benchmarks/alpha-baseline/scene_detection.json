@@ -1,8 +1,0 @@
-{
-  "status": "PASS",
-  "scene_detection_time_sec": 22.476,
-  "scenes_detected": 139,
-  "scenes_persisted": 139,
-  "first_scene_start": 0.0,
-  "last_scene_end": 734.17
-}

@@ -1,105 +1,112 @@
 # Arova Creator Intelligence
 
-**The Local Video RAG & MCP Engine for AI Agents and Developers.**
+**The local-first video intelligence and Model Context Protocol (MCP) engine for AI agents and developers.**
 
-> Index local video libraries into timestamped transcripts, visual scenes, and hybrid vector embeddings—accessible via REST API, Hallmark Web Workstation, and Model Context Protocol (MCP).
+> Index local video libraries into timestamped transcripts, visual scene boundaries, and hybrid vector embeddings—accessible via local REST API, web interface, and Model Context Protocol (MCP).
 
 Licensed under the [Apache License 2.0](./LICENSE).
 
 ---
 
-## Release Status: Open-Source Alpha (`v0.1.0-alpha`)
+## Project Status: Developer Preview / Alpha
 
-Arova Creator Intelligence is currently in **Open-Source Developer Alpha**. It is designed for developers, researchers, and AI engineers evaluating local multimodal video retrieval on their own workstations.
-- **Automated Verification:** 12/12 automated release gates passing (backend, frontend, FastMCP, doctor, demo, 500-video discovery/recovery, 215 red-team injections, 100-query synthetic benchmark, fault injection, and qualified SBOM).
-- **Roadmap Staging:** Real-world video benchmarking, multi-machine non-developer installers, and live desktop GUI client QA are staged on the upcoming Beta roadmap (`ADR-007`).
+Arova Creator Intelligence is an open-source project in active developer preview (Alpha). It is designed for developers, researchers, and AI engineers evaluating local multimodal video indexing and retrieval on their own workstations.
+
+- **Verified Local Mechanics:** Automated tests verify local ingestion, scene detection, SQLite FTS5 lexical search, dense semantic search, Cross-Encoder re-ranking, and FastMCP STDIO transport.
+- **Experimental & Roadmap Items:** Optical character recognition (OCR) currently uses template heuristics. Formal multi-host package distribution and live desktop GUI client testing are staged for upcoming milestones.
 
 ---
 
 ## Core Capabilities
 
-- **Local Video Ingestion & Metadata (`ffprobe` + `ffmpeg`):** SHA-256 deduplication, technical media probing, keyframe thumbnails, and HTTP 206 Range streaming. Source video files are strictly read-only.
-- **Visual Scene Detection & ASR (`PySceneDetect` + `faster-whisper`):** Content-aware scene boundary detection and timestamp-accurate speech transcription with millisecond precision.
-- **Visual-Text Dual Memory Engine:** Keyframe optical character recognition (OCR) fused into transcript passages with `[On-Screen Visual Text]` tags.
-- **Two-Stage Hybrid Video RAG:**
-  - *Stage 1:* Dense semantic vectors (`ChromaDB` + `all-MiniLM-L6-v2`) merged with lexical `SQLite FTS5` via Reciprocal Rank Fusion (RRF, $k=60$).
-  - *Stage 2:* Local PyTorch Cross-Encoder re-ranking (`cross-encoder/ms-marco-MiniLM-L-6-v2`).
-- **Grounded Video Q&A:** Synthesizes factual answers with clickable timecode intervals `[mm:ss - mm:ss]` linked directly to video player timestamps.
-- **Official FastMCP Server:** STDIO server exposing 8 read-only retrieval tools to Claude Desktop, Cursor, and Gemini Antigravity. (Subclip export requires explicit opt-in).
-- **Diagnostic CLI & SDK:** Built-in `arova doctor` diagnostics, `arova demo` instant first-run flow, and zero-dependency `ArovaClient` Python SDK.
+- **Local Video Ingestion & Metadata (`ffprobe` + `ffmpeg`):** Non-destructive media probing (duration, resolution, framerate, codecs), SHA-256 deduplication, keyframe thumbnails, and HTTP 206 Partial Content video streaming. Original source video files are opened strictly read-only.
+- **Visual Scene Detection (`PySceneDetect`):** Content-aware visual cut detection identifying scene boundaries and calculating representative midpoint keyframes.
+- **Speech Transcription (`faster-whisper`):** Offline speech-to-text with millisecond timestamps and word-level alignment, with deterministic acoustic fallback when model weights are not downloaded.
+- **Visual-Text Dual Memory:** Keyframe on-screen visual text extraction fused into sliding-window transcript chunks tagged with `[On-Screen Visual Text]`.
+- **Two-Stage Hybrid Search:**
+  - *Stage 1:* Dense semantic vectors (`ChromaDB` + `all-MiniLM-L6-v2`) merged with lexical `SQLite FTS5` (BM25) via Reciprocal Rank Fusion (RRF, $k=60$).
+  - *Stage 2:* Local PyTorch Cross-Encoder re-ranking (`cross-encoder/ms-marco-MiniLM-L-6-v2`) computing joint query-passage relevance scores.
+- **Grounded Video Q&A:** Synthesizes factual answers strictly citing verified timecode intervals `[mm:ss - mm:ss]` linked directly to video player positions.
+- **FastMCP Server (8 Read-Only Tools):** STDIO server exposing 8 read-only retrieval tools to MCP-compatible AI agents (Claude Desktop, Cursor). Lossless subclip export requires explicit developer opt-in.
+- **CLI Diagnostics & Demo:** Built-in `arova doctor` environment diagnostic, `arova demo` instant synthetic first-use flow, and zero-dependency `ArovaClient` Python SDK.
+- **Web Workspace:** Dark-theme responsive web interface for browsing indexed media, interactive scrubbing, and inspectable hybrid search queries.
+
+---
+
+## Platform Requirements
+
+- **Python:** 3.11+
+- **Node.js:** 20+ (for Web Workspace UI)
+- **FFmpeg & ffprobe:** System installation recommended. If not present on `PATH`, the engine automatically falls back to bundled `imageio-ffmpeg` binaries.
+- **Supported Operating Systems:** Linux (Ubuntu 22.04+), macOS (13+), Windows 10/11 (x86_64).
+- **Hardware:** Standard multi-core CPU. CPU inference with INT8 quantization is supported out of the box; GPU acceleration (CUDA) is optional.
 
 ---
 
 ## Quick Start
 
-### Prerequisites
-- Python 3.11+
-- Node.js 18+ (for Web Workstation UI)
-- [uv](https://github.com/astral-sh/uv) (recommended) or standard Python `venv`
-- System FFmpeg is optional (bundled `imageio-ffmpeg` is automatically used as a self-contained fallback)
+### 1. Installation
 
-### 1. Installation & Environment Setup
-
-Clone the repository and sync backend dependencies:
+Clone the repository and install backend dependencies:
 
 ```bash
 git clone https://github.com/sidduambesange06/arova-creator-intelligence.git
 cd arova-creator-intelligence
 
-# Install backend dependencies with uv (or standard python -m venv)
-uv sync --project backend
+# Using Astral uv (recommended):
+uv venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv pip install -r backend/pyproject.toml --group dev
+
+# Or with standard Python venv:
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -e backend/
 ```
 
 ### 2. Verify Your Environment (`arova doctor`)
 
-Run the non-destructive system diagnostic:
+Run the non-destructive diagnostic check:
 
 ```bash
-# Using uv:
-uv run --project backend arova doctor
-
-# Or with virtualenv activated (.venv/bin/activate or .venv\Scripts\activate):
-arova doctor
-
-# Or directly via Python:
 python -m arova doctor
 ```
-This checks Python runtime, FFmpeg/ffprobe resolution, SQLite FTS5 capability, data directory write permissions, and FastMCP tool availability.
 
-### 3. Run the Sub-Minute First-Use Demo (`arova demo`)
+This verifies Python runtime version, FFmpeg/ffprobe binary resolution, SQLite FTS5 capability, data directory write permissions, and FastMCP tool availability.
 
-Test the complete ingestion, transcription, indexing, hybrid search, and grounded Q&A pipeline on a lightweight synthetic fixture:
+### 3. Run the Synthetic First-Use Demo (`arova demo`)
+
+Validate the end-to-end ingestion, transcription, indexing, hybrid search, and grounded Q&A pipeline on a lightweight synthetic fixture in under one second:
 
 ```bash
-# Using uv:
-uv run --project backend arova demo
-
-# Or with virtualenv activated:
-arova demo
-
-# Or directly via Python:
 python -m arova demo
 ```
-*Executes in under 1 second on standard developer hardware with zero external cloud dependencies or credentials required.*
 
 ### 4. Start the Backend REST API Server
 
 ```bash
 cd backend
-uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
+
 - Interactive OpenAPI Docs: `http://127.0.0.1:8000/docs`
 - Health check: `http://127.0.0.1:8000/api/v1/health`
 
-### 5. Connect AI Agents via FastMCP (STDIO)
+### 5. Start the Web Workspace UI
 
-Run the official Model Context Protocol server over STDIO:
+In a separate terminal:
 
 ```bash
-python -m mcp_server.server
+cd frontend
+npm install
+npm run dev
 ```
 
-To configure in **Claude Desktop** (`claude_desktop_config.json`) or **Cursor**:
+Open `http://localhost:5173` to access the media library, video player, and search inspector.
+
+### 6. Connect AI Agents via Model Context Protocol (FastMCP)
+
+Configure **Claude Desktop** (`claude_desktop_config.json`) or **Cursor** (`.cursor/mcp.json`):
 
 ```json
 {
@@ -107,23 +114,17 @@ To configure in **Claude Desktop** (`claude_desktop_config.json`) or **Cursor**:
     "arova-creator-intelligence": {
       "command": "python",
       "args": ["-m", "mcp_server.server"],
-      "cwd": "/path/to/arova-creator-intelligence"
+      "cwd": "<absolute-path-to-the-cloned-arova-repository>"
     }
   }
 }
 ```
-*By default, AI agents have access strictly to 8 read-only retrieval tools. To enable lossless subclip exports, pass `--enable-exports` or set `AROVA_ENABLE_MCP_EXPORTS=1`.*
 
-### 6. Start the Hallmark Web Workstation UI
+> **Note:** Replace `<absolute-path-to-the-cloned-arova-repository>` with the actual local path where you cloned this repository.
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
-Open `http://127.0.0.1:5173` to explore the dark workstation layout, interactive video scrubber, synchronized transcript timeline, and hybrid search inspector.
+By default, AI agents are restricted to 8 read-only retrieval tools (`list_videos`, `get_video_metadata`, `search_video_content`, `search_transcripts`, `find_video_clips`, `summarize_video`, `get_video_chapters`, `get_media_library_stats`). Lossless subclip export can be enabled with `--enable-exports` or `AROVA_ENABLE_MCP_EXPORTS=1`.
 
-### 7. Use the Python Client SDK
+### 7. Python Client SDK
 
 ```python
 from arova import ArovaClient
@@ -133,30 +134,79 @@ health = client.health()
 print("Engine Status:", health["status"])
 
 # Query video library
-results = client.search("retrieval augmented generation", top_k=5)
+results = client.search("scene cut detection", top_k=5)
 for hit in results.get("results", []):
     print(f"[{hit['start_time']}s - {hit['end_time']}s] {hit['text']}")
 ```
 
 ---
 
-## Security & Privacy Baseline
+## Configuration & Local Models
 
-- **Strict Source Media Immutability:** Original source video files are opened read-only. Indexing, probing, and index deletion never overwrite or delete source videos.
-- **Deny-by-Default Filesystem:** Video ingestion and subclip exports are strictly restricted to configured directories (`ALLOWED_MEDIA_ROOTS`). Path traversal attempts (`../`) are rejected with HTTP 400.
-- **Loopback-Only Network Binding:** Backend services bind to loopback (`127.0.0.1`) by default. Static code inspection confirms zero analytics tracking, zero telemetry pings, and zero silent cloud fallbacks. *(Notice: Independent dynamic packet-egress capture under OS isolation is staged on the Beta roadmap).*
-- **Adversarial Content Isolation:** Untrusted transcripts and on-screen OCR text are defanged and enclosed in `<untrusted_video_evidence>` XML boundaries, verified against a 215-case red-team prompt-injection corpus.
-- **Read-Only MCP Agent Contract:** AI agents are restricted to read-only retrieval tools by default to prevent unauthorized filesystem modification.
+Configuration is managed via environment variables or a local `.env` file (see [`.env.example`](./.env.example)):
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `API_HOST` | `127.0.0.1` | Loopback binding address |
+| `API_PORT` | `8000` | REST API service port |
+| `SQLITE_DB_PATH` | `./data/app.db` | SQLite relational database path |
+| `CHROMA_PERSIST_DIR` | `./data/vectors` | Persistent ChromaDB vector storage |
+| `MEDIA_STORAGE_DIR` | `./data/media` | Extracted WAV audio and keyframe thumbnails |
+| `ALLOWED_MEDIA_ROOTS` | `./data/media` | Approved root directories for media import |
+| `WHISPER_MODEL_SIZE` | `base` | faster-whisper model size (`tiny`, `base`, `small`, `medium`) |
+| `WHISPER_COMPUTE_TYPE` | `int8` | Inference quantization (`int8`, `float16`, `float32`) |
+
+### Model Downloads
+- Neural speech recognition uses `faster-whisper`. On first use, model weights are cached locally. If offline, the engine falls back to deterministic acoustic windowing.
+- Dense embeddings use `sentence-transformers/all-MiniLM-L6-v2` (384 dimensions) and cross-encoder reranking uses `cross-encoder/ms-marco-MiniLM-L-6-v2`. Both run 100% locally on CPU or GPU.
+- Optional cloud providers (e.g. Gemini, OpenAI) require user-supplied API keys (BYOK) and explicit user configuration.
 
 ---
 
-## Documentation & Engineering Brain (`docs/`)
+## Privacy & Security Baseline
+
+- **Strict Source Media Immutability:** Original source video files are opened strictly read-only. Indexing, probing, and index deletion operations never alter, overwrite, or delete source video files.
+- **Deny-by-Default Filesystem:** File probing and video imports are restricted to configured directories (`ALLOWED_MEDIA_ROOTS`). Path traversal patterns (`../`, symlinks, unauthorized absolute paths) are rejected with HTTP 400.
+- **Loopback Binding & Zero Remote Telemetry:** Backend services bind to loopback (`127.0.0.1`) by default. There is zero remote analytics tracking, zero usage telemetry, and zero silent cloud fallback. In-memory operational metrics are queryable only via loopback API.
+- **Untrusted Source Defanging:** All media-derived text (transcripts, OCR, metadata) is treated as untrusted data and sanitized prior to LLM context inclusion or query processing.
+- **Read-Only MCP Agent Contract:** AI agent connections default to read-only retrieval tools to prevent unauthorized filesystem modification.
+
+---
+
+## Known Limitations
+
+- **Speech ASR Language Performance:**
+  - *English (`en_us`):* ~6.7% WER, 0.42x RTF on CPU with faster-whisper-small.
+  - *Hindi (`hi_in`) & Tamil (`ta_in`):* ~64.9% - 78.6% WER with smaller models. Useful for keyword retrieval; requires secondary review for high-accuracy transcripts.
+  - *Kannada (`kn_in`) & Telugu (`te_in`):* High error rates on generic Whisper checkpoints due to script mismatch. Requires fine-tuned regional checkpoints or external providers.
+- **Keyframe OCR:** Current visual text extraction uses lightweight template heuristics. Full scene text recognition is planned for subsequent milestones.
+- **Single-Node Execution:** Designed for local developer workstations and single machines; does not operate as a distributed cluster.
+
+See [`docs/KNOWN_ISSUES.md`](./docs/KNOWN_ISSUES.md) for detailed disclosures.
+
+---
+
+## Documentation
 
 - [System Architecture](./docs/architecture.md)
-- [Client Integration Guides (Claude, Cursor, Antigravity)](./docs/INTEGRATIONS.md)
-- [MCP Toolset Documentation](./docs/MCP_TOOLS.md)
-- [Feature Reality Status](./docs/FEATURE_STATUS.md)
+- [Client Integration Guides (Claude Desktop, Cursor)](./docs/INTEGRATIONS.md)
+- [Model Context Protocol (MCP) Guide](./docs/mcp-guide.md)
+- [MCP Toolset Reference](./docs/MCP_TOOLS.md)
+- [Installation & Deployment](./docs/installation.md)
+- [Feature Status Matrix](./docs/FEATURE_STATUS.md)
 - [Known Limitations & Issues](./docs/KNOWN_ISSUES.md)
 - [Technical Decisions (ADRs)](./docs/TECHNICAL_DECISIONS.md)
-- [Project Status & Checklist](./docs/PROJECT_STATUS.md)
-- [Development Log](./docs/DEVELOPMENT_LOG.md)
+- [Contributing Guidelines](./CONTRIBUTING.md)
+- [License](./LICENSE)
+
+---
+
+## Contributing
+
+We welcome community contributions, bug reports, and suggestions. Please read our [Contributing Guidelines](./CONTRIBUTING.md) and [Code of Conduct](./CODE_OF_CONDUCT.md) before opening a pull request.
+
+---
+
+## License
+
+Arova Creator Intelligence is open-source software licensed under the [Apache License, Version 2.0](./LICENSE).

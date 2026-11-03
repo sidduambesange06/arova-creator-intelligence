@@ -582,7 +582,7 @@
       "video_id": "vid_workstation_ui",
       "start_time": 0.0,
       "end_time": 30.0,
-      "text": "The Hallmark design system eliminates AI slop with tokenized dark technical palettes."
+      "text": "The Arova design system eliminates clutter with tokenized dark technical palettes."
     },
     {
       "id": "chunk_workstation_ui_02",
@@ -1362,7 +1362,7 @@
     {
       "query_id": "q_081",
       "domain": "workstation_ui",
-      "query": "Hallmark design system tokenized dark technical palette",
+      "query": "Arova design system tokenized dark technical palette",
       "relevant_ids": [
         "chunk_workstation_ui_01"
       ]

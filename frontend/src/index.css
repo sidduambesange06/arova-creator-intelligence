@@ -1,4 +1,4 @@
-/* Hallmark · shape: technical-studio · theme: graphite · genre: modern-minimal */
+/* Arova Creator Intelligence · Design system: technical-studio · theme: graphite · genre: modern-minimal */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -28,14 +28,14 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
   }
 
-  /* Hallmark Floor 26a: Instant, high-contrast focus-visible rings */
+  /* High-contrast focus-visible rings */
   :focus-visible {
     outline: 2px solid var(--border-focus);
     outline-offset: 2px;
   }
 }
 
-/* Hallmark Floor 27: Prefers-reduced-motion fallback */
+/* Prefers-reduced-motion fallback */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: 0.01ms !important;
@@ -64,14 +64,14 @@
   background: #334155;
 }
 
-/* Surface containers: single containment layer, zero card-in-card nesting */
-.hallmark-surface {
+/* Surface containers: single containment layer */
+.arova-surface {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: 0.75rem;
 }
 
-.hallmark-surface-interactive {
+.arova-surface-interactive {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: 0.75rem;
@@ -80,7 +80,7 @@
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.hallmark-surface-interactive:hover {
+.arova-surface-interactive:hover {
   border-color: var(--border-strong);
   background-color: var(--bg-surface-elevated);
 }

@@ -67,7 +67,7 @@ const MCP_TOOLS = [
   },
 ];
 
-type ClientTab = "claude" | "cursor" | "antigravity";
+type ClientTab = "claude" | "cursor" | "vscode";
 
 export function McpConfigView() {
   const [stats, setStats] = useState<MediaLibraryStats | null>(null);
@@ -127,7 +127,7 @@ export function McpConfigView() {
           null,
           2
         );
-      case "antigravity":
+      case "vscode":
         return JSON.stringify(
           {
             name: "arova-creator-intelligence",
@@ -157,12 +157,12 @@ export function McpConfigView() {
           Model Context Protocol (MCP) Server
         </h2>
         <p className="text-xs text-slate-400 mt-0.5">
-          Expose your local video knowledge, transcripts, and hybrid RAG engine to Claude Desktop, Cursor, and Gemini Antigravity.
+          Expose your local video knowledge, transcripts, and hybrid RAG engine to Claude Desktop, Cursor, and VS Code.
         </p>
       </div>
 
       {/* Live Media Stats Badge */}
-      <div data-testid="mcp-live-stats" className="hallmark-surface p-4 space-y-3">
+      <div data-testid="mcp-live-stats" className="arova-surface p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
@@ -211,7 +211,7 @@ export function McpConfigView() {
       </div>
 
       {/* Copyable MCP Client Snippet */}
-      <div className="hallmark-surface p-4 space-y-3">
+      <div className="arova-surface p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-xs font-semibold text-white">Client Configuration Snippets</h3>
@@ -231,7 +231,7 @@ export function McpConfigView() {
 
         {/* Client Tabs */}
         <div className="flex gap-1.5 border-b border-slate-800/80 pb-2">
-          {(["claude", "cursor", "antigravity"] as ClientTab[]).map((tab) => (
+          {(["claude", "cursor", "vscode"] as ClientTab[]).map((tab) => (
             <button
               key={tab}
               type="button"
@@ -242,7 +242,7 @@ export function McpConfigView() {
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              {tab === "claude" ? "Claude Desktop" : tab === "cursor" ? "Cursor IDE" : "Gemini Antigravity"}
+              {tab === "claude" ? "Claude Desktop" : tab === "cursor" ? "Cursor IDE" : "VS Code"}
             </button>
           ))}
         </div>
@@ -253,7 +253,7 @@ export function McpConfigView() {
       </div>
 
       {/* 9 MCP Tools Table */}
-      <div className="hallmark-surface p-4 space-y-3">
+      <div className="arova-surface p-4 space-y-3">
         <div>
           <h3 className="text-xs font-semibold text-white">
             Available MCP Tools ({MCP_TOOLS.length})

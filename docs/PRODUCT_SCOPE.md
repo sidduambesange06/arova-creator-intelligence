@@ -52,7 +52,7 @@ The engine provides the following functional capabilities, verified by automated
 - **Anti-Hallucination Design:** Questions targeting unmentioned topics return explicit negative disclosures rather than fabricating plausible answers.
 
 ### 2.6 Model Context Protocol (FastMCP) Integration
-- **Default Read-Only Contract:** Exposes 8 read-only retrieval tools to AI agent environments (Claude Desktop, Cursor IDE, Gemini Antigravity, Copilot):
+- **Default Read-Only Contract:** Exposes 8 read-only retrieval tools to AI agent environments (Claude Desktop, Cursor IDE, Copilot):
   1. `list_videos`: Discover indexed media.
   2. `get_video_metadata`: Technical specs and dimensions.
   3. `search_video_content`: Hybrid semantic search with timecode receipts.

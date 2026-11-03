@@ -1,16 +1,14 @@
 # System Architecture
 
-Related notes: [[PROJECT_STATUS]] | [[DEVELOPMENT_LOG]] | [[TECHNICAL_DECISIONS]] | [[KNOWN_ISSUES]]
-
 ## Overview
 
-`arova-creator-intelligence` is a local-first video indexing, two-stage hybrid retrieval (RAG), and Model Context Protocol (MCP) engine. Both the FastAPI REST server and the STDIO MCP server invoke a shared Python service layer (`backend/app/services`), eliminating duplicate business logic.
+Arova Creator Intelligence is an open-source, local-first multimodal video retrieval (RAG) and Model Context Protocol (MCP) engine. Both the FastAPI REST server and the STDIO MCP server share a unified Python service layer (`backend/app/services`), ensuring consistency between web interfaces, CLI commands, and AI agent tools.
 
 ```text
-               HUMAN USER                      AI AGENT (Claude / Cursor / Antigravity)
+               HUMAN USER                      AI AGENT (Claude Desktop / Cursor)
                    |                                              |
                    v                                              v
-     REACT WEB INSPECTOR (Vite/TS)                     MCP SERVER (STDIO / Python)
+      REACT WEB WORKSPACE (Vite/TS)                 FASTMCP SERVER (STDIO / Python)
                    |                                              |
                    v                                              |
             FASTAPI REST API                                      |
@@ -37,5 +35,4 @@ Related notes: [[PROJECT_STATUS]] | [[DEVELOPMENT_LOG]] | [[TECHNICAL_DECISIONS]
 - **SQLite + FTS5 (`./data/app.db`):** Stores relational metadata (`Video`, `Collection`, `Transcript`, `TranscriptSegment`, `VideoScene`, `ProcessingJob`, `VideoSummary`) and full-text lexical index (`FTS5`).
 - **ChromaDB (`./data/vectors`):** Persistent local vector store for timestamped transcript window embeddings (`all-MiniLM-L6-v2`).
 - **Media Artifacts (`./data/media`):** Extracted `16kHz` mono WAV audio files and JPEG scene/keyframe thumbnails.
-- **Source Video Safety:** Original user video files are read-only; index removal never deletes source media files on disk.
-
+- **Source Video Immutability:** Original user video files are read-only; indexing, probing, and index removal operations never alter or delete source media on disk.

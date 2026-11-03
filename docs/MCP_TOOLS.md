@@ -9,7 +9,7 @@
 
 ## 1. Overview & Security Contract
 
-The Arova Creator Intelligence MCP Server connects local video libraries directly to AI agents (Claude Desktop, Cursor, Gemini Antigravity, VS Code Copilot) using the open Model Context Protocol.
+The Arova Creator Intelligence MCP Server connects local video libraries directly to AI agents (Claude Desktop, Cursor, VS Code Copilot) using the open Model Context Protocol.
 
 ### Strict Read-Only Agent Contract
 For Launch 01, AI agents are provided with an exclusively **read-only** interface:
@@ -163,7 +163,7 @@ Retrieve inventory counts and runtime metrics for the video library.
         "-m",
         "mcp_server.server"
       ],
-      "cwd": "C:\\Users\\Siddhu Ambesanage\\Downloads\\OPEN SORCE DEVELOPMENT"
+      "cwd": "<absolute-path-to-the-cloned-arova-repository>"
     }
   }
 }
@@ -176,7 +176,7 @@ Retrieve inventory counts and runtime metrics for the video library.
     "arova": {
       "command": "python",
       "args": ["-m", "mcp_server.server"],
-      "cwd": "C:\\Users\\Siddhu Ambesanage\\Downloads\\OPEN SORCE DEVELOPMENT"
+      "cwd": "<absolute-path-to-the-cloned-arova-repository>"
     }
   }
 }

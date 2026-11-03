@@ -19,16 +19,30 @@ frontend/.vite/
 # Local Data & Environment
 .env
 .env.local
+.env.*.local
 data/
 *.db
 *.db-shm
 *.db-wal
 *.sqlite3
+testdata/
+models/
 
-# OS / IDE
+# Generated Health & Benchmark Run Logs
+reports/health_report_latest.json
+reports/LATEST_HEALTH_REPORT.md
+reports/security/
+reports/benchmarks/
+reports/asr_eval/
+reports/asr_program_*
+*.log
+
+# OS & Editor Settings
 .DS_Store
 Thumbs.db
-.vscode/*
-!.vscode/settings.json
+.vscode/
+.cursor/
 .idea/
-
+*.swp
+*.swo
+*~

@@ -267,7 +267,7 @@ export function MediaLibraryView() {
       {/* Import & Filter Controls */}
       <form
         onSubmit={(e) => void handleImport(e)}
-        className="hallmark-surface p-3 flex flex-wrap items-center gap-2.5"
+        className="arova-surface p-3 flex flex-wrap items-center gap-2.5"
       >
         <div className="relative flex-1 min-w-[280px]">
           <input
@@ -318,7 +318,7 @@ export function MediaLibraryView() {
       {selectedVideo && (
         <div
           data-testid="video-inspector-player"
-          className="hallmark-surface p-5 space-y-4"
+          className="arova-surface p-5 space-y-4"
         >
           {/* Main 2-Column Workstation: Left 7 cols Player, Right 5 cols Tabbed Inspector */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
@@ -655,7 +655,7 @@ export function MediaLibraryView() {
         {loading ? (
           <p className="text-xs text-slate-400 font-mono">Scanning media library...</p>
         ) : videos.length === 0 ? (
-          <div className="hallmark-surface border-dashed border-[#172338] p-8 text-center space-y-1">
+          <div className="arova-surface border-dashed border-[#172338] p-8 text-center space-y-1">
             <p className="text-xs text-slate-300 font-medium">No videos indexed in this collection yet.</p>
             <p className="text-[11px] text-slate-500 font-mono">
               Provide an absolute or relative video path in the bar above to start indexing.
@@ -669,7 +669,7 @@ export function MediaLibraryView() {
                 <div
                   key={v.id}
                   data-testid={`video-card-${v.id}`}
-                  className={`hallmark-surface p-3 flex flex-col justify-between transition-colors duration-150 ${
+                  className={`arova-surface p-3 flex flex-col justify-between transition-colors duration-150 ${
                     isSelected
                       ? "border-slate-500 bg-[#0d1424]"
                       : "hover:border-[#253654]"

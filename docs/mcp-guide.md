@@ -1,12 +1,10 @@
 # Model Context Protocol (MCP) Guide
 
-Related notes: [[architecture]] | [[PROJECT_STATUS]] | [[installation]]
-
-The Arova Creator Intelligence engine exposes an official **Model Context Protocol (MCP)** STDIO server (`mcp_server/server.py`). This allows any MCP-compatible AI agent (Claude Desktop, Cursor IDE, Gemini Antigravity, etc.) to securely query local video content, spoken transcripts, and multimodal indices.
+The Arova Creator Intelligence engine exposes an official **Model Context Protocol (MCP)** STDIO server (`mcp_server/server.py`). This allows any MCP-compatible AI agent (Claude Desktop, Cursor IDE, etc.) to securely query local video content, spoken transcripts, and multimodal indices.
 
 ---
 
-## Registered MCP Tools (9 Tools)
+## Registered MCP Tools
 
 All tools are backed directly by local database, FFmpeg, and ML reranker services:
 
@@ -20,8 +18,7 @@ All tools are backed directly by local database, FFmpeg, and ML reranker service
 | `summarize_video` | `video_id: string` | Grounded summary, topic list, and chapters synthesized from transcript segments. |
 | `get_video_chapters` | `video_id: string` | Timestamped chapter markers and section headings. |
 | `get_media_library_stats` | *none* | Total videos, total duration, transcripts indexed, and scene cut count. |
-| `export_video_clip` | `video_id: string`, `start_time: number`, `end_time: number` | Export a lossless trimmed subclip between timestamps using FFmpeg `-c copy`. |
-
+| `export_video_clip` | `video_id: string`, `start_time: number`, `end_time: number` | Export a lossless trimmed subclip between timestamps (opt-in only). |
 
 ---
 
@@ -36,9 +33,7 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
     "arova-creator-intelligence": {
       "command": "python",
       "args": ["-m", "mcp_server.server"],
-      "env": {
-        "PYTHONPATH": "."
-      }
+      "cwd": "<absolute-path-to-the-cloned-arova-repository>"
     }
   }
 }
@@ -49,28 +44,13 @@ Add to your workspace `.cursor/mcp.json`:
 
 ```json
 {
-  "mcp": {
-    "servers": {
-      "arova-creator-intelligence": {
-        "type": "stdio",
-        "command": "python",
-        "args": ["-m", "mcp_server.server"]
-      }
+  "mcpServers": {
+    "arova": {
+      "command": "python",
+      "args": ["-m", "mcp_server.server"],
+      "cwd": "<absolute-path-to-the-cloned-arova-repository>"
     }
   }
-}
-```
-
-### 3. Gemini Antigravity
-Add to your Antigravity MCP settings (`mcp.json`):
-
-```json
-{
-  "name": "arova-creator-intelligence",
-  "command": "python",
-  "args": ["-m", "mcp_server.server"],
-  "transport": "stdio",
-  "description": "Local video RAG and multimodal retrieval engine for AI agents."
 }
 ```
 
@@ -84,9 +64,9 @@ You can test the MCP server interactively via STDIO:
 # Activate your virtual environment first
 python -m mcp_server.server
 ```
+
 Or execute automated tool verification:
 
 ```bash
 pytest mcp_server/tests/test_mcp_tools.py -v
 ```
-

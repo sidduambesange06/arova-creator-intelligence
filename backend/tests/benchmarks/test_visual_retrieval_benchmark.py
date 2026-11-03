@@ -57,7 +57,7 @@ def test_run_100_query_multimodal_retrieval_benchmark(tmp_path: Path) -> None:
 
 ## 1. Methodology & Pipeline Architecture
 
-- **Corpus Composition:** 100 curated ground-truth annotated synthetic segments spanning 10 core engineering and creator video domains (FFmpeg pipelines, Whisper ASR, PySceneDetect scene cuts, ChromaDB vector indexing, SQLite FTS5 BM25 lexical search, Cross-Encoder re-ranking, Reciprocal Rank Fusion, FastMCP STDIO transport, Hallmark workstation UI, and Deny-by-default security).
+- **Corpus Composition:** 100 curated ground-truth annotated synthetic segments spanning 10 core engineering and creator video domains (FFmpeg pipelines, Whisper ASR, PySceneDetect scene cuts, ChromaDB vector indexing, SQLite FTS5 BM25 lexical search, Cross-Encoder re-ranking, Reciprocal Rank Fusion, FastMCP STDIO transport, Arova workstation UI, and Deny-by-default security).
 - **Stage 1 (Retrieval):** Dual retrieval combining Dense MiniLM semantic cosine similarity (`all-MiniLM-L6-v2`, 384 dimensions) and Lexical SQLite FTS5 BM25 keywords, fused using Reciprocal Rank Fusion (RRF, $k=60$).
 - **Stage 2 (Re-Ranking):** PyTorch Cross-Encoder (`cross-encoder/ms-marco-MiniLM-L-6-v2`) computing joint query-passage cross-attention scores across top candidates.
 

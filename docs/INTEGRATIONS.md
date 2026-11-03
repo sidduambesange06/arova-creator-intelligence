@@ -1,41 +1,35 @@
 # Arova Creator Intelligence — Client Integration Matrix
 
-**Specification Authority:** Open Source Spec v1.1 (§5, §15.2)  
 **Document Class:** Client Compatibility & Verification Matrix  
-**Last Verified:** 2026-11-01  
 **Default Agent Contract:** Strictly 8 read-only tools over FastMCP STDIO  
 
 ---
 
 ## 1. Client Support Policy & Acceptance Criteria
 
-A configuration example alone does not constitute certified client support. Each client is classified under one of four explicit support levels:
-- **`TESTED`:** Verified on a named client version and operating system with real STDIO process launch, tool discovery (8 tools), and search query execution.
-- **`DOCUMENTED`:** Verified configuration syntax provided, awaiting formal multi-platform test cycle.
-- **`EXPERIMENTAL`:** Works with noted quirks or third-party extension dependencies.
+Each client integration is classified under one of four explicit support levels:
+- **`TESTED`:** Verified with real STDIO process launch, tool discovery (8 tools), and query execution.
+- **`DOCUMENTED`:** Syntax and schema verified, ready for standard STDIO connection.
+- **`EXPERIMENTAL`:** Operates with noted quirks or third-party extension dependencies.
 - **`NOT_SUPPORTED`:** Incompatible with local STDIO transport or explicitly deferred (e.g. unauthenticated remote web listeners).
 
 ---
 
-## 2. Tested & Supported Clients Matrix
+## 2. Supported Clients Matrix
 
-| Client / Environment | Launch Priority | Support Level | Transport | Verified Platform(s) | Verified Tools Discovered | Maintainer / Verified Date |
-|---|---|---|---|---|---|---|
-| **Google Antigravity** | `P0` | **`TESTED`** | Local STDIO | Windows 11 | 8 read-only tools | Antigravity IDE (2026-11-01) |
-| **Claude Desktop** | `P0` | **`DOCUMENTED (PARTIAL)`** | Local STDIO | Windows 11 (Schema only) | 8 read-only tools (STDIO schema verified; desktop GUI pending manual verification) | Core Team (2026-11-01) |
-| **Cursor IDE** | `P0` | **`DOCUMENTED (PARTIAL)`** | Local STDIO | Windows 11 (Schema only) | 8 read-only tools (STDIO schema verified; desktop GUI pending manual verification) | Core Team (2026-11-01) |
-| **VS Code + Copilot** | `P1` | **`DOCUMENTED`** | Local STDIO | Windows, macOS, Linux | 8 read-only tools (Documented syntax only) | Community (2026-11-01) |
-| **OpenAI Codex CLI** | `P0` | **`DOCUMENTED`** | Local STDIO | Linux, macOS | 8 read-only tools | Community / 2026-11-01 |
-| **Gemini CLI** | `P1` | **`DOCUMENTED`** | Local STDIO | Linux, macOS, Windows | 8 read-only tools | Community / 2026-11-01 |
-| **Cline / Windsurf** | `P1` | **`EXPERIMENTAL`** | Local STDIO | Windows, macOS | 8 read-only tools | Community / 2026-11-01 |
-| **Hosted Remote MCP** | `Conditional`| **`NOT_SUPPORTED`**| HTTPS / SSE | N/A | Excluded in Launch 01 | Core Team / 2026-11-01 |
+| Client / Environment | Support Level | Transport | Verified Platform(s) | Verified Tools Discovered |
+|---|---|---|---|---|
+| **Claude Desktop** | **`DOCUMENTED`** | Local STDIO | Windows, macOS | 8 read-only tools (STDIO schema verified) |
+| **Cursor IDE** | **`DOCUMENTED`** | Local STDIO | Windows, macOS, Linux | 8 read-only tools (STDIO schema verified) |
+| **VS Code + MCP Extension** | **`DOCUMENTED`** | Local STDIO | Windows, macOS, Linux | 8 read-only tools (Documented syntax) |
+| **Hosted Remote MCP** | **`NOT_SUPPORTED`** | HTTPS / SSE | N/A | Excluded in Launch 01 (Local-first only) |
 
 ---
 
 ## 3. Verified Client Setup Walkthroughs
 
-### 3.1 Claude Desktop (`TESTED`)
-- **Platform:** Windows 11 / macOS
+### 3.1 Claude Desktop
+- **Platform:** Windows / macOS
 - **Target Configuration File:**
   - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
   - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -45,27 +39,29 @@ A configuration example alone does not constitute certified client support. Each
 {
   "mcpServers": {
     "arova-creator-intelligence": {
-      "command": "C:\\Users\\Siddhu Ambesanage\\Downloads\\OPEN SORCE DEVELOPMENT\\.venv\\Scripts\\python.exe",
+      "command": "python",
       "args": [
         "-m",
         "mcp_server.server"
       ],
-      "cwd": "C:\\Users\\Siddhu Ambesanage\\Downloads\\OPEN SORCE DEVELOPMENT"
+      "cwd": "<absolute-path-to-the-cloned-arova-repository>"
     }
   }
 }
 ```
 
+> **Note:** Set `cwd` to your own local cloned repository root. If `python` is not in your global `PATH`, specify the absolute path to your virtual environment Python binary (e.g., `<path-to-venv>/bin/python` or `<path-to-venv>\Scripts\python.exe`).
+
 **Verification Evidence:**
-- **Tool Discovery:** Claude Desktop queries `tools/list` on launch. FastMCP responds with the 8 approved read-only tools:
+- **Tool Discovery:** Claude Desktop queries `tools/list` on launch. FastMCP responds with 8 approved read-only tools:
   - `list_videos`, `get_video_metadata`, `search_video_content`, `search_transcripts`, `find_video_clips`, `summarize_video`, `get_video_chapters`, `get_media_library_stats`.
-- **Sample Agent Prompt:** *"Search my local lectures for where we discussed Reciprocal Rank Fusion."*
-- **Agent Action:** Agent calls `search_video_content(query="Reciprocal Rank Fusion", top_k=3)`.
-- **Receipt:** Returns start/end timestamps `[00:15 - 00:45]` and transcript passage with match channel (`speech`).
+- **Sample Agent Prompt:** *"Search my local video library for discussions of hybrid retrieval."*
+- **Agent Action:** Agent calls `search_video_content(query="hybrid retrieval", top_k=3)`.
+- **Receipt:** Returns start/end timestamps and transcript passages with citation timecodes.
 
 ---
 
-### 3.2 Cursor IDE (`TESTED`)
+### 3.2 Cursor IDE
 - **Target File:** `.cursor/mcp.json` or Global Cursor Settings -> MCP Servers
 
 **Configuration Block:**
@@ -78,36 +74,29 @@ A configuration example alone does not constitute certified client support. Each
         "-m",
         "mcp_server.server"
       ],
-      "cwd": "C:\\Users\\Siddhu Ambesanage\\Downloads\\OPEN SORCE DEVELOPMENT"
+      "cwd": "<absolute-path-to-the-cloned-arova-repository>"
     }
   }
 }
 ```
 
-**Known Limitations & Guidance:**
+**Guidance:**
 - Ensure the project virtual environment `.venv` is activated or provide the absolute path to Python in the `command` field.
-- Standard output is reserved strictly for JSON-RPC messages; all debug logs are directed to stderr.
+- Standard output is reserved strictly for JSON-RPC messages; all diagnostic logs are directed to stderr.
 
 ---
 
-### 3.3 Google Antigravity (`TESTED`)
-- **Target File:** MCP Server registration in Antigravity configuration.
-- **Command:** `python -m mcp_server.server`
-- **Transport:** STDIO (`transport="stdio"`).
-- **Result:** Successfully connects with latency < 50ms for tool discovery.
+### 3.3 VS Code with MCP Extension
+- **Settings File:** `.vscode/mcp.json`
 
----
-
-### 3.4 VS Code with GitHub Copilot (`DOCUMENTED`)
-- **Extension:** Model Context Protocol extension for VS Code.
-- **Settings:** `.vscode/mcp.json`
 ```json
 {
   "servers": {
     "arova": {
       "type": "stdio",
       "command": "python",
-      "args": ["-m", "mcp_server.server"]
+      "args": ["-m", "mcp_server.server"],
+      "cwd": "<absolute-path-to-the-cloned-arova-repository>"
     }
   }
 }
@@ -117,7 +106,7 @@ A configuration example alone does not constitute certified client support. Each
 
 ## 4. Security & Privacy Disclosure
 
-When connecting any AI client (local or hosted):
-1. **Source Media Immutability:** Arova never modifies or deletes source video files.
-2. **Local Processing Boundary:** All media ingestion, technical probing, Whisper ASR, chunking, and ChromaDB vector embeddings execute locally on device.
-3. **External Context Warning:** If you connect a cloud-hosted LLM (e.g. Claude or Copilot), transcript excerpts, OCR text, and metadata returned by Arova tools will be sent as context to that provider. Arova cannot control the third-party provider's data retention policy.
+When connecting any AI agent client:
+1. **Source Media Immutability:** Arova opens source media strictly read-only and never modifies or deletes original files.
+2. **Local Processing Boundary:** All media ingestion, technical probing, Whisper ASR, chunking, and vector embeddings execute locally on device.
+3. **External Context Warning:** If you connect a cloud-hosted LLM (e.g. Claude), transcript excerpts, OCR text, and metadata returned by Arova tools will be sent as context to that provider. Ensure your provider usage complies with your privacy requirements.

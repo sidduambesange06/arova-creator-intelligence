@@ -1,7 +1,5 @@
 # Installation & Deployment Guide
 
-Related notes: [[architecture]] | [[PROJECT_STATUS]] | [[mcp-guide]]
-
 ## Prerequisites
 
 - **Python:** 3.11 or higher
@@ -17,7 +15,7 @@ Related notes: [[architecture]] | [[PROJECT_STATUS]] | [[mcp-guide]]
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/arova/arova-creator-intelligence.git
+   git clone https://github.com/sidduambesange06/arova-creator-intelligence.git
    cd arova-creator-intelligence
    ```
 
@@ -34,9 +32,13 @@ Related notes: [[architecture]] | [[PROJECT_STATUS]] | [[mcp-guide]]
    cp .env.example .env
    ```
 
-4. **Start the API backend:**
+4. **Verify environment health:**
    ```bash
-   # From root or backend/
+   python -m arova doctor
+   ```
+
+5. **Start the API backend:**
+   ```bash
    uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
    ```
    The backend API will be live at `http://127.0.0.1:8000`. API docs available at `http://127.0.0.1:8000/docs`.
@@ -49,13 +51,13 @@ Related notes: [[architecture]] | [[PROJECT_STATUS]] | [[mcp-guide]]
    npm install
    npm run dev
    ```
-   The developer UI inspector will run at `http://localhost:5173`.
+   The web workspace will run at `http://localhost:5173`.
 
 ---
 
 ## 2. Docker Deployment
 
-Deploy the fully self-contained engine (FastAPI + compiled SPA + SQLite + FFmpeg) using Docker Compose:
+Deploy the engine using Docker Compose:
 
 ```bash
 docker compose up --build -d
@@ -74,12 +76,11 @@ Verify your installation by running the comprehensive system health audit:
 ```bash
 python scripts/system_health_audit.py
 ```
-This runs 7 rigorous automated checks:
-1. Documentation & Ledger Sync
+This runs 7 automated checks:
+1. Documentation Integrity
 2. Strict Apache 2.0 IP Boundary Check
 3. Security & Path-Traversal Protection
 4. SQLite & Schema Integrity
-5. Backend Pytest Suite (21 tests)
-6. Frontend Vitest Suite (6 tests) & Production Build
-7. TinyFish Web Agent / Local Fallback Connector
-
+5. Backend & MCP Pytest Suite
+6. Frontend Vitest Suite & Production Build
+7. FastMCP Server Contract & Tools

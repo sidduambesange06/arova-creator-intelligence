@@ -54,7 +54,7 @@ npm run build --prefix frontend
 
 ---
 
-## Engineering Guidelines (Ponytail Mode)
+## Engineering Guidelines
 
 1. **Smallest Complete Change:** Solve problems with the least new code. No dead abstractions, unused wrappers, or unrequested features.
 2. **Zero Fake Mock Data:** Never write fake mock retrieval metrics or bluffing responses. Test against real synthetic media or real SQLite/ChromaDB state.

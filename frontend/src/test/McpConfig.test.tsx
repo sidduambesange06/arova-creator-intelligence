@@ -8,7 +8,7 @@ const SAMPLE_STATS = {
   total_collections: 2,
   total_transcripts_indexed: 4,
   total_scene_cuts: 16,
-  engine: "Arova Creator Intelligence v0.1.0 (Local-First)",
+  engine: "Arova Creator Intelligence v0.1.0 (Local video RAG)",
 };
 
 describe("McpConfigView", () => {
@@ -61,8 +61,8 @@ describe("McpConfigView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cursor IDE" }));
     expect(screen.getByTestId("mcp-config-code")).toHaveTextContent('"type": "stdio"');
 
-    // Click Gemini Antigravity tab
-    fireEvent.click(screen.getByRole("button", { name: "Gemini Antigravity" }));
-    expect(screen.getByTestId("mcp-config-code")).toHaveTextContent("Local video RAG and multimodal retrieval engine");
+    // Click VS Code tab
+    fireEvent.click(screen.getByRole("button", { name: "VS Code" }));
+    expect(screen.getByTestId("mcp-config-code")).toHaveTextContent("Local video RAG");
   });
 });

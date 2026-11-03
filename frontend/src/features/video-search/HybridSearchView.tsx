@@ -235,7 +235,7 @@ export function HybridSearchView() {
       </div>
 
       {/* Grounded Video Q&A Assistant Bar */}
-      <div className="hallmark-surface p-4 space-y-3">
+      <div className="arova-surface p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-cyan-400" />
@@ -345,7 +345,7 @@ export function HybridSearchView() {
 
       {/* Video Player Preview HUD (Floating / Side-by-Side) */}
       {activeVideoId && (
-        <div className="hallmark-surface p-4 space-y-3">
+        <div className="arova-surface p-4 space-y-3">
           <div className="flex items-center justify-between text-xs font-mono text-slate-300">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -376,7 +376,7 @@ export function HybridSearchView() {
 
       {/* ML Evaluation Benchmark Results Table */}
       {evalReport && (
-        <div data-testid="eval-benchmark-report" className="hallmark-surface p-5 space-y-4">
+        <div data-testid="eval-benchmark-report" className="arova-surface p-5 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
               <h3 className="text-xs font-semibold text-slate-100">
@@ -495,7 +495,7 @@ export function HybridSearchView() {
           </div>
 
           {filteredResults.length === 0 ? (
-            <div className="hallmark-surface border-dashed border-[#172338] p-8 text-center text-xs text-slate-400 space-y-1">
+            <div className="arova-surface border-dashed border-[#172338] p-8 text-center text-xs text-slate-400 space-y-1">
               <p className="font-medium text-slate-300">No matching video chunks found for &quot;{searchResponse.query}&quot;.</p>
               <p className="text-[11px] text-slate-500 font-mono">Try indexing more videos or broadening your query.</p>
             </div>
@@ -504,7 +504,7 @@ export function HybridSearchView() {
               {filteredResults.map((item, idx) => (
                 <div
                   key={item.embedding_id || idx}
-                  className="hallmark-surface p-4 space-y-2.5 hover:border-[#253654] transition-colors"
+                  className="arova-surface p-4 space-y-2.5 hover:border-[#253654] transition-colors"
                 >
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">

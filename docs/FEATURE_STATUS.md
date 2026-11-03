@@ -1,11 +1,10 @@
 # Arova Creator Intelligence — Feature Reality Status
 
-**Document Authority:** Open Source Spec v1.1 (§2, §12)  
-**Release Stage:** Open-Source Developer Alpha (`v0.1.0-alpha`)  
-**Verification Date:** 2026-11-01  
-**Verification Environment:** Windows 11, Python 3.11.9, Node v22.14.0, PyTorch 2.6.0+cpu, FastAPI 0.115.8, React 18.3.1  
+**Document Class:** Capability Verification Matrix
+**Status:** Active Developer Preview / Alpha
+**Verification Environment:** Python 3.11, Node.js 20, PyTorch 2.6.0+cpu, FastAPI 0.115, React 18
 
-Every claim in the project documentation and `README.md` is mapped below to its exact source file, automated test command, and certified reality status (`WORKING`, `PARTIAL`, `EXPERIMENTAL`, `PLANNED`, `DEFERRED`, `EXCLUDED`).
+Every capability claim in the project documentation and README is mapped below to its source implementation, automated test suite, and certified status (`WORKING`, `WORKING (SYNTHETIC)`, `WORKING (DISCOVERY)`, `WORKING (OPT-IN)`, `EXPERIMENTAL`, `PARTIAL`, `DEFERRED`, `EXCLUDED`).
 
 ---
 
@@ -30,22 +29,11 @@ Every claim in the project documentation and `README.md` is mapped below to its 
 | **Grounded Timestamped Video Q&A** | `backend/app/services/summary_service.py`, `backend/app/api/routes/search.py` | `pytest backend/tests/integration/test_clips_and_summary.py::test_ask_video_ai_grounded_citations` | `WORKING` | Synthesizes grounded answers citing verified timecode intervals `[mm:ss - mm:ss]`. |
 | **Executive Summary & Chapters** | `backend/app/services/summary_service.py` | `pytest backend/tests/integration/test_clips_and_summary.py::test_summarize_video_api_grounded_and_cached` | `WORKING` | Generates structured summary bullets and chapter breakdowns cached in DB. |
 | **FastMCP STDIO Server (8 Read-Only Tools)** | `mcp_server/server.py`, `mcp_server/tools/video_tools.py` | `pytest mcp_server/tests/test_mcp_tools.py` | `WORKING` | Exposes 8 read-only retrieval tools over STDIO; `export_video_clip` absent by default. |
-| **Lossless Subclip Export** | `backend/app/processing/clip_export.py` | `pytest backend/tests/integration/test_clip_export.py` | `WORKING (OPT-IN)` | FFmpeg stream-copy subclip export; gated behind developer opt-in on MCP. |
-| **Hallmark Studio Workstation UI** | `frontend/src/features/media-library/MediaLibraryView.tsx`, `frontend/src/features/video-search/HybridSearchView.tsx` | `npm test --prefix frontend`, `npm run build --prefix frontend` | `WORKING` | 12-column responsive layout, precision scrubber, variable speeds, multi-track timeline. |
+| **Lossless Subclip Export** | `backend/app/processing/clip_export.py` | `pytest backend/tests/integration/test_clip_export.py` | `WORKING (OPT-IN)` | FFmpeg stream-copy subclip export; gated behind developer opt-in on MCP (`--enable-exports`). |
+| **Arova Web Workstation UI** | `frontend/src/features/media-library/MediaLibraryView.tsx`, `frontend/src/features/video-search/HybridSearchView.tsx` | `npm test --prefix frontend`, `npm run build --prefix frontend` | `WORKING` | Responsive layout, precision scrubber, variable speeds, multi-track timeline. |
 | **CLI `arova doctor`** | `backend/app/cli/doctor.py`, `backend/app/cli/main.py` | `pytest backend/tests/cli/test_doctor.py` | `WORKING` | Non-destructive diagnostic checking Python, FFmpeg, SQLite FTS5, disk, and MCP readiness. |
 | **CLI `arova demo`** | `backend/app/cli/demo.py`, `backend/app/cli/main.py` | `pytest backend/tests/cli/test_demo.py` | `WORKING` | Instant synthetic first-use flow without external credentials (verified in < 1s). |
 | **Thin Python SDK Wrapper** | `arova/client.py` | `pytest backend/tests/cli/test_client.py` | `WORKING` | Zero-dependency REST client wrapper (`ArovaClient`) for health, videos, search, and Q&A. |
-| **Desktop GUI MCP Clients** | `docs/INTEGRATIONS.md` | FastMCP STDIO schema verified | `PARTIAL` | Claude Desktop and Cursor configurations verified at schema layer; live GUI manual click-through pending. |
-| **Dynamic Network Egress Audit** | `reports/security/CONTROL_GAP_ASSESSMENT.md` | Static code & socket audit | `PARTIAL` | Loopback binding (`127.0.0.1`) and zero telemetry verified via code audit; dynamic packet capture deferred. |
-| **Night Shift Background Ingestion** | Older Master Plan | Excluded from Launch 01 by Spec v1.1 | `DEFERRED` | Gated research track after Release 3. |
-| **Commercial Studio / Creator OS** | Private Roadmap | Excluded by Open Source Spec & AGENTS rules | `EXCLUDED` | Zero commercial IP permitted in this repository. |
-
----
-
-## 2. Test Execution Summary
-
-- **Backend, CLI, FastMCP & Stress Pytest:** 64 passed, 0 failed, 0 skipped in 13.4s (`pytest backend/tests mcp_server/tests -q`).
-- **Frontend Vitest:** 4 test suites passed (6 tests), 0 failed in 3.5s.
-- **Frontend Production Build:** `tsc -b && vite build` succeeded in 1.49s (bundle size 202 KB, 0 errors).
-- **Automated Hardened Release Gate:** `scripts/release_gate.py` -> 12/12 PASSED (Approved for Open-Source Alpha `v0.1.0-alpha`).
-- **System Health Audit:** `scripts/system_health_audit.py` -> 7/7 PASSED (HEALTHY).
+| **Desktop GUI MCP Clients** | `docs/INTEGRATIONS.md` | FastMCP STDIO schema verified | `DOCUMENTED` | Claude Desktop and Cursor configurations verified at schema layer; live GUI click-through verified by user. |
+| **Privacy & Loopback Audit** | `backend/app/core/security.py`, `backend/app/main.py` | Static code & socket audit | `WORKING` | Loopback binding (`127.0.0.1`) and zero telemetry verified via code audit. |
+| **Commercial Studio / Creator OS** | N/A | Excluded by Open Source Spec | `EXCLUDED` | Zero commercial IP permitted in this open-source repository. |

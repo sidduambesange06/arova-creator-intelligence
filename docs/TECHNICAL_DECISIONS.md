@@ -1,6 +1,6 @@
 # Technical Decisions
 
-Related notes: [[PROJECT_STATUS]] | [[architecture]] | [[DEVELOPMENT_LOG]] | [[KNOWN_ISSUES]] | [[FEATURE_STATUS]] | [[MCP_TOOLS]]
+---
 
 ## ADR-001: Local-First Storage Stack (SQLite FTS5 + ChromaDB)
 - **Context:** Developers evaluating the repository or running local MCP servers should not need Docker Compose with PostgreSQL, Redis, or cloud API keys just to index and search local videos.
