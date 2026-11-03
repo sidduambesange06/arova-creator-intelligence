@@ -21,9 +21,23 @@
 
 2. **Create and activate a virtual environment:**
    ```bash
-   # Using Astral uv (recommended)
+   # Core installation (using Astral uv - recommended):
    uv sync --project backend --group dev --locked
+
+   # Optional extras:
+   # Speech ASR (faster-whisper):
+   uv sync --project backend --extra asr --locked
+
+   # Neural embeddings & reranking (sentence-transformers):
+   uv sync --project backend --extra ai --locked
+
+   # Cloud AI provider (Google Gemini):
+   uv sync --project backend --extra cloud --locked
+
+   # Install all optional extras:
+   uv sync --project backend --all-extras --locked
    ```
+   > **Note on Weights & Runtime:** Installing an optional extra package provides the required runtime libraries, but does not automatically download model weights or guarantee model availability. Models must be downloaded or cached locally before offline inference.
 
 3. **Configure environment:**
    ```bash

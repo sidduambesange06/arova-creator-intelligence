@@ -47,10 +47,7 @@ def test_run_100_query_multimodal_retrieval_benchmark(tmp_path: Path) -> None:
     REPORT_MD_PATH.parent.mkdir(parents=True, exist_ok=True)
     report_content = f"""# Arova Creator Intelligence — 100-Query Synthetic Multimodal Retrieval Benchmark
 
-**Date:** {report.timestamp}  
-**Dataset:** `sample_data/visual_retrieval_golden_100.json` (100 synthetic queries, 100 synthetic corpus passages)  
-**Evaluation Scope:** Curated synthetic evaluation golden set. (Note: Benchmark validation against independently labelled real-world video footage is staged on the Beta roadmap)  
-**Hardware Environment:** {platform.processor() or 'x86_64 CPU'} | {platform.system()} {platform.release()} | Python {platform.python_version()}  
+**Date:** {report.timestamp}\n**Dataset:** `sample_data/visual_retrieval_golden_100.json` (100 synthetic queries, 100 synthetic corpus passages)\n**Evaluation Scope:** Curated synthetic evaluation golden set. (Note: Benchmark validation against independently labelled real-world video footage is staged on the Beta roadmap)\n**Hardware Environment:** {platform.processor() or 'x86_64 CPU'} | {platform.system()} {platform.release()} | Python {platform.python_version()}
 **Evaluation Mode:** Local CPU Inference (`torch 2.6.0+cpu`, quantized sentence-transformers)
 
 ---

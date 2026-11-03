@@ -157,9 +157,24 @@ Configuration is managed via environment variables or a local `.env` file (see [
 
 ### Model Downloads & Optional Extras
 - Default installation provides lightweight lexical FTS5 BM25 search, native FFmpeg scene detection, and zero-telemetry REST/MCP execution.
-- Neural speech recognition uses optional `[asr]` extra (`faster-whisper`). If uninstalled or offline, the engine returns a clear ASR-unavailable error rather than fabricating text.
-- Dense embeddings (`sentence-transformers/all-MiniLM-L6-v2`) and Cross-Encoder reranking (`cross-encoder/ms-marco-MiniLM-L-6-v2`) run 100% locally via optional `[ai]` extra.
-- Optional cloud providers (Google Gemini) require explicit user consent (`AI_REMOTE_CONSENT=true`) and user-supplied API keys (BYOK). There is zero silent cloud fallback.
+- Neural speech recognition uses optional `[asr]` extra (`faster-whisper`):
+  ```bash
+  uv sync --project backend --extra asr --locked
+  ```
+  If uninstalled or offline, the engine returns a clear ASR-unavailable error rather than fabricating text.
+- Dense embeddings (`sentence-transformers/all-MiniLM-L6-v2`) and Cross-Encoder reranking run locally via optional `[ai]` extra:
+  ```bash
+  uv sync --project backend --extra ai --locked
+  ```
+- Optional cloud providers (Google Gemini) require explicit user consent (`AI_REMOTE_CONSENT=true`), user-supplied API keys (BYOK), and the `[cloud]` extra:
+  ```bash
+  uv sync --project backend --extra cloud --locked
+  ```
+- To install all optional extras together:
+  ```bash
+  uv sync --project backend --all-extras --locked
+  ```
+> **Note on Weights & Runtime:** Installing an optional extra package provides the required runtime libraries, but does not automatically download model weights or guarantee model availability. Models must be downloaded or cached locally before offline inference.
 
 ---
 

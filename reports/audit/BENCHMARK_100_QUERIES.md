@@ -1,9 +1,9 @@
 # Arova Creator Intelligence — 100-Query Synthetic Multimodal Retrieval Benchmark
 
-**Date:** 2026-11-03T16:19:35.219083+00:00  
-**Dataset:** `sample_data/visual_retrieval_golden_100.json` (100 synthetic queries, 100 synthetic corpus passages)  
-**Evaluation Scope:** Curated synthetic evaluation golden set. (Note: Benchmark validation against independently labelled real-world video footage is staged on the Beta roadmap)  
-**Hardware Environment:** AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD | Windows 10 | Python 3.11.9  
+**Date:** 2026-11-03T16:42:36.818727+00:00
+**Dataset:** `sample_data/visual_retrieval_golden_100.json` (100 synthetic queries, 100 synthetic corpus passages)
+**Evaluation Scope:** Curated synthetic evaluation golden set. (Note: Benchmark validation against independently labelled real-world video footage is staged on the Beta roadmap)
+**Hardware Environment:** AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD | Windows 10 | Python 3.11.9
 **Evaluation Mode:** Local CPU Inference (`torch 2.6.0+cpu`, quantized sentence-transformers)
 
 ---
@@ -33,9 +33,9 @@
 
 | Stage | Median (p50) Latency | 95th Percentile (p95) Latency |
 |---|---|---|
-| **Stage 1 (Embedding + FTS5 + RRF)** | `2.93 ms` | `4.54 ms` |
-| **Stage 2 (Cross-Encoder Re-Ranking)** | `4.54 ms` | `7.88 ms` |
-| **Total Query Latency** | `7.47 ms` | `12.42 ms` |
+| **Stage 1 (Embedding + FTS5 + RRF)** | `1.73 ms` | `2.23 ms` |
+| **Stage 2 (Cross-Encoder Re-Ranking)** | `3.13 ms` | `3.65 ms` |
+| **Total Query Latency** | `4.86 ms` | `5.88 ms` |
 
 ---
 
