@@ -2,6 +2,11 @@
 
 **The local-first video intelligence and Model Context Protocol (MCP) engine for AI agents and developers.**
 
+[![CI Suite](https://github.com/sidduambesange06/arova-creator-intelligence/actions/workflows/ci.yml/badge.svg)](https://github.com/sidduambesange06/arova-creator-intelligence/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![FastMCP](https://img.shields.io/badge/FastMCP-2024.11-green.svg)](https://github.com/jlowin/fastmcp)
+
 > Index local video libraries into timestamped transcripts, visual scene boundaries, and hybrid vector embeddings—accessible via local REST API, web interface, and Model Context Protocol (MCP).
 
 Licensed under the [Apache License 2.0](./LICENSE).
