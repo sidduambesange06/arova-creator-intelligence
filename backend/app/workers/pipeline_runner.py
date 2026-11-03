@@ -97,46 +97,66 @@ def _execute_pipeline(
 
         # Step 2: Auto-discover sidecar subtitles (.srt / .vtt)
         sidecar_path = find_sidecar_subtitles(video.file_path)
-        used_sidecar = False
+        has_transcript = False
         if sidecar_path and sidecar_path.is_file():
             try:
                 sub_text = sidecar_path.read_text(encoding="utf-8", errors="replace")
+                storage_path = Path(media_storage_dir) if media_storage_dir else None
                 ingest_subtitles_for_video(
                     db=db,
                     video=video,
                     content=sub_text,
                     source_name=sidecar_path.name,
-                    media_storage_dir=media_storage_dir,
+                    media_storage_dir=storage_path,
                 )
-                used_sidecar = True
-                job.progress = 90.0
+                has_transcript = True
+                job.progress = 75.0
                 db.commit()
             except Exception:
-                used_sidecar = False
+                has_transcript = False
 
-        if not used_sidecar:
-            # Step 2b (Audio WAV extraction)
-            job.progress = 50.0
-            db.commit()
-            wav_path = extract_audio_wav(
-                video_path=video.file_path,
-                video_id=video.id,
-                output_dir=media_storage_dir,
-            )
+        if not has_transcript:
+            from app.processing.metadata import has_audio_stream
 
-            # Step 3 (Whisper ASR Transcription)
-            job.progress = 80.0
-            db.commit()
-            transcribe_and_store(
-                db=db,
-                video=video,
-                audio_path=wav_path,
-                provider=provider,
-            )
+            if has_audio_stream(video.file_path):
+                # Step 3a (Audio WAV extraction)
+                job.progress = 50.0
+                db.commit()
+                wav_path: Path | None = None
+                try:
+                    wav_path = extract_audio_wav(
+                        video_path=video.file_path,
+                        video_id=video.id,
+                        output_dir=media_storage_dir,
+                    )
+                except ValueError:
+                    wav_path = None
 
-            # Step 4 (Index Timestamp Windows for Hybrid RAG)
-            job.progress = 90.0
-            db.commit()
+                if wav_path and wav_path.is_file():
+                    # Step 3b (ASR Transcription)
+                    job.progress = 75.0
+                    db.commit()
+                    try:
+                        transcript_obj = transcribe_and_store(
+                            db=db,
+                            video=video,
+                            audio_path=wav_path,
+                            provider=provider,
+                        )
+                        if transcript_obj and transcript_obj.segments:
+                            has_transcript = True
+                    except Exception:
+                        has_transcript = False
+                    finally:
+                        try:
+                            wav_path.unlink(missing_ok=True)
+                        except OSError:
+                            pass
+
+        # Step 4 (Index Timestamp Windows for Hybrid RAG if transcript exists)
+        job.progress = 90.0
+        db.commit()
+        if has_transcript:
             index_video_chunks(
                 db=db,
                 video_id=video.id,

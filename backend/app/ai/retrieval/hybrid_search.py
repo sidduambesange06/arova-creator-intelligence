@@ -40,7 +40,10 @@ class HybridSearchResponse:
 
 
 def _sanitize_fts_query(raw_query: str) -> str:
-    tokens = re.findall(r"\w+", raw_query)
+    # Strip FTS5 operators and punctuation while preserving Unicode letters and combining vowel marks
+    punct_pattern = r'[!"#$%&\'()*+,-./:;<=>?@\[\\\]^_`{|}~।॥\u0964\u0965]'
+    cleaned = re.sub(punct_pattern, " ", raw_query)
+    tokens = [t.strip() for t in cleaned.split() if t.strip()]
     if not tokens:
         return '""'
     return " OR ".join(f'"{t}"' for t in tokens)
@@ -75,11 +78,12 @@ def run_hybrid_search(
 
     # 1. Dense Vector Scoring (Cosine similarity)
     dense_scores: dict[str, float] = {}
-    for emb_id, vec in stored_vectors.items():
-        if len(vec) == len(q_vec):
-            # L2 normalized dot product = cosine similarity
-            sim = sum(a * b for a, b in zip(q_vec, vec, strict=False))
-            dense_scores[emb_id] = round(sim, 4)
+    if q_vec and stored_vectors:
+        for emb_id, vec in stored_vectors.items():
+            if len(vec) == len(q_vec):
+                # L2 normalized dot product = cosine similarity
+                sim = sum(a * b for a, b in zip(q_vec, vec, strict=False))
+                dense_scores[emb_id] = round(sim, 4)
 
     # Filter by video_id if requested
     if video_id_filter:

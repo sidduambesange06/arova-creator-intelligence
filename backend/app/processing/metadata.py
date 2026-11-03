@@ -17,6 +17,7 @@ class VideoMetadata:
     codec: str
     format: str
     file_size: int
+    has_audio: bool = False
 
 
 def get_ffmpeg_binary() -> str:
@@ -67,6 +68,7 @@ def probe_video_metadata(video_path: str | Path) -> VideoMetadata:
         info = json.loads(proc.stdout)
         streams = info.get("streams", [])
         v_stream = next((s for s in streams if s.get("codec_type") == "video"), {})
+        has_audio = any(s.get("codec_type") == "audio" for s in streams)
         fmt = info.get("format", {})
         return VideoMetadata(
             duration=round(float(fmt.get("duration") or v_stream.get("duration") or 0.0), 3),
@@ -76,6 +78,7 @@ def probe_video_metadata(video_path: str | Path) -> VideoMetadata:
             codec=str(v_stream.get("codec_name") or "unknown"),
             format=ext_format,
             file_size=file_size,
+            has_audio=has_audio,
         )
 
     ffmpeg_bin = get_ffmpeg_binary()
@@ -101,6 +104,7 @@ def probe_video_metadata(video_path: str | Path) -> VideoMetadata:
     codec = "unknown"
     width, height = 0, 0
     fps = 0.0
+    has_audio = False
     for line in stderr.splitlines():
         if "Video:" in line:
             c_match = re.search(r"Video:\s*([a-zA-Z0-9_-]+)", line)
@@ -112,7 +116,8 @@ def probe_video_metadata(video_path: str | Path) -> VideoMetadata:
             fps_match = re.search(r"(\d+(?:\.\d+)?)\s*fps", line)
             if fps_match:
                 fps = round(float(fps_match.group(1)), 2)
-            break
+        if "Audio:" in line:
+            has_audio = True
 
     return VideoMetadata(
         duration=duration,
@@ -122,5 +127,14 @@ def probe_video_metadata(video_path: str | Path) -> VideoMetadata:
         codec=codec,
         format=ext_format,
         file_size=file_size,
+        has_audio=has_audio,
     )
 
+
+def has_audio_stream(video_path: str | Path) -> bool:
+    """Check whether a video file contains an active audio stream."""
+    try:
+        meta = probe_video_metadata(video_path)
+        return meta.has_audio
+    except Exception:
+        return False

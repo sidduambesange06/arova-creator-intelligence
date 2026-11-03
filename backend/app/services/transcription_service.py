@@ -12,9 +12,17 @@ def transcribe_and_store(
     video: Video,
     audio_path: Path,
     provider: TranscriptionProvider | None = None,
-) -> Transcript:
+) -> Transcript | None:
+    """Run ASR provider on audio and persist genuine transcript and segment records.
+
+    Returns:
+        Transcript instance if speech segments were transcribed, None if no speech detected.
+    """
     active_provider = provider or FasterWhisperProvider()
     result = active_provider.transcribe(audio_path)
+
+    if not result or not result.segments or not result.full_text.strip():
+        return None
 
     # Clean existing transcripts for this video
     existing = db.query(Transcript).filter_by(video_id=video.id).all()
@@ -48,4 +56,3 @@ def transcribe_and_store(
     db.commit()
     db.refresh(transcript)
     return transcript
-

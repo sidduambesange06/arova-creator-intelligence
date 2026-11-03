@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { DatabaseExplorerView } from "./features/database-explorer/DatabaseExplorerView";
 import { MediaLibraryView } from "./features/media-library/MediaLibraryView";
 import { McpConfigView } from "./features/settings/McpConfigView";
 import { HybridSearchView } from "./features/video-search/HybridSearchView";
 import { fetchHealth, type HealthResponse } from "./services/api";
 
-type NavSection = "media-library" | "hybrid-search" | "mcp-config" | "database-explorer" | "system";
+type NavSection = "media-library" | "hybrid-search" | "mcp-config" | "system";
 
 const SECTIONS: { id: NavSection; label: string; tag: string }[] = [
   { id: "media-library", label: "Studio Media Library", tag: "Workstation" },
   { id: "hybrid-search", label: "Hybrid Video RAG & Q&A", tag: "AI / Search" },
-  { id: "database-explorer", label: "Database Explorer", tag: "Admin" },
   { id: "mcp-config", label: "MCP Agent Server", tag: "Protocol" },
   { id: "system", label: "Engine Telemetry & Health", tag: "Core" },
 ];
@@ -144,7 +142,7 @@ export function App() {
 
           <div className="flex items-center gap-3">
             <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#0d1424] border border-[#172338] text-slate-300">
-              100% On-Device · Zero Cloud Lock-In
+              Local-First · Cloud AI requires explicit opt-in
             </span>
             <button
               type="button"
@@ -218,8 +216,6 @@ export function App() {
             <MediaLibraryView />
           ) : activeSection === "hybrid-search" ? (
             <HybridSearchView />
-          ) : activeSection === "database-explorer" ? (
-            <DatabaseExplorerView />
           ) : activeSection === "mcp-config" ? (
             <McpConfigView />
           ) : null}

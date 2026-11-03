@@ -16,7 +16,7 @@
 
 ## Tracked Shortcuts (`shortcut:`)
 
-- `shortcut: Single-node local SQLite + embedded ChromaDB storage is scoped for local workstation usage; upgrade to client-server Postgres/Qdrant only if multi-tenant concurrent write load is required.`
+- `shortcut: Single-node local SQLite + local JSON vector storage is scoped for local workstation usage; upgrade to client-server Postgres/Qdrant only if multi-tenant concurrent write load is required.`
 - `shortcut: ALLOWED_MEDIA_ROOTS allows relative parents for demo imports; in hardened multi-tenant environments, restrict to absolute directory path.`
-- `shortcut: Deterministic acoustic fallback used when Whisper/MiniLM weights are absent; full neural accuracy requires downloading pinned local model weights.`
+- `shortcut: ASR-unavailable error or lexical FTS5 fallback used when Whisper/MiniLM weights are absent; full neural accuracy requires installing optional [ai,asr] extras and local model weights.`
 - `shortcut: Visual OCR extracts text using lightweight template heuristics on sampled keyframes; full OCR requires Tesseract/EasyOCR dependencies planned for Beta.`

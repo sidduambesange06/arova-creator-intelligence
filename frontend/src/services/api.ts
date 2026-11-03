@@ -381,3 +381,197 @@ export function getClipDownloadUrl(filename: string): string {
   return `${API_BASE_URL}/api/v1/videos/clips/${encodeURIComponent(filename)}`;
 }
 
+// Database Explorer Interfaces
+export interface DatabaseOverview {
+  engine: string;
+  database_name: string;
+  file_size_bytes: number;
+  connection_status: string;
+  mode: string;
+  query_only: boolean;
+  integrity_status: string;
+  current_revision: string | null;
+  table_counts: {
+    total: number;
+    application: number;
+    internal: number;
+    fts5_shadow: number;
+    migration_metadata: number;
+  };
+  row_counts: Record<string, number>;
+  refreshed_at: string;
+}
+
+export interface TableSummary {
+  name: string;
+  category: "application" | "internal" | "fts5_shadow" | "migration_metadata";
+  row_count: number;
+  column_count: number;
+  primary_key: string[];
+  has_foreign_keys: boolean;
+  foreign_key_count: number;
+  is_empty: boolean;
+}
+
+export interface TableColumn {
+  name: string;
+  type: string;
+  nullable: boolean;
+  default: string | null;
+  primary_key: boolean;
+}
+
+export interface TableDetails {
+  name: string;
+  category: string;
+  columns: TableColumn[];
+  primary_key: string[];
+  foreign_keys: {
+    constrained_columns: string[];
+    referred_table: string;
+    referred_columns: string[];
+  }[];
+  indexes: {
+    name: string;
+    column_names: string[];
+    unique: boolean;
+  }[];
+  unique_constraints: {
+    name: string;
+    column_names: string[];
+  }[];
+}
+
+export interface TableRowsResponse {
+  table_name: string;
+  category: string;
+  columns: { name: string; type: string }[];
+  rows: Record<string, any>[];
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+}
+
+export interface MigrationRevision {
+  revision: string;
+  down_revision: string | null;
+  description: string;
+  is_current: boolean;
+}
+
+export interface DatabaseRelationships {
+  tables: {
+    id: string;
+    label: string;
+    category: string;
+    row_count: number;
+    column_count: number;
+    columns: { name: string; type: string; primary_key: boolean }[];
+  }[];
+  relationships: {
+    id: string;
+    source_table: string;
+    source_columns: string[];
+    target_table: string;
+    target_columns: string[];
+    label: string;
+  }[];
+}
+
+function adminAuthHeader(token: string): HeadersInit {
+  return {
+    Authorization: `Bearer ${token.trim()}`,
+    "Content-Type": "application/json",
+  };
+}
+
+export async function fetchDatabaseOverview(token: string): Promise<DatabaseOverview> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/admin/database/overview`, {
+    headers: adminAuthHeader(token),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Database overview failed (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<DatabaseOverview>;
+}
+
+export async function fetchDatabaseTables(
+  token: string,
+  search?: string,
+  category?: string
+): Promise<TableSummary[]> {
+  const params = new URLSearchParams();
+  if (search) params.set("search", search);
+  if (category) params.set("category", category);
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  const res = await fetch(`${API_BASE_URL}/api/v1/admin/database/tables${qs}`, {
+    headers: adminAuthHeader(token),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Failed to list tables (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<TableSummary[]>;
+}
+
+export async function fetchTableDetails(token: string, tableName: string): Promise<TableDetails> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/admin/database/tables/${encodeURIComponent(tableName)}`,
+    {
+      headers: adminAuthHeader(token),
+    }
+  );
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Failed to fetch table details (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<TableDetails>;
+}
+
+export async function fetchTableRows(
+  token: string,
+  tableName: string,
+  limit = 50,
+  offset = 0
+): Promise<TableRowsResponse> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/admin/database/tables/${encodeURIComponent(tableName)}/rows?${params.toString()}`,
+    {
+      headers: adminAuthHeader(token),
+    }
+  );
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Failed to fetch table rows (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<TableRowsResponse>;
+}
+
+export async function fetchDatabaseMigrations(token: string): Promise<MigrationRevision[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/admin/database/migrations`, {
+    headers: adminAuthHeader(token),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Failed to fetch migrations (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<MigrationRevision[]>;
+}
+
+export async function fetchDatabaseRelationships(token: string): Promise<DatabaseRelationships> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/admin/database/relationships`, {
+    headers: adminAuthHeader(token),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Failed to fetch relationships (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<DatabaseRelationships>;
+}
+

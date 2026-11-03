@@ -2,9 +2,9 @@
 
 ---
 
-## ADR-001: Local-First Storage Stack (SQLite FTS5 + ChromaDB)
+## ADR-001: Local-First Storage Stack (SQLite FTS5 + Local JSON Vector Store)
 - **Context:** Developers evaluating the repository or running local MCP servers should not need Docker Compose with PostgreSQL, Redis, or cloud API keys just to index and search local videos.
-- **Decision:** Use SQLite (with FTS5 for lexical search) alongside embedded ChromaDB for dense vectors, stored under `./data/`.
+- **Decision:** Use SQLite (with FTS5 for lexical search) alongside a lightweight local JSON vector store for dense embeddings, stored under `./data/`.
 - **Consequences:** Zero-install local startup; single-process write concurrency is sufficient for a local developer desktop/workstation engine.
 
 ## ADR-002: Strict Open-Source / Commercial IP Boundary
@@ -23,7 +23,7 @@
 - **Consequences:** Unifies speech and visual slide text in both dense vector and lexical FTS5 retrieval.
 
 ## ADR-005: FastMCP Default Read-Only Isolation & Developer Opt-In for Exports
-- **Context:** Open Source Spec v1.1 (§3.2, §15.3) dictates that AI agents in Launch 01 must only have read-only tools. The `export_video_clip` tool writes MP4 subclips to disk.
+- **Context:** Security guidelines dictate that AI agents in Launch 01 must only have read-only tools. The `export_video_clip` tool writes MP4 subclips to disk.
 - **Decision:** Isolate the default MCP toolset to strictly the 8 read-only retrieval tools. Gate `export_video_clip` behind an explicit developer opt-in (`AROVA_ENABLE_MCP_EXPORTS=1` or `--enable-exports`).
 - **Consequences:** Strictly enforces the read-only agent contract while preserving subclip slicing capability for explicit developer opt-in. (Implemented in commit `13dd684`).
 

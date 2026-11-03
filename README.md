@@ -12,7 +12,7 @@ Licensed under the [Apache License 2.0](./LICENSE).
 
 Arova Creator Intelligence is an open-source project in active developer preview (Alpha). It is designed for developers, researchers, and AI engineers evaluating local multimodal video indexing and retrieval on their own workstations.
 
-- **Verified Local Mechanics:** Automated tests verify local ingestion, scene detection, SQLite FTS5 lexical search, dense semantic search, Cross-Encoder re-ranking, and FastMCP STDIO transport.
+- **Verified Local Mechanics:** Automated tests verify local ingestion, native FFmpeg scene detection, SQLite FTS5 lexical search, dense semantic search, Cross-Encoder re-ranking, and FastMCP STDIO transport.
 - **Experimental & Roadmap Items:** Optical character recognition (OCR) currently uses template heuristics. Formal multi-host package distribution and live desktop GUI client testing are staged for upcoming milestones.
 
 ---
@@ -20,14 +20,14 @@ Arova Creator Intelligence is an open-source project in active developer preview
 ## Core Capabilities
 
 - **Local Video Ingestion & Metadata (`ffprobe` + `ffmpeg`):** Non-destructive media probing (duration, resolution, framerate, codecs), SHA-256 deduplication, keyframe thumbnails, and HTTP 206 Partial Content video streaming. Original source video files are opened strictly read-only.
-- **Visual Scene Detection (`PySceneDetect`):** Content-aware visual cut detection identifying scene boundaries and calculating representative midpoint keyframes.
-- **Speech Transcription (`faster-whisper`):** Offline speech-to-text with millisecond timestamps and word-level alignment, with deterministic acoustic fallback when model weights are not downloaded.
+- **Visual Scene Detection (`ffmpeg`):** Native FFmpeg scene-selection filter (`select='gt(scene,...)'`) identifying visual cut boundaries and calculating representative midpoint keyframes.
+- **Speech Transcription (`faster-whisper`):** Offline speech-to-text with millisecond timestamps and word-level alignment (optional `[asr]` extra; returns clear ASR-unavailable error when uninstalled without fabricating text).
 - **Visual-Text Dual Memory:** Keyframe on-screen visual text extraction fused into sliding-window transcript chunks tagged with `[On-Screen Visual Text]`.
 - **Two-Stage Hybrid Search:**
-  - *Stage 1:* Dense semantic vectors (`ChromaDB` + `all-MiniLM-L6-v2`) merged with lexical `SQLite FTS5` (BM25) via Reciprocal Rank Fusion (RRF, $k=60$).
-  - *Stage 2:* Local PyTorch Cross-Encoder re-ranking (`cross-encoder/ms-marco-MiniLM-L-6-v2`) computing joint query-passage relevance scores.
+  - *Stage 1:* Dense semantic vectors (optional `sentence-transformers/all-MiniLM-L6-v2`) stored in local JSON vector storage, merged with lexical `SQLite FTS5` (BM25) via Reciprocal Rank Fusion (RRF, $k=60$).
+  - *Stage 2:* PyTorch Cross-Encoder re-ranking (optional `cross-encoder/ms-marco-MiniLM-L-6-v2`) computing joint query-passage relevance scores, with term-proximity lexical fallback.
 - **Grounded Video Q&A:** Synthesizes factual answers strictly citing verified timecode intervals `[mm:ss - mm:ss]` linked directly to video player positions.
-- **FastMCP Server (8 Read-Only Tools):** STDIO server exposing 8 read-only retrieval tools to MCP-compatible AI agents (Claude Desktop, Cursor). Lossless subclip export requires explicit developer opt-in.
+- **FastMCP Server (8 Read-Only Tools):** STDIO server exposing 8 read-only retrieval tools to MCP-compatible AI agents (Claude Desktop, Cursor, VS Code). Lossless subclip export requires explicit developer opt-in.
 - **CLI Diagnostics & Demo:** Built-in `arova doctor` environment diagnostic, `arova demo` instant synthetic first-use flow, and zero-dependency `ArovaClient` Python SDK.
 - **Web Workspace:** Dark-theme responsive web interface for browsing indexed media, interactive scrubbing, and inspectable hybrid search queries.
 
@@ -36,7 +36,7 @@ Arova Creator Intelligence is an open-source project in active developer preview
 ## Platform Requirements
 
 - **Python:** 3.11+
-- **Node.js:** 20+ (for Web Workspace UI)
+- **Node.js:** 20+ (Node.js 24 LTS recommended)
 - **FFmpeg & ffprobe:** System installation recommended. If not present on `PATH`, the engine automatically falls back to bundled `imageio-ffmpeg` binaries.
 - **Supported Operating Systems:** Linux (Ubuntu 22.04+), macOS (13+), Windows 10/11 (x86_64).
 - **Hardware:** Standard multi-core CPU. CPU inference with INT8 quantization is supported out of the box; GPU acceleration (CUDA) is optional.
@@ -54,9 +54,7 @@ git clone https://github.com/sidduambesange06/arova-creator-intelligence.git
 cd arova-creator-intelligence
 
 # Using Astral uv (recommended):
-uv venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-uv pip install -r backend/pyproject.toml --group dev
+uv sync --project backend --group dev --locked
 
 # Or with standard Python venv:
 python -m venv .venv
@@ -98,7 +96,7 @@ In a separate terminal:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -106,7 +104,7 @@ Open `http://localhost:5173` to access the media library, video player, and sear
 
 ### 6. Connect AI Agents via Model Context Protocol (FastMCP)
 
-Configure **Claude Desktop** (`claude_desktop_config.json`) or **Cursor** (`.cursor/mcp.json`):
+Configure **Claude Desktop** (`claude_desktop_config.json`), **Cursor** (`.cursor/mcp.json`), or **VS Code** (`.vscode/mcp.json`):
 
 ```json
 {
@@ -150,16 +148,18 @@ Configuration is managed via environment variables or a local `.env` file (see [
 | `API_HOST` | `127.0.0.1` | Loopback binding address |
 | `API_PORT` | `8000` | REST API service port |
 | `SQLITE_DB_PATH` | `./data/app.db` | SQLite relational database path |
-| `CHROMA_PERSIST_DIR` | `./data/vectors` | Persistent ChromaDB vector storage |
+| `VECTOR_STORAGE_DIR` | `./data/vectors` | Local JSON vector storage path (`CHROMA_PERSIST_DIR` supported as legacy alias) |
 | `MEDIA_STORAGE_DIR` | `./data/media` | Extracted WAV audio and keyframe thumbnails |
 | `ALLOWED_MEDIA_ROOTS` | `./data/media` | Approved root directories for media import |
 | `WHISPER_MODEL_SIZE` | `base` | faster-whisper model size (`tiny`, `base`, `small`, `medium`) |
 | `WHISPER_COMPUTE_TYPE` | `int8` | Inference quantization (`int8`, `float16`, `float32`) |
+| `AI_REMOTE_CONSENT` | `false` | Explicit opt-in consent required for remote AI provider egress |
 
-### Model Downloads
-- Neural speech recognition uses `faster-whisper`. On first use, model weights are cached locally. If offline, the engine falls back to deterministic acoustic windowing.
-- Dense embeddings use `sentence-transformers/all-MiniLM-L6-v2` (384 dimensions) and cross-encoder reranking uses `cross-encoder/ms-marco-MiniLM-L-6-v2`. Both run 100% locally on CPU or GPU.
-- Optional cloud providers (e.g. Gemini, OpenAI) require user-supplied API keys (BYOK) and explicit user configuration.
+### Model Downloads & Optional Extras
+- Default installation provides lightweight lexical FTS5 BM25 search, native FFmpeg scene detection, and zero-telemetry REST/MCP execution.
+- Neural speech recognition uses optional `[asr]` extra (`faster-whisper`). If uninstalled or offline, the engine returns a clear ASR-unavailable error rather than fabricating text.
+- Dense embeddings (`sentence-transformers/all-MiniLM-L6-v2`) and Cross-Encoder reranking (`cross-encoder/ms-marco-MiniLM-L-6-v2`) run 100% locally via optional `[ai]` extra.
+- Optional cloud providers (Google Gemini) require explicit user consent (`AI_REMOTE_CONSENT=true`) and user-supplied API keys (BYOK). There is zero silent cloud fallback.
 
 ---
 
@@ -189,7 +189,7 @@ See [`docs/KNOWN_ISSUES.md`](./docs/KNOWN_ISSUES.md) for detailed disclosures.
 ## Documentation
 
 - [System Architecture](./docs/architecture.md)
-- [Client Integration Guides (Claude Desktop, Cursor)](./docs/INTEGRATIONS.md)
+- [Client Integration Guides (Claude Desktop, Cursor, VS Code)](./docs/INTEGRATIONS.md)
 - [Model Context Protocol (MCP) Guide](./docs/mcp-guide.md)
 - [MCP Toolset Reference](./docs/MCP_TOOLS.md)
 - [Installation & Deployment](./docs/installation.md)

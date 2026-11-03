@@ -11,6 +11,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.ai.retrieval.hybrid_search import run_hybrid_search
+from app.core.security import sanitize_file_path_for_display
 from app.database.session import SessionLocal
 from app.processing.clip_export import (
     _validate_clip_timestamps,
@@ -27,7 +28,6 @@ from app.models.entities import (
     VideoSummary,
 )
 from app.services.summary_service import find_video_clips as core_find_video_clips
-from app.services.summary_service import generate_video_summary
 
 
 def list_videos(
@@ -68,7 +68,10 @@ def list_videos(
 
 
 def get_video_metadata(video_id: str, db: Session | None = None) -> dict[str, Any]:
-    """Retrieve complete metadata and technical specifications for a single video."""
+    """Retrieve complete metadata and technical specifications for a single video.
+
+    Filesystem paths are sanitized to prevent absolute host system path disclosure.
+    """
     session = db or SessionLocal()
     try:
         video = session.query(Video).filter_by(id=video_id).first()
@@ -81,10 +84,16 @@ def get_video_metadata(video_id: str, db: Session | None = None) -> dict[str, An
             if c.collection
         ]
 
+        safe_path = sanitize_file_path_for_display(video.file_path)
+        if safe_path.startswith("/") or (len(safe_path) > 2 and safe_path[1] == ":"):
+            safe_path = Path(safe_path).name
+
+        safe_thumbnail = Path(video.thumbnail_path).name if video.thumbnail_path else None
+
         return {
             "id": video.id,
             "filename": video.filename,
-            "file_path": video.file_path,
+            "file_path": safe_path,
             "file_hash": video.file_hash,
             "file_size": video.file_size,
             "duration": round(video.duration, 2),
@@ -93,7 +102,7 @@ def get_video_metadata(video_id: str, db: Session | None = None) -> dict[str, An
             "fps": round(video.fps, 2),
             "codec": video.codec,
             "format": video.format,
-            "thumbnail_path": video.thumbnail_path,
+            "thumbnail_path": safe_thumbnail,
             "processing_status": video.processing_status,
             "collections": collections,
             "created_at": video.created_at.isoformat() if video.created_at else "",
@@ -194,16 +203,44 @@ def find_video_clips(
 
 
 def summarize_video(video_id: str, db: Session | None = None) -> dict[str, Any]:
-    """Generate or retrieve a grounded factual summary for a video."""
+    """Retrieve an existing grounded factual summary for a video. Strictly read-only.
+
+    If no pre-computed summary exists, synthesizes a non-persistent summary from existing
+    transcripts without adding or committing any records to the database.
+    """
     session = db or SessionLocal()
     try:
-        summary_record = generate_video_summary(db=session, video_id=video_id)
+        summary_record = session.query(VideoSummary).filter_by(video_id=video_id).first()
+        if summary_record:
+            return {
+                "video_id": summary_record.video_id,
+                "summary": summary_record.summary_text,
+                "topics": json.loads(summary_record.topics_json),
+                "chapters": json.loads(summary_record.chapters_json),
+                "model_name": summary_record.model_name,
+            }
+
+        video = session.query(Video).filter_by(id=video_id).first()
+        if not video:
+            raise ValueError(f"Video '{video_id}' not found in library")
+
+        transcript = session.query(Transcript).filter_by(video_id=video_id).first()
+        if not transcript or not transcript.segments:
+            raise ValueError(
+                f"No summary or transcript found for video '{video_id}'. "
+                "Transcribe the video first to enable summary extraction."
+            )
+
+        sorted_segs = sorted(transcript.segments, key=lambda s: s.start_time)
+        texts = [s.text.strip() for s in sorted_segs if s.text.strip()]
+        full_text = " ".join(texts)
+        summary_text = (full_text[:300] + "...") if len(full_text) > 300 else full_text
         return {
-            "video_id": summary_record.video_id,
-            "summary": summary_record.summary_text,
-            "topics": json.loads(summary_record.topics_json),
-            "chapters": json.loads(summary_record.chapters_json),
-            "model_name": summary_record.model_name,
+            "video_id": video_id,
+            "summary": summary_text,
+            "topics": ["Overview", "Transcript"],
+            "chapters": [{"start_time": s.start_time, "title": s.text[:40]} for s in sorted_segs[:3]],
+            "model_name": "extractive-non-persistent-mcp",
         }
     finally:
         if db is None:
@@ -211,12 +248,34 @@ def summarize_video(video_id: str, db: Session | None = None) -> dict[str, Any]:
 
 
 def get_video_chapters(video_id: str, db: Session | None = None) -> list[dict[str, Any]]:
-    """Extract timestamped chapter breakdown for a video."""
+    """Retrieve timestamped chapter breakdown for a video. Strictly read-only.
+
+    If no pre-computed chapters exist, synthesizes chapter markers from transcripts
+    without mutating the database.
+    """
     session = db or SessionLocal()
     try:
-        summary_record = generate_video_summary(db=session, video_id=video_id)
-        chapters: list[dict[str, Any]] = json.loads(summary_record.chapters_json)
-        return chapters
+        summary_record = session.query(VideoSummary).filter_by(video_id=video_id).first()
+        if summary_record:
+            chapters: list[dict[str, Any]] = json.loads(summary_record.chapters_json)
+            return chapters
+
+        video = session.query(Video).filter_by(id=video_id).first()
+        if not video:
+            raise ValueError(f"Video '{video_id}' not found in library")
+
+        transcript = session.query(Transcript).filter_by(video_id=video_id).first()
+        if not transcript or not transcript.segments:
+            raise ValueError(
+                f"No chapters or transcript found for video '{video_id}'. "
+                "Transcribe the video first to enable chapter extraction."
+            )
+
+        sorted_segs = sorted(transcript.segments, key=lambda s: s.start_time)
+        return [
+            {"start_time": s.start_time, "end_time": s.end_time, "title": s.text[:40]}
+            for s in sorted_segs[:5]
+        ]
     finally:
         if db is None:
             session.close()
@@ -275,7 +334,7 @@ def export_video_clip(
         return {
             "video_id": video.id,
             "clip_filename": clip_path.name,
-            "clip_path": str(clip_path),
+            "clip_path": sanitize_file_path_for_display(clip_path),
             "start_time": start_time,
             "end_time": end_time,
             "duration": actual_duration,
@@ -284,5 +343,3 @@ def export_video_clip(
     finally:
         if db is None:
             session.close()
-
-

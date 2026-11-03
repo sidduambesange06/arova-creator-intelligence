@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - **Python:** 3.11 or higher
-- **Node.js:** 20.x or higher (with `npm`)
+- **Node.js:** 20.x or higher (Node.js 24 LTS recommended, with `npm`)
 - **FFmpeg:** System binary recommended (`ffmpeg`, `ffprobe`); if not present on system `PATH`, Arova Creator Intelligence automatically falls back to bundled `imageio-ffmpeg` binaries.
 - **Operating System:** Linux, macOS, or Windows 10/11.
 
@@ -22,9 +22,7 @@
 2. **Create and activate a virtual environment:**
    ```bash
    # Using Astral uv (recommended)
-   uv venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   uv pip install -r backend/pyproject.toml --group dev
+   uv sync --project backend --group dev --locked
    ```
 
 3. **Configure environment:**

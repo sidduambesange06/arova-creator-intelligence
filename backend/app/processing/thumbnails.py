@@ -21,6 +21,8 @@ def generate_video_thumbnail(
     cmd = [
         ffmpeg_bin,
         "-y",
+        "-protocol_whitelist",
+        "file,pipe,null",
         "-ss",
         str(seek),
         "-i",

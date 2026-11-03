@@ -30,6 +30,8 @@ def detect_video_scenes(
     cmd = [
         ffmpeg_bin,
         "-hide_banner",
+        "-protocol_whitelist",
+        "file,pipe,null",
         "-i",
         str(src),
         "-vf",
@@ -41,7 +43,16 @@ def detect_video_scenes(
 
     cut_points: list[float] = []
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        # Scale timeout with media duration so full-length films decode without cutoff
+        timeout_sec = max(60, int(total_dur * 2))
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout_sec,
+        )
         stderr = proc.stderr or ""
         for match in re.finditer(r"pts_time:(\d+(?:\.\d+)?)", stderr):
             t = round(float(match.group(1)), 3)

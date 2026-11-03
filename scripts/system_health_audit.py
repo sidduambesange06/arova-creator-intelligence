@@ -71,12 +71,17 @@ class SystemAuditReport:
 
 
 def _get_python_exe() -> str:
-    venv_py = ROOT_DIR / ".venv" / "Scripts" / "python.exe"
-    if venv_py.is_file():
-        return str(venv_py)
-    backend_py = BACKEND_DIR / ".venv" / "Scripts" / "python.exe"
-    if backend_py.is_file():
-        return str(backend_py)
+    if sys.executable and Path(sys.executable).is_file():
+        return sys.executable
+    candidates = [
+        ROOT_DIR / ".venv" / "bin" / "python",
+        ROOT_DIR / ".venv" / "Scripts" / "python.exe",
+        BACKEND_DIR / ".venv" / "bin" / "python",
+        BACKEND_DIR / ".venv" / "Scripts" / "python.exe",
+    ]
+    for cand in candidates:
+        if cand.is_file():
+            return str(cand)
     return sys.executable
 
 

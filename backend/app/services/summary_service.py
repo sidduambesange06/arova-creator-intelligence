@@ -129,6 +129,7 @@ def answer_video_question(
     query: str,
     video_id: str | None = None,
     api_key: str | None = None,
+    consent_remote_ai: bool = False,
 ) -> dict[str, Any]:
     search_resp = run_hybrid_search(
         db=db,
@@ -143,6 +144,10 @@ def answer_video_question(
             "answer": "No relevant spoken or visual content was found matching this question.",
             "citations": [],
             "model_name": "grounded-retrieval",
+            "remote_egress": False,
+            "provider": "local",
+            "egress_data_categories": [],
+            "consent_source": None,
         }
 
     citations = []
@@ -164,8 +169,10 @@ def answer_video_question(
         )
         evidence_blocks.append(f"[{item.filename} @ {time_str}] {sanitized_chunk}")
 
+    has_consent = consent_remote_ai or settings.AI_REMOTE_CONSENT
+    consent_source = "request" if consent_remote_ai else ("admin_setting" if settings.AI_REMOTE_CONSENT else None)
     key = api_key or settings.GEMINI_API_KEY
-    if key and key.strip():
+    if key and key.strip() and has_consent:
         try:
             from google import genai  # type: ignore
 
@@ -187,6 +194,10 @@ def answer_video_question(
                 "answer": response.text.strip(),
                 "citations": citations,
                 "model_name": "gemini-2.5-flash",
+                "remote_egress": True,
+                "provider": "google-gemini",
+                "egress_data_categories": ["query", "video_transcript_snippets"],
+                "consent_source": consent_source,
             }
         except Exception:
             pass
@@ -209,14 +220,18 @@ def answer_video_question(
         "answer": answer,
         "citations": citations,
         "model_name": "grounded-extractive-local",
+        "remote_egress": False,
+        "provider": "local",
+        "egress_data_categories": [],
+        "consent_source": None,
     }
-
 
 
 def generate_video_summary(
     db: Session,
     video_id: str,
     api_key: str | None = None,
+    consent_remote_ai: bool = False,
 ) -> VideoSummary:
     video = db.query(Video).filter_by(id=video_id).first()
     if not video:
@@ -235,8 +250,9 @@ def generate_video_summary(
     raw_text = transcript.full_text or " ".join(s.text for s in segments)
     full_text = sanitize_untrusted_media_text(raw_text)
 
+    has_consent = consent_remote_ai or settings.AI_REMOTE_CONSENT
     key = api_key or settings.GEMINI_API_KEY
-    if key and key.strip():
+    if key and key.strip() and has_consent:
         try:
             # Use google-genai SDK if key is provided
             from google import genai  # type: ignore

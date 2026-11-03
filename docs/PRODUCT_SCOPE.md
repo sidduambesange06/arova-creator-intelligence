@@ -38,7 +38,7 @@ The engine provides the following functional capabilities, verified by automated
 - **Transcription Abstraction:** Pluggable `TranscriptionProvider` protocol with timestamp-preserving segment tracking.
 - **Execution Modes:**
   - *Neural Whisper Mode:* Supported via `faster-whisper` (CTranslate2 INT8/FP16) when the package and model weights are installed.
-  - *Deterministic Acoustic Fallback:* When neural model weights are not present, the engine automatically falls back to deterministic WAV frame energy windowing (4.0s segments) to allow end-to-end pipeline execution without network dependencies.
+  - *Recoverable ASR State:* When neural model weights are not present, the engine reports a clear ASR-unavailable state rather than fabricating synthetic placeholder transcripts or false speech segments. Metadata probing and visual scene detection continue unimpeded.
 
 ### 2.4 Timestamp-Preserving Hybrid Indexing & Retrieval
 - **Multimodal Chunking:** Sliding-window passage creation (32-second windows with 8-second step intervals) fusing spoken transcripts and on-screen scene context.

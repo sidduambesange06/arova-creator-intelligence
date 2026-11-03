@@ -1,7 +1,5 @@
 from dataclasses import dataclass
-import hashlib
 import json
-import math
 from pathlib import Path
 from typing import Protocol
 from uuid import uuid4
@@ -15,11 +13,18 @@ from app.models.entities import EmbeddingRecord, Transcript, VideoScene
 
 
 class EmbeddingProvider(Protocol):
+    def is_available(self) -> bool: ...
     def embed_text(self, text: str) -> list[float]: ...
     def embed_batch(self, texts: list[str]) -> list[list[float]]: ...
 
 
 class LocalMiniLMEmbeddingProvider:
+    """Embedding provider using sentence-transformers all-MiniLM-L6-v2.
+
+    Enforces genuine embedding inference. When offline or uninstalled, reports
+    unavailable rather than fabricating synthetic hash projections.
+    """
+
     def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2") -> None:
         self.model_name = model_name
         self.dim = 384
@@ -29,53 +34,51 @@ class LocalMiniLMEmbeddingProvider:
 
             self._model = SentenceTransformer(model_name)
         except Exception:
-            # shortcut: falls back to deterministic normalized 384-d token n-gram projection when sentence-transformers weights are offline
             self._model = None
 
-    def embed_text(self, input_text: str) -> list[float]:
-        return self.embed_batch([input_text])[0]
+    def is_available(self) -> bool:
+        return self._model is not None
+
+    def embed_text(self, text: str) -> list[float]:
+        res = self.embed_batch([text])
+        return res[0] if res else []
 
     def embed_batch(self, texts: list[str]) -> list[list[float]]:
+        if not texts:
+            return []
         if self._model is not None:
             try:
                 embeddings = self._model.encode(texts, normalize_embeddings=True)
                 return [e.tolist() for e in embeddings]
             except Exception:
                 pass
+        return []
 
-        results: list[list[float]] = []
-        for t in texts:
-            vec = [0.0] * self.dim
-            tokens = [tok.strip().lower() for tok in t.split() if tok.strip()]
-            if not tokens:
-                vec[0] = 1.0
-                results.append(vec)
-                continue
 
-            for tok in tokens:
-                h = int(hashlib.sha256(tok.encode("utf-8")).hexdigest(), 16)
-                idx = h % self.dim
-                sign = 1.0 if ((h >> 8) & 1) == 1 else -1.0
-                vec[idx] += sign
-
-            # L2 normalize
-            norm = math.sqrt(sum(x * x for x in vec))
-            if norm > 0.0:
-                vec = [x / norm for x in vec]
-            else:
-                vec[0] = 1.0
-            results.append(vec)
-        return results
+def get_indic_tokenchars() -> str:
+    chars = []
+    # Devanagari, Tamil, Telugu, and Kannada combining vowel marks and virama
+    for cp in list(range(0x0901, 0x0904)) + [0x093C] + list(range(0x093E, 0x0950)) + list(range(0x0951, 0x0958)) + list(range(0x0962, 0x0964)):
+        chars.append(chr(cp))
+    for cp in [0x0B82] + list(range(0x0BBE, 0x0BCE)) + [0x0BD7]:
+        chars.append(chr(cp))
+    for cp in list(range(0x0C00, 0x0C04)) + list(range(0x0C3E, 0x0C4E)) + list(range(0x0C55, 0x0C57)) + list(range(0x0C62, 0x0C64)):
+        chars.append(chr(cp))
+    for cp in list(range(0x0C81, 0x0C84)) + [0x0CBC] + list(range(0x0CBE, 0x0CCE)) + list(range(0x0CD5, 0x0CD7)) + list(range(0x0CE2, 0x0CE4)):
+        chars.append(chr(cp))
+    return "".join(chars)
 
 
 def _ensure_fts5_table(db: Session) -> None:
+    tokenchars = get_indic_tokenchars().replace("'", "''")
     db.execute(
         text(
-            """
+            f"""
             CREATE VIRTUAL TABLE IF NOT EXISTS transcript_chunks_fts USING fts5(
                 embedding_id UNINDEXED,
                 video_id UNINDEXED,
-                chunk_text
+                chunk_text,
+                tokenize="unicode61 tokenchars '{tokenchars}'"
             );
             """
         )
@@ -84,12 +87,14 @@ def _ensure_fts5_table(db: Session) -> None:
 
 
 def _get_vector_storage_path(storage_dir: str | Path | None = None) -> Path:
-    dir_path = Path(storage_dir or settings.CHROMA_PERSIST_DIR)
+    dir_path = Path(storage_dir or getattr(settings, "VECTOR_STORAGE_DIR", None) or getattr(settings, "CHROMA_PERSIST_DIR", None) or "./data/vectors")
     dir_path.mkdir(parents=True, exist_ok=True)
     return (dir_path / "embeddings.json").resolve()
 
 
 def save_vectors_to_disk(vectors_dict: dict[str, list[float]], storage_dir: str | Path | None = None) -> None:
+    if not vectors_dict:
+        return
     target = _get_vector_storage_path(storage_dir)
     existing: dict[str, list[float]] = {}
     if target.is_file():
@@ -140,15 +145,24 @@ def index_video_chunks(
     if not chunks:
         return []
 
-    # 5. Generate dense embeddings
+    # 5. Generate dense embeddings ONLY if provider is available
     embedder = provider or LocalMiniLMEmbeddingProvider()
     texts = [c.chunk_text for c in chunks]
-    vectors = embedder.embed_batch(texts)
+    vectors: list[list[float]] = []
+    if hasattr(embedder, "is_available"):
+        if embedder.is_available():
+            vectors = embedder.embed_batch(texts)
+    else:
+        try:
+            vectors = embedder.embed_batch(texts)
+        except Exception:
+            vectors = []
 
+    has_vectors = bool(vectors and len(vectors) == len(chunks))
     records: list[EmbeddingRecord] = []
     vector_map: dict[str, list[float]] = {}
 
-    for chunk, vec in zip(chunks, vectors, strict=True):
+    for idx, chunk in enumerate(chunks):
         emb_id = str(uuid4())
         rec = EmbeddingRecord(
             id=str(uuid4()),
@@ -157,7 +171,7 @@ def index_video_chunks(
             start_time=chunk.start_time,
             end_time=chunk.end_time,
             embedding_id=emb_id,
-            model_name="sentence-transformers/all-MiniLM-L6-v2",
+            model_name=getattr(embedder, "model_name", "all-MiniLM-L6-v2") if has_vectors else "lexical-fts5-only",
         )
         db.add(rec)
         db.execute(
@@ -167,12 +181,14 @@ def index_video_chunks(
             {"eid": emb_id, "vid": video_id, "txt": chunk.chunk_text},
         )
         records.append(rec)
-        vector_map[emb_id] = vec
+        if has_vectors and vectors[idx]:
+            vector_map[emb_id] = vectors[idx]
 
     db.commit()
-    save_vectors_to_disk(vector_map, storage_dir=storage_dir)
+
+    if vector_map:
+        save_vectors_to_disk(vector_map, storage_dir=storage_dir)
 
     for r in records:
         db.refresh(r)
     return records
-
