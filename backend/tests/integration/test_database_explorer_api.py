@@ -214,6 +214,31 @@ def test_table_details_endpoint(admin_headers: dict[str, str]) -> None:
 
 
 def test_table_rows_pagination_and_redaction(admin_headers: dict[str, str]) -> None:
+    from datetime import datetime, timezone
+    from app.database.session import SessionLocal
+    from app.models.entities import Video
+
+    with SessionLocal() as db:
+        if db.query(Video).count() == 0:
+            db.add(
+                Video(
+                    id="sample-explorer-vid-1",
+                    filename="explorer_sample.mp4",
+                    file_path="/media/explorer_sample.mp4",
+                    file_hash="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                    file_size=1024,
+                    duration=10.0,
+                    width=1920,
+                    height=1080,
+                    fps=30.0,
+                    codec="h264",
+                    format="mp4",
+                    processing_status="indexed",
+                    created_at=datetime.now(timezone.utc),
+                )
+            )
+            db.commit()
+
     # Query videos rows
     resp = client.get("/api/v1/admin/database/tables/videos/rows?limit=10&offset=0", headers=admin_headers)
     assert resp.status_code == 200
