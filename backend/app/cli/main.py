@@ -5,6 +5,11 @@ from typing import Sequence
 from app.cli.demo import run_demo_cli
 from app.cli.doctor import run_doctor_cli
 
+try:
+    from app.cli.models import run_models_cli
+except ImportError:
+    run_models_cli = None
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -52,6 +57,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Automatically clean up synthetic test files and index after completion",
     )
 
+    # arova models
+    models_parser = subparsers.add_parser(
+        "models",
+        help="Manage speech-to-text models (list, catalog, install, verify, remove)",
+    )
+    models_parser.add_argument(
+        "models_args",
+        nargs=argparse.REMAINDER,
+        help="Arguments passed to models manager",
+    )
+
     return parser
 
 
@@ -73,6 +89,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             as_json=args.json,
             keep_demo=not args.clean,
         )
+
+    if args.subcommand == "models":
+        if run_models_cli is not None:
+            return run_models_cli(argv=args.models_args)
+        print("Models manager is not available in base installation.", file=sys.stderr)
+        return 1
 
     parser.print_help()
     return 0

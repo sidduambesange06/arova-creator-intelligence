@@ -22,17 +22,17 @@ Arova Creator Intelligence is an open-source, local-first multimodal video retri
                 +-------------------------+-------------------------+
                 |                         |                         |
                 v                         v                         v
-      SQLite + FTS5 Index         ChromaDB Vectors         Local Media Storage
+      SQLite + FTS5 Index        Local Vector Store        Local Media Storage
         (./data/app.db)           (./data/vectors)       (Thumbnails & Audio WAV)
                 |
                 v
      LOCAL PROCESSING PIPELINE
-   (FFmpeg -> PySceneDetect -> Faster-Whisper -> Chunker -> Embedder)
+   (FFmpeg -> Scene Filter -> Faster-Whisper -> Chunker -> Embedder)
 ```
 
 ## Storage & Data Boundaries
 
 - **SQLite + FTS5 (`./data/app.db`):** Stores relational metadata (`Video`, `Collection`, `Transcript`, `TranscriptSegment`, `VideoScene`, `ProcessingJob`, `VideoSummary`) and full-text lexical index (`FTS5`).
-- **ChromaDB (`./data/vectors`):** Persistent local vector store for timestamped transcript window embeddings (`all-MiniLM-L6-v2`).
+- **Vector Storage (`./data/vectors`):** Persistent local vector store for timestamped transcript window embeddings (`embeddings.json`).
 - **Media Artifacts (`./data/media`):** Extracted `16kHz` mono WAV audio files and JPEG scene/keyframe thumbnails.
 - **Source Video Immutability:** Original user video files are read-only; indexing, probing, and index removal operations never alter or delete source media on disk.

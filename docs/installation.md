@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - **Python:** 3.11 or higher
-- **Node.js:** 20.x or higher (with `npm`)
+- **Node.js:** 20.x or higher (Node.js 24 LTS recommended, with `npm`)
 - **FFmpeg:** System binary recommended (`ffmpeg`, `ffprobe`); if not present on system `PATH`, Arova Creator Intelligence automatically falls back to bundled `imageio-ffmpeg` binaries.
 - **Operating System:** Linux, macOS, or Windows 10/11.
 
@@ -21,11 +21,23 @@
 
 2. **Create and activate a virtual environment:**
    ```bash
-   # Using Astral uv (recommended)
-   uv venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   uv pip install -r backend/pyproject.toml --group dev
+   # Core installation (using Astral uv - recommended):
+   uv sync --project backend --group dev --locked
+
+   # Optional extras:
+   # Speech ASR (faster-whisper):
+   uv sync --project backend --extra asr --locked
+
+   # Neural embeddings & reranking (sentence-transformers):
+   uv sync --project backend --extra ai --locked
+
+   # Cloud AI provider (Google Gemini):
+   uv sync --project backend --extra cloud --locked
+
+   # Install all optional extras:
+   uv sync --project backend --all-extras --locked
    ```
+   > **Note on Weights & Runtime:** Installing an optional extra package provides the required runtime libraries, but does not automatically download model weights or guarantee model availability. Models must be downloaded or cached locally before offline inference.
 
 3. **Configure environment:**
    ```bash

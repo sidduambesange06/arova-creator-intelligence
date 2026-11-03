@@ -45,6 +45,12 @@ def synthesize_synthetic_clip(target_path: Path, duration: float = 3.0) -> Path:
         str(target_path),
     ]
     subprocess.run(cmd, capture_output=True, check=True, timeout=30)
+    # Accompanying sidecar subtitle for speech transcription in lightweight/offline environments
+    srt_path = target_path.with_suffix(".srt")
+    srt_path.write_text(
+        "1\n00:00:00,000 --> 00:00:02,800\nArova Creator Intelligence 5-minute first-use demonstration video speech.\n",
+        encoding="utf-8",
+    )
     return target_path
 
 
@@ -64,6 +70,7 @@ def run_demo_workflow(
     demo_mp4 = demo_dir / f"arova_synthetic_demo_{int(time.time())}.mp4"
 
     timings: dict[str, float] = {}
+    video_rec = None
 
     try:
         # Step 1: Synthesize clip
@@ -156,6 +163,9 @@ def run_demo_workflow(
                     media_service.delete_video_index(db=session, video_id=video_rec.id)
                 if demo_mp4.exists():
                     demo_mp4.unlink(missing_ok=True)
+                demo_srt = demo_mp4.with_suffix(".srt")
+                if demo_srt.exists():
+                    demo_srt.unlink(missing_ok=True)
             except Exception:
                 pass
 

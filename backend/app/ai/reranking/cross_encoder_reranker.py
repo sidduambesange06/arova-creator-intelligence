@@ -16,6 +16,14 @@ class CrossEncoderReranker:
             # shortcut: falls back to deterministic term-proximity cross-attention scorer when PyTorch cross-encoder weights are offline
             self._model = None
 
+    @property
+    def is_neural(self) -> bool:
+        return self._model is not None
+
+    @property
+    def mode(self) -> str:
+        return "neural_cross_encoder" if self._model is not None else "heuristic_lexical_fallback"
+
     def score_pairs(self, query: str, texts: list[str]) -> list[float]:
         if not texts:
             return []
@@ -75,11 +83,13 @@ class CrossEncoderReranker:
 
         texts = [c.get("chunk_text", "") for c in candidates]
         scores = self.score_pairs(query, texts)
+        mode = self.mode
 
         reranked = []
         for c, score in zip(candidates, scores, strict=True):
             item = dict(c)
             item["rerank_score"] = score
+            item["rerank_mode"] = mode
             reranked.append(item)
 
         # Sort descending by cross-encoder rerank_score

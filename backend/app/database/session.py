@@ -41,7 +41,16 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 def init_db(target_engine: Engine | None = None) -> None:
     import app.models.entities  # noqa: F401
 
-    Base.metadata.create_all(bind=target_engine or engine)
+    act_engine = target_engine or engine
+    try:
+        from app.database.migrator import run_database_migrations, run_idempotent_backfill
+
+        run_database_migrations(engine=act_engine)
+        SessionMaker = sessionmaker(bind=act_engine)
+        with SessionMaker() as session:
+            run_idempotent_backfill(session)
+    except ImportError:
+        Base.metadata.create_all(bind=act_engine)
 
 
 def get_db() -> Generator[Session, None, None]:

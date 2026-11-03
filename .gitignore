@@ -26,7 +26,8 @@ data/
 *.db-wal
 *.sqlite3
 testdata/
-models/
+/models/
+/backend/models/
 
 # Generated Health & Benchmark Run Logs
 reports/health_report_latest.json

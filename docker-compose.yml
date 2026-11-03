@@ -4,12 +4,14 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: arova-creator-intelligence
+    # Publish to loopback (127.0.0.1) by default to prevent unauthorized network exposure
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
       - SQLITE_DB_PATH=/app/data/app.db
+      - VECTOR_STORAGE_DIR=/app/data/vectors
       - CHROMA_PERSIST_DIR=/app/data/vectors
       - MEDIA_STORAGE_DIR=/app/data/media
       - ALLOWED_MEDIA_ROOTS=/app/data/media,/app/media
@@ -22,4 +24,3 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-

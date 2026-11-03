@@ -25,7 +25,8 @@ class Settings(BaseSettings):
 
     DATA_DIR: str = "./data"
     SQLITE_DB_PATH: str = "./data/app.db"
-    CHROMA_PERSIST_DIR: str = "./data/vectors"
+    VECTOR_STORAGE_DIR: str = "./data/vectors"
+    CHROMA_PERSIST_DIR: str | None = None  # Legacy alias for backward compatibility
     MEDIA_STORAGE_DIR: str = "./data/media"
     # Safe default: restrict probing strictly to the project's media storage dir.
     # Production / multi-directory setups configure via ALLOWED_MEDIA_ROOTS env var.
@@ -36,8 +37,11 @@ class Settings(BaseSettings):
 
     # External AI configuration — remote egress requires explicit user consent
     GEMINI_API_KEY: str | None = None
-    OPENAI_API_KEY: str | None = None
     AI_REMOTE_CONSENT: bool = False
+
+    @property
+    def vector_storage_path(self) -> str:
+        return self.VECTOR_STORAGE_DIR or self.CHROMA_PERSIST_DIR or "./data/vectors"
 
     @property
     def cors_origin_list(self) -> list[str]:

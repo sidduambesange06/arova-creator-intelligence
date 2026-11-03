@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchMediaLibraryStats, type MediaLibraryStats } from "../../services/api";
 
-const MCP_TOOLS = [
+interface McpToolDef {
+  name: string;
+  description: string;
+  parameters: { name: string; type: string; description: string }[];
+}
+
+const DEFAULT_READ_ONLY_TOOLS: McpToolDef[] = [
   {
     name: "list_videos",
     description: "List indexed videos with optional collection and processing status filters.",
@@ -56,9 +62,12 @@ const MCP_TOOLS = [
     description: "Retrieve inventory counts and runtime metrics for the video library.",
     parameters: [],
   },
+];
+
+const OPTIONAL_WRITE_TOOLS: McpToolDef[] = [
   {
     name: "export_video_clip",
-    description: "Export a lossless trimmed subclip from an indexed video given start and end timestamps.",
+    description: "Export a lossless trimmed subclip from an indexed video given start and end timestamps. (Disabled by default: requires --enable-exports)",
     parameters: [
       { name: "video_id", type: "string", description: "Unique video ID" },
       { name: "start_time", type: "number", description: "Start timestamp in seconds" },
@@ -114,12 +123,12 @@ export function McpConfigView() {
       case "cursor":
         return JSON.stringify(
           {
-            mcp: {
-              servers: {
-                "arova-creator-intelligence": {
-                  type: "stdio",
-                  command: pythonPath,
-                  args: ["-m", "mcp_server.server"],
+            mcpServers: {
+              "arova-creator-intelligence": {
+                command: pythonPath,
+                args: ["-m", "mcp_server.server"],
+                env: {
+                  PYTHONPATH: ".",
                 },
               },
             },
@@ -130,11 +139,15 @@ export function McpConfigView() {
       case "vscode":
         return JSON.stringify(
           {
-            name: "arova-creator-intelligence",
-            command: pythonPath,
-            args: ["-m", "mcp_server.server"],
-            transport: "stdio",
-            description: "Local video RAG and multimodal retrieval engine for AI agents.",
+            servers: {
+              "arova-creator-intelligence": {
+                command: pythonPath,
+                args: ["-m", "mcp_server.server"],
+                env: {
+                  PYTHONPATH: ".",
+                },
+              },
+            },
           },
           null,
           2
@@ -157,7 +170,7 @@ export function McpConfigView() {
           Model Context Protocol (MCP) Server
         </h2>
         <p className="text-xs text-slate-400 mt-0.5">
-          Expose your local video knowledge, transcripts, and hybrid RAG engine to Claude Desktop, Cursor, and VS Code.
+          Connect AI agents (Claude Desktop, Cursor, VS Code) to local video transcripts, scene cuts, and hybrid search over standard FastMCP STDIO transport.
         </p>
       </div>
 
@@ -216,7 +229,7 @@ export function McpConfigView() {
           <div>
             <h3 className="text-xs font-semibold text-white">Client Configuration Snippets</h3>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              Copy and paste into your AI agent or IDE settings file.
+              Copy and paste into your host AI agent configuration file.
             </p>
           </div>
 
@@ -252,19 +265,24 @@ export function McpConfigView() {
         </pre>
       </div>
 
-      {/* 9 MCP Tools Table */}
+      {/* Default Read-Only MCP Tools */}
       <div className="arova-surface p-4 space-y-3">
-        <div>
-          <h3 className="text-xs font-semibold text-white">
-            Available MCP Tools ({MCP_TOOLS.length})
-          </h3>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            Registered with STDIO transport and backed directly by local database and ML reranker services.
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-xs font-semibold text-white">
+              Default Read-Only Tools ({DEFAULT_READ_ONLY_TOOLS.length})
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Strictly read-only retrieval tools registered by default. Zero file creation, deletion, or database mutation.
+            </p>
+          </div>
+          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/60 text-emerald-300">
+            Active By Default
+          </span>
         </div>
 
         <div className="space-y-2">
-          {MCP_TOOLS.map((tool) => (
+          {DEFAULT_READ_ONLY_TOOLS.map((tool) => (
             <div
               key={tool.name}
               data-testid={`mcp-tool-${tool.name}`}
@@ -272,6 +290,53 @@ export function McpConfigView() {
             >
               <div className="flex items-center gap-2">
                 <span className="font-mono text-xs font-medium text-emerald-400">
+                  {tool.name}
+                </span>
+                <span className="text-[11px] text-slate-400">· {tool.description}</span>
+              </div>
+
+              {tool.parameters.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-0.5 font-mono text-[11px]">
+                  {tool.parameters.map((p) => (
+                    <span
+                      key={p.name}
+                      className="px-1.5 py-0.5 rounded bg-slate-800/80 border border-slate-700/60 text-slate-300"
+                    >
+                      <span className="text-slate-200">{p.name}</span>: {p.type}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Optional Write Capabilities */}
+      <div className="arova-surface p-4 space-y-3 border-amber-900/40">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-xs font-semibold text-white">
+              Optional Write Capabilities ({OPTIONAL_WRITE_TOOLS.length})
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Subclip export writes media files to disk. Strictly disabled by default. Requires explicit developer opt-in via <code className="font-mono text-slate-300">--enable-exports</code> or <code className="font-mono text-slate-300">AROVA_ENABLE_MCP_EXPORTS=1</code>.
+            </p>
+          </div>
+          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-950/60 border border-amber-800/60 text-amber-300">
+            Disabled by Default (Opt-In)
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          {OPTIONAL_WRITE_TOOLS.map((tool) => (
+            <div
+              key={tool.name}
+              data-testid={`mcp-tool-${tool.name}`}
+              className="border border-amber-900/30 bg-amber-950/10 rounded p-2.5 space-y-1"
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs font-medium text-amber-400">
                   {tool.name}
                 </span>
                 <span className="text-[11px] text-slate-400">· {tool.description}</span>

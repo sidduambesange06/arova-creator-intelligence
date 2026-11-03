@@ -16,7 +16,7 @@ describe("McpConfigView", () => {
     vi.restoreAllMocks();
   });
 
-  it("loads media library stats, displays all MCP tools, and toggles client config snippets", async () => {
+  it("loads media library stats, displays 8 default tools plus optional export, and provides valid client snippets", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url = String(input);
       if (url.includes("/api/v1/videos/stats/summary")) {
@@ -38,8 +38,10 @@ describe("McpConfigView", () => {
       expect(screen.getByText("16")).toBeInTheDocument();
     });
 
-    // Check all 8 tools are listed
-    const tools = [
+    // Verify 8 default read-only tools header
+    expect(screen.getByText(/Default Read-Only Tools \(8\)/i)).toBeInTheDocument();
+
+    const readOnlyTools = [
       "list_videos",
       "get_video_metadata",
       "search_video_content",
@@ -48,21 +50,36 @@ describe("McpConfigView", () => {
       "summarize_video",
       "get_video_chapters",
       "get_media_library_stats",
-      "export_video_clip",
     ];
-    for (const tool of tools) {
+    for (const tool of readOnlyTools) {
       expect(screen.getByTestId(`mcp-tool-${tool}`)).toBeInTheDocument();
     }
 
-    // Default tab is Claude Desktop
-    expect(screen.getByTestId("mcp-config-code")).toHaveTextContent("mcpServers");
+    // Verify optional write tool is explicitly separated and flagged as disabled by default
+    expect(screen.getByText(/Optional Write Capabilities \(1\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Disabled by Default \(Opt-In\)/i)).toBeInTheDocument();
+    expect(screen.getByTestId("mcp-tool-export_video_clip")).toBeInTheDocument();
 
-    // Click Cursor IDE tab
+    // 1. Claude Desktop snippet validation
+    const claudeCode = screen.getByTestId("mcp-config-code").textContent ?? "";
+    const claudeParsed = JSON.parse(claudeCode);
+    expect(claudeParsed).toHaveProperty("mcpServers");
+    expect(claudeParsed.mcpServers).toHaveProperty("arova-creator-intelligence");
+    expect(claudeParsed.mcpServers["arova-creator-intelligence"].args).toEqual(["-m", "mcp_server.server"]);
+
+    // 2. Cursor IDE snippet validation
     fireEvent.click(screen.getByRole("button", { name: "Cursor IDE" }));
-    expect(screen.getByTestId("mcp-config-code")).toHaveTextContent('"type": "stdio"');
+    const cursorCode = screen.getByTestId("mcp-config-code").textContent ?? "";
+    const cursorParsed = JSON.parse(cursorCode);
+    expect(cursorParsed).toHaveProperty("mcpServers");
+    expect(cursorParsed.mcpServers).toHaveProperty("arova-creator-intelligence");
 
-    // Click VS Code tab
+    // 3. VS Code snippet validation (.vscode/mcp.json schema: top-level 'servers')
     fireEvent.click(screen.getByRole("button", { name: "VS Code" }));
-    expect(screen.getByTestId("mcp-config-code")).toHaveTextContent("Local video RAG");
+    const vscodeCode = screen.getByTestId("mcp-config-code").textContent ?? "";
+    const vscodeParsed = JSON.parse(vscodeCode);
+    expect(vscodeParsed).toHaveProperty("servers");
+    expect(vscodeParsed.servers).toHaveProperty("arova-creator-intelligence");
+    expect(vscodeParsed.servers["arova-creator-intelligence"].command).toBe("python");
   });
 });

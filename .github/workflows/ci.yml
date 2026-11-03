@@ -6,16 +6,19 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   backend-tests:
     name: Backend Pytest & MCP Suite
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -25,30 +28,27 @@ jobs:
           sudo apt-get install -y ffmpeg
 
       - name: Install Astral uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v10.3.3
         with:
           version: "latest"
 
-      - name: Install dependencies
-        run: |
-          uv pip install --system -r backend/pyproject.toml --group dev
-          pip install --no-deps -e . || true
+      - name: Install locked dependencies
+        run: uv sync --project backend --group dev --locked
 
       - name: Run Backend & MCP Tests
-        run: |
-          PYTHONPATH="backend:." pytest backend/tests mcp_server/tests -v --tb=short
+        run: PYTHONPATH=backend:. uv run --project backend --no-sync pytest backend/tests mcp_server/tests -v --tb=short
 
   frontend-tests:
     name: Frontend Vitest & TypeScript Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
@@ -66,28 +66,39 @@ jobs:
 
   system-health-audit:
     name: System Health & Security Audit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [backend-tests, frontend-tests]
+    if: always()
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Install dependencies
+      - name: Install FFmpeg
         run: |
-          pip install -r backend/pyproject.toml || pip install fastapi uvicorn pydantic pydantic-settings sqlalchemy alembic imageio-ffmpeg mcp pytest httpx
-          cd frontend && npm ci && cd ..
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install Astral uv
+        uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: "latest"
+
+      - name: Install locked dependencies
+        run: |
+          uv sync --project backend --group dev --locked
+          cd frontend && npm ci
 
       - name: Run Master System Health Audit
-        run: |
-          PYTHONPATH="backend:." python scripts/system_health_audit.py
-
+        run: PYTHONPATH=backend:. uv run --project backend --no-sync python scripts/system_health_audit.py

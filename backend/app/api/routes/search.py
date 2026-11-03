@@ -10,6 +10,7 @@ from app.ai.retrieval.hybrid_search import (
     SearchResultItem,
     run_hybrid_search,
 )
+from app.core.config import settings
 from app.database.session import get_db
 from app.models.entities import TranscriptSegment, Video
 from app.services.summary_service import (
@@ -66,6 +67,7 @@ class ClipResultItem(BaseModel):
 class SummarizeRequest(BaseModel):
     video_id: str
     api_key: str | None = None
+    consent_remote_ai: bool = False
 
 
 class SummarizeResponse(BaseModel):
@@ -74,6 +76,10 @@ class SummarizeResponse(BaseModel):
     topics: list[str]
     chapters: list[dict[str, Any]]
     model_name: str
+    remote_egress: bool = False
+    provider: str = "local"
+    egress_data_categories: list[str] = []
+    consent_source: str | None = None
 
 
 @router.post("/search/semantic", response_model=HybridSearchResponse)
@@ -145,13 +151,21 @@ def summarize_video(
             db=db,
             video_id=payload.video_id,
             api_key=payload.api_key,
+            consent_remote_ai=payload.consent_remote_ai,
         )
+        is_remote = summary_obj.model_name.startswith("gemini")
+        has_consent = payload.consent_remote_ai or settings.AI_REMOTE_CONSENT
+        consent_source = "request" if payload.consent_remote_ai else ("admin_setting" if settings.AI_REMOTE_CONSENT else None)
         return SummarizeResponse(
             video_id=summary_obj.video_id,
             summary=summary_obj.summary_text,
             topics=json.loads(summary_obj.topics_json),
             chapters=json.loads(summary_obj.chapters_json),
             model_name=summary_obj.model_name,
+            remote_egress=is_remote,
+            provider="google-gemini" if is_remote else "local",
+            egress_data_categories=["video_full_transcript"] if is_remote else [],
+            consent_source=consent_source if is_remote else None,
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -163,6 +177,7 @@ class AskQuestionRequest(BaseModel):
     query: str = Field(..., min_length=1, description="Question about video content")
     video_id: str | None = Field(default=None, description="Optional video ID filter")
     api_key: str | None = None
+    consent_remote_ai: bool = False
 
 
 @router.post("/ai/ask")
@@ -175,6 +190,7 @@ def ask_video_ai(
         query=payload.query,
         video_id=payload.video_id,
         api_key=payload.api_key,
+        consent_remote_ai=payload.consent_remote_ai,
     )
 
 

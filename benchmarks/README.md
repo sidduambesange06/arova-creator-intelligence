@@ -50,8 +50,10 @@ reports/
 
 The benchmark runner executes with strict isolation:
 1. **Source Immutability:** Original source video media is strictly opened read-only; pre- and post-processing SHA-256 hashes are verified identical.
-2. **Dedicated Workspace:** All benchmark databases, vector stores, and thumbnails are stored under `C:\Arova-Benchmark\workspace\data\` (or custom `--workspace`).
+2. **Dedicated Workspace:** All benchmark databases, vector stores, and thumbnails are stored in an isolated `--workspace` directory (defaults to `./workspace/data/`).
 3. **Application State Untouched:** Production databases (`backend/data/app.db`, `./data/app.db`) and user media libraries are never opened or modified.
+
+> **Note on Reports:** Generated benchmark reports (`reports/benchmarks/`) are produced locally by `run_benchmark.py` and are excluded from Git tracking to keep the repository lightweight.
 
 ---
 
@@ -68,7 +70,7 @@ python scripts/benchmarks/run_benchmark.py --manifest benchmarks/manifests/tears
 ```
 *Optional override:*
 ```bash
-python scripts/benchmarks/run_benchmark.py --manifest benchmarks/manifests/tears_of_steel.json --video "C:\Arova-Benchmark\media\tears_of_steel_720p.mov" --workspace "C:\Arova-Benchmark\workspace"
+python scripts/benchmarks/run_benchmark.py --manifest benchmarks/manifests/tears_of_steel.json --workspace "./benchmark_workspace"
 ```
 
 ### 3. Validate Benchmark Results Against Schema

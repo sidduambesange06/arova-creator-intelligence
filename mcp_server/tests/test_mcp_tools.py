@@ -20,7 +20,7 @@ from sqlalchemy.pool import StaticPool
 from app.ai.providers.embeddings import index_video_chunks
 from app.core.config import settings
 from app.database.session import Base, init_db
-from app.models.entities import Transcript, TranscriptSegment, Video
+from app.models.entities import Transcript, TranscriptSegment, Video, VideoSummary
 from app.processing.metadata import get_ffmpeg_binary
 from mcp_server.tools import video_tools
 
@@ -156,6 +156,20 @@ def db_session(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generator[Ses
             session.add(seg)
         session.commit()
 
+        summary = VideoSummary(
+            video_id=video.id,
+            summary_text="Model Context Protocol enables agents to connect to local tools and video knowledge.",
+            topics_json=json.dumps(["MCP", "Semantic Retrieval", "AI Tools"]),
+            chapters_json=json.dumps([
+                {"title": "Introduction to MCP", "start_time": 0.0, "end_time": 25.0},
+                {"title": "Read-Only Architecture", "start_time": 25.0, "end_time": 50.0},
+                {"title": "Semantic Retrieval", "start_time": 50.0, "end_time": 75.0},
+            ]),
+            model_name="extractive-grounded-local",
+        )
+        session.add(summary)
+        session.commit()
+
         index_video_chunks(session, video.id, storage_dir=tmp_path / "vectors")
         yield session
 
@@ -175,6 +189,10 @@ def test_all_eight_mcp_tools(db_session: Session) -> None:
     assert meta["width"] == 1920
     assert meta["height"] == 1080
     assert meta["duration"] == 75.0
+    # Host filesystem paths must be sanitized for display (not raw absolute system paths)
+    assert not meta["file_path"].startswith("/")
+    assert not (len(meta["file_path"]) > 2 and meta["file_path"][1] == ":")
+    assert meta["file_path"] == "mcp_deep_dive.mp4"
 
     # 3. search_video_content
     search_res = video_tools.search_video_content(query="Model Context Protocol", top_k=3, db=db_session)
@@ -221,10 +239,12 @@ def test_all_eight_mcp_tools(db_session: Session) -> None:
     assert clip_res["video_id"] == video_id
     assert clip_res["start_time"] == 0.2
     assert clip_res["end_time"] == 1.0
+    assert not clip_res["clip_path"].startswith("/")
+    assert not (len(clip_res["clip_path"]) > 2 and clip_res["clip_path"][1] == ":")
 
     # Independently inspect the generated output file using direct test-side FFprobe subprocess
     # (does NOT reuse production probe_video_metadata helper)
-    clip_file = Path(clip_res["clip_path"])
+    clip_file = Path(settings.MEDIA_STORAGE_DIR) / "clips" / clip_res["clip_filename"]
     assert clip_file.is_file()
     independent_duration = _independent_test_probe_ffprobe_duration(clip_file)
     # Justified tolerance: container header format duration rounded to millisecond precision (0.005s)
@@ -294,4 +314,104 @@ def test_mcp_export_probe_failure_raises_and_cleans_up(
     created_clips = list(clips_dir.glob("*.mp4"))
     assert len(created_clips) == 0
 
+
+def test_mcp_read_only_tools_leave_database_unmutated(db_session: Session) -> None:
+    """Verify that calling read-only tools causes zero database mutations."""
+    from app.models.entities import EmbeddingRecord, VideoScene
+
+    counts_before = {
+        "videos": db_session.query(Video).count(),
+        "transcripts": db_session.query(Transcript).count(),
+        "segments": db_session.query(TranscriptSegment).count(),
+        "scenes": db_session.query(VideoScene).count(),
+        "summaries": db_session.query(VideoSummary).count(),
+        "embeddings": db_session.query(EmbeddingRecord).count(),
+    }
+
+    videos = video_tools.list_videos(db=db_session)
+    video_id = videos[0]["id"]
+
+    video_tools.get_video_metadata(video_id=video_id, db=db_session)
+    video_tools.search_video_content(query="Model Context Protocol", top_k=3, db=db_session)
+    video_tools.search_transcripts(query="Protocol", db=db_session)
+    video_tools.find_video_clips(query="semantic retrieval", min_duration=10.0, max_duration=60.0, db=db_session)
+    video_tools.summarize_video(video_id=video_id, db=db_session)
+    video_tools.get_video_chapters(video_id=video_id, db=db_session)
+    video_tools.get_media_library_stats(db=db_session)
+
+    counts_after = {
+        "videos": db_session.query(Video).count(),
+        "transcripts": db_session.query(Transcript).count(),
+        "segments": db_session.query(TranscriptSegment).count(),
+        "scenes": db_session.query(VideoScene).count(),
+        "summaries": db_session.query(VideoSummary).count(),
+        "embeddings": db_session.query(EmbeddingRecord).count(),
+    }
+    assert counts_before == counts_after
+
+    # Calling summarize_video on an unknown video ID must raise ValueError without mutating DB
+    with pytest.raises(ValueError, match=r"(?:No summary|not found)"):
+        video_tools.summarize_video(video_id=99999, db=db_session)
+
+    assert db_session.query(VideoSummary).count() == counts_before["summaries"]
+
+
+def test_mcp_non_persistent_summary_and_path_safety(db_session: Session) -> None:
+    """Verify that summarizing a video without an existing VideoSummary does not mutate DB,
+
+    and that host filesystem paths are sanitized.
+    """
+    # Create a secondary video with transcript segments but NO VideoSummary
+    video2 = Video(
+        filename="unsummarized.mp4",
+        file_path="C:\\Users\\SecretUser\\Documents\\Sensitive\\unsummarized.mp4",
+        thumbnail_path="C:\\Users\\SecretUser\\Documents\\Sensitive\\thumb.jpg",
+        file_hash="hash_unsummarized",
+        duration=30.0,
+    )
+    db_session.add(video2)
+    db_session.commit()
+
+    transcript2 = Transcript(
+        video_id=video2.id,
+        language="en",
+        model_name="whisper-base",
+        full_text="This is an unsummarized video about privacy and safety in video systems.",
+    )
+    db_session.add(transcript2)
+    db_session.commit()
+
+    seg = TranscriptSegment(
+        transcript_id=transcript2.id,
+        video_id=video2.id,
+        start_time=0.0,
+        end_time=10.0,
+        text="This is an unsummarized video about privacy and safety in video systems.",
+        confidence=0.98,
+    )
+    db_session.add(seg)
+    db_session.commit()
+
+    # 1. Path disclosure test: get_video_metadata must NOT leak C:\Users\... or absolute path
+    meta = video_tools.get_video_metadata(video_id=video2.id, db=db_session)
+    assert "SecretUser" not in meta["file_path"]
+    assert "Sensitive" not in meta["file_path"]
+    assert not meta["file_path"].startswith("C:")
+    assert meta["file_path"] == "unsummarized.mp4"
+    assert meta["thumbnail_path"] == "thumb.jpg"
+
+    # 2. Non-persistent summary test: summarize_video must succeed without adding VideoSummary to DB
+    summary_count_before = db_session.query(VideoSummary).count()
+    res = video_tools.summarize_video(video_id=video2.id, db=db_session)
+    assert res["video_id"] == video2.id
+    assert "privacy and safety" in res["summary"]
+    assert res["model_name"] == "extractive-non-persistent-mcp"
+
+    summary_count_after = db_session.query(VideoSummary).count()
+    assert summary_count_after == summary_count_before
+
+    # 3. Non-persistent chapter test: get_video_chapters must succeed without mutating DB
+    chapters = video_tools.get_video_chapters(video_id=video2.id, db=db_session)
+    assert len(chapters) >= 1
+    assert db_session.query(VideoSummary).count() == summary_count_before
 
