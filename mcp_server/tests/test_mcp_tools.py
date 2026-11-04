@@ -170,6 +170,8 @@ def db_session(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generator[Ses
         session.add(summary)
         session.commit()
 
+        from app.database.migrator import run_idempotent_backfill
+        run_idempotent_backfill(session)
         index_video_chunks(session, video.id, storage_dir=tmp_path / "vectors")
         yield session
 
@@ -234,6 +236,27 @@ def test_all_eight_mcp_tools(db_session: Session) -> None:
     assert stats["total_duration_sec"] == 75.0
     assert stats["total_transcripts_indexed"] == 1
 
+    # 10. get_media_availability
+    avail = video_tools.get_media_availability(video_id=video_id, db=db_session)
+    assert avail["video_id"] == video_id
+    assert avail["can_play"] is True
+    assert avail["can_export"] is True
+
+    # 11. find_duplicate_media
+    dupes = video_tools.find_duplicate_media(db=db_session)
+    assert isinstance(dupes, list)
+
+    # 12. get_evidence_citations
+    citations = video_tools.get_evidence_citations(query="Model Context Protocol", db=db_session)
+    assert len(citations) >= 1
+    assert citations[0]["video_id"] == video_id
+    assert "citation_text" in citations[0]
+
+    # 13. get_capability_status
+    cap = video_tools.get_capability_status(db=db_session)
+    assert cap["execution_profile"] == "fully_offline_no_ai"
+    assert "capabilities" in cap
+
     # 9. export_video_clip (direct tool function check)
     clip_res = video_tools.export_video_clip(video_id=video_id, start_time=0.2, end_time=1.0, db=db_session)
     assert clip_res["video_id"] == video_id
@@ -260,7 +283,7 @@ async def test_mcp_server_default_tools_are_eight_read_only(monkeypatch: pytest.
     tools = await server.list_tools()
     tool_names = [t.name for t in tools]
 
-    expected_eight = [
+    expected_tools = [
         "list_videos",
         "get_video_metadata",
         "search_video_content",
@@ -269,15 +292,19 @@ async def test_mcp_server_default_tools_are_eight_read_only(monkeypatch: pytest.
         "summarize_video",
         "get_video_chapters",
         "get_media_library_stats",
+        "get_media_availability",
+        "find_duplicate_media",
+        "get_evidence_citations",
+        "get_capability_status",
     ]
-    assert len(tools) == 8
-    assert tool_names == expected_eight
+    assert len(tools) == 12
+    assert tool_names == expected_tools
     assert "export_video_clip" not in tool_names
 
     # Also verify module-level singleton instance executed by stdio runner
     singleton_tools = await mcp.list_tools()
     singleton_tool_names = [t.name for t in singleton_tools]
-    assert len(singleton_tools) == 8
+    assert len(singleton_tools) == 12
     assert "export_video_clip" not in singleton_tool_names
 
 
@@ -288,7 +315,7 @@ async def test_mcp_server_opt_in_exports() -> None:
     tools = await server.list_tools()
     tool_names = [t.name for t in tools]
 
-    assert len(tools) == 9
+    assert len(tools) == 13
     assert "export_video_clip" in tool_names
 
 
@@ -338,6 +365,10 @@ def test_mcp_read_only_tools_leave_database_unmutated(db_session: Session) -> No
     video_tools.summarize_video(video_id=video_id, db=db_session)
     video_tools.get_video_chapters(video_id=video_id, db=db_session)
     video_tools.get_media_library_stats(db=db_session)
+    video_tools.get_media_availability(video_id=video_id, db=db_session)
+    video_tools.find_duplicate_media(db=db_session)
+    video_tools.get_evidence_citations(query="Model Context Protocol", db=db_session)
+    video_tools.get_capability_status(db=db_session)
 
     counts_after = {
         "videos": db_session.query(Video).count(),

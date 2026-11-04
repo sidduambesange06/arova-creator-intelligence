@@ -3,19 +3,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 import threading
 import time
+from typing import Any
 from uuid import uuid4
 
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.ai.providers.embeddings import index_video_chunks
 from app.ai.providers.transcription import TranscriptionProvider
 from app.database.session import SessionLocal
-from app.models.entities import ProcessingJob, Video, VideoScene
+from app.models.entities import ProcessingJob, Video
 from app.processing.audio import extract_audio_wav
 from app.processing.scene_detection import detect_video_scenes
-from app.processing.subtitles import find_sidecar_subtitles
-from app.services.subtitle_service import ingest_subtitles_for_video
-from app.services.transcription_service import transcribe_and_store
+from app.services.pipeline_orchestrator import PipelineOrchestrator
 
 
 @dataclass
@@ -49,129 +47,29 @@ def _execute_pipeline(
     video_id: str,
     provider: TranscriptionProvider | None = None,
     media_storage_dir: str | Path | None = None,
+    job_id: str | None = None,
+    config: dict[str, Any] | None = None,
 ) -> str:
     start_time = time.perf_counter()
     video = db.query(Video).filter_by(id=video_id).first()
     if not video:
         raise LookupError(f"Video {video_id} not found")
 
-    job_id = str(uuid4())
-    job = ProcessingJob(
-        id=job_id,
-        video_id=video.id,
-        job_type="full_pipeline",
-        status="processing",
-        progress=5.0,
+    orchestrator = PipelineOrchestrator(
+        db=db,
+        media_storage_dir=media_storage_dir,
+        provider=provider,
+        config=config,
     )
-    video.processing_status = "processing"
-    db.add(job)
-    db.commit()
 
     try:
-        # Step 1 (Scenes)
-        job.progress = 15.0
-        db.commit()
-
-        from app.processing.visual_text import extract_visual_text_from_frame
-
-        scenes = detect_video_scenes(
-            video_path=video.file_path,
-            video_id=video.id,
-            duration=video.duration,
-            output_dir=media_storage_dir,
+        final_job_id = orchestrator.run_pipeline(
+            video_id=video_id,
+            job_id=job_id,
         )
-        db.query(VideoScene).filter_by(video_id=video.id).delete()
-        for s in scenes:
-            vis_text = extract_visual_text_from_frame(s.thumbnail_path)
-            db.add(
-                VideoScene(
-                    id=str(uuid4()),
-                    video_id=video.id,
-                    scene_index=s.scene_index,
-                    start_time=s.start_time,
-                    end_time=s.end_time,
-                    thumbnail_path=s.thumbnail_path,
-                    description=vis_text or None,
-                )
-            )
 
-        # Step 2: Auto-discover sidecar subtitles (.srt / .vtt)
-        sidecar_path = find_sidecar_subtitles(video.file_path)
-        has_transcript = False
-        if sidecar_path and sidecar_path.is_file():
-            try:
-                sub_text = sidecar_path.read_text(encoding="utf-8", errors="replace")
-                storage_path = Path(media_storage_dir) if media_storage_dir else None
-                ingest_subtitles_for_video(
-                    db=db,
-                    video=video,
-                    content=sub_text,
-                    source_name=sidecar_path.name,
-                    media_storage_dir=storage_path,
-                )
-                has_transcript = True
-                job.progress = 75.0
-                db.commit()
-            except Exception:
-                has_transcript = False
-
-        if not has_transcript:
-            from app.processing.metadata import has_audio_stream
-
-            if has_audio_stream(video.file_path):
-                # Step 3a (Audio WAV extraction)
-                job.progress = 50.0
-                db.commit()
-                wav_path: Path | None = None
-                try:
-                    wav_path = extract_audio_wav(
-                        video_path=video.file_path,
-                        video_id=video.id,
-                        output_dir=media_storage_dir,
-                    )
-                except ValueError:
-                    wav_path = None
-
-                if wav_path and wav_path.is_file():
-                    # Step 3b (ASR Transcription)
-                    job.progress = 75.0
-                    db.commit()
-                    try:
-                        transcript_obj = transcribe_and_store(
-                            db=db,
-                            video=video,
-                            audio_path=wav_path,
-                            provider=provider,
-                        )
-                        if transcript_obj and transcript_obj.segments:
-                            has_transcript = True
-                    except Exception:
-                        has_transcript = False
-                    finally:
-                        try:
-                            wav_path.unlink(missing_ok=True)
-                        except OSError:
-                            pass
-
-        # Step 4 (Index Timestamp Windows for Hybrid RAG if transcript exists)
-        job.progress = 90.0
-        db.commit()
-        if has_transcript:
-            index_video_chunks(
-                db=db,
-                video_id=video.id,
-                storage_dir=media_storage_dir,
-            )
-
-        # Step 5 (Complete)
         elapsed = time.perf_counter() - start_time
         rtf = round(elapsed / max(video.duration, 0.1), 3)
-
-        job.status = "completed"
-        job.progress = 100.0
-        job.completed_at = datetime.now(timezone.utc)
-        video.processing_status = "completed"
-        db.commit()
 
         with _telemetry_lock:
             worker_telemetry.jobs_completed += 1
@@ -183,18 +81,11 @@ def _execute_pipeline(
                 3,
             )
 
-        return job.id
+        return final_job_id
 
-    except Exception as exc:
-        db.rollback()
-        job.status = "failed"
-        job.error_message = str(exc)
-        video.processing_status = "failed"
-        db.commit()
-
+    except Exception:
         with _telemetry_lock:
             worker_telemetry.jobs_failed += 1
-
         raise
 
 
@@ -204,6 +95,8 @@ def run_video_pipeline(
     session_factory: sessionmaker[Session] = SessionLocal,
     provider: TranscriptionProvider | None = None,
     media_storage_dir: str | Path | None = None,
+    job_id: str | None = None,
+    config: dict[str, Any] | None = None,
 ) -> str:
     if db is not None:
         return _execute_pipeline(
@@ -211,6 +104,8 @@ def run_video_pipeline(
             video_id=video_id,
             provider=provider,
             media_storage_dir=media_storage_dir,
+            job_id=job_id,
+            config=config,
         )
     with session_factory() as session:
         return _execute_pipeline(
@@ -218,4 +113,6 @@ def run_video_pipeline(
             video_id=video_id,
             provider=provider,
             media_storage_dir=media_storage_dir,
+            job_id=job_id,
+            config=config,
         )

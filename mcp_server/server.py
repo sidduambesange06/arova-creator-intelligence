@@ -83,6 +83,29 @@ def create_mcp_server(enable_exports: bool | None = None) -> MCPServer:
     def get_media_library_stats() -> dict[str, Any]:
         return video_tools.get_media_library_stats()
 
+    @server.tool(description="Check physical file presence, availability status, and playback readiness")
+    def get_media_availability(
+        video_id: str | None = None,
+        version_id: str | None = None,
+    ) -> dict[str, Any]:
+        return video_tools.get_media_availability(video_id=video_id, version_id=version_id)
+
+    @server.tool(description="Find duplicate media files with identical content SHA-256 digests across different locations")
+    def find_duplicate_media() -> list[dict[str, Any]]:
+        return video_tools.find_duplicate_media()
+
+    @server.tool(description="Retrieve timestamped factual citations and evidence excerpts even when original video media is offline")
+    def get_evidence_citations(
+        query: str,
+        video_id: str | None = None,
+        top_k: int = 5,
+    ) -> list[dict[str, Any]]:
+        return video_tools.get_evidence_citations(query=query, video_id=video_id, top_k=top_k)
+
+    @server.tool(description="Inspect system execution profile, AI capability state, and offline status")
+    def get_capability_status() -> dict[str, Any]:
+        return video_tools.get_capability_status()
+
     if enable_exports:
         @server.tool(description="Export a lossless trimmed subclip from an indexed video given start and end timestamps (developer opt-in)")
         def export_video_clip(video_id: str, start_time: float, end_time: float) -> dict[str, Any]:
