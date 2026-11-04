@@ -758,11 +758,12 @@ class PipelineOrchestrator:
                     self.db.add(
                         Annotation(
                             id=str(uuid4()),
-                            version_id=version.id,
+                            target_type="version",
+                            target_id=version.id,
                             author_type=AuthorType.AI.value,
                             display_name="On-Screen Visual Text",
                             trust=TrustLevel.AI_GENERATED.value,
-                            text_content=vis_text,
+                            body=vis_text,
                             created_at=_utcnow(),
                         )
                     )
@@ -860,11 +861,12 @@ class PipelineOrchestrator:
                 self.db.add(
                     Annotation(
                         id=str(uuid4()),
-                        version_id=version.id,
+                        target_type="version",
+                        target_id=version.id,
                         author_type=AuthorType.ASR.value,
                         display_name="Speech Transcript",
                         trust=TrustLevel.ASR.value,
-                        text_content=transcript_obj.full_text,
+                        body=transcript_obj.full_text,
                         created_at=_utcnow(),
                     )
                 )
