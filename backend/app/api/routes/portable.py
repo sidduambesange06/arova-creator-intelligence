@@ -241,3 +241,4 @@ def delete_annotation_endpoint(
     db.delete(annotation)
     db.commit()
     return {"id": annotation_id, "status": "deleted"}
+
