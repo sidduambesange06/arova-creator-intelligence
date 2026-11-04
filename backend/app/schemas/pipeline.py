@@ -46,3 +46,38 @@ class ProcessingJobOut(BaseModel):
     created_at: datetime
     completed_at: datetime | None
 
+
+class StageRunOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    version_id: str
+    stage: str
+    fingerprint: str
+    status: str
+    skip_reason: str | None = None
+    attempt: int
+    lease_until: datetime | None = None
+    heartbeat_at: datetime | None = None
+    error_code: str | None = None
+    error_detail: str | None = None
+    output_ref: str | None = None
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+
+
+class ArtifactOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    version_id: str
+    kind: str
+    producer_stage: str
+    producer_model: str | None = None
+    producer_revision: str | None = None
+    config_hash: str | None = None
+    is_current: bool
+    trust: str
+    created_at: datetime
+
+

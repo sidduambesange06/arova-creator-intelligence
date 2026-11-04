@@ -10,6 +10,8 @@ from app.api.routes.jobs import router as jobs_router
 from app.api.routes.ml_eval import router as ml_eval_router
 from app.api.routes.search import router as search_router
 from app.api.routes.videos import router as videos_router
+from app.api.routes.discovery import router as discovery_router
+from app.api.routes.portable import router as portable_router
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.core.security import require_api_auth, validate_server_binding_and_security
@@ -74,6 +76,8 @@ app.include_router(collections_router, dependencies=[Depends(require_api_auth)])
 app.include_router(jobs_router, dependencies=[Depends(require_api_auth)])
 app.include_router(search_router, dependencies=[Depends(require_api_auth)])
 app.include_router(ml_eval_router, dependencies=[Depends(require_api_auth)])
+app.include_router(discovery_router, dependencies=[Depends(require_api_auth)])
+app.include_router(portable_router, dependencies=[Depends(require_api_auth)])
 if db_explorer_router is not None:
     app.include_router(db_explorer_router)
 
