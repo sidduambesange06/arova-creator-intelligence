@@ -185,7 +185,7 @@ def check_model_cache_readiness() -> dict[str, Any]:
 
 
 def check_mcp_server_readiness() -> dict[str, Any]:
-    """Verify FastMCP server initializes and exposes strictly 8 read-only tools by default."""
+    """Verify FastMCP server initializes and exposes strictly 12 read-only tools by default."""
     try:
         import asyncio
         server = create_mcp_server(enable_exports=False)

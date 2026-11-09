@@ -358,11 +358,28 @@ def get_media_availability(
         if not target_version_id and video_id:
             vid = session.get(Video, video_id)
             if vid:
-                if not vid.version_id:
-                    from app.database.migrator import run_idempotent_backfill
-                    run_idempotent_backfill(session)
-                    session.refresh(vid)
-                target_version_id = vid.version_id
+                if vid.version_id:
+                    target_version_id = vid.version_id
+                elif vid.file_hash:
+                    from app.models.entities import AssetVersion
+                    v_match = session.query(AssetVersion).filter_by(sha256=vid.file_hash).first()
+                    if v_match:
+                        target_version_id = v_match.id
+
+        if not target_version_id and video_id:
+            vid = session.get(Video, video_id)
+            if vid:
+                file_exists = bool(vid.file_path and Path(vid.file_path).is_file())
+                return {
+                    "version_id": None,
+                    "video_id": vid.id,
+                    "availability": "available" if file_exists else "missing",
+                    "can_play": file_exists,
+                    "can_export": file_exists,
+                    "file_path": sanitize_file_path_for_display(vid.file_path) if vid.file_path else None,
+                }
+            raise LookupError(f"Video {video_id} not found")
+
         if not target_version_id:
             raise ValueError("Either video_id or version_id must be provided")
 

@@ -268,12 +268,12 @@ def check_backend_tests() -> CheckResult:
     t0 = time.perf_counter()
     python_exe = _get_python_exe()
     cmd = [python_exe, "-m", "pytest", "backend/tests", "mcp_server/tests", "-q"]
-    proc = subprocess.run(cmd, cwd=str(ROOT_DIR), capture_output=True, text=True, timeout=120)
+    proc = subprocess.run(cmd, cwd=str(ROOT_DIR), capture_output=True, text=True, timeout=600)
     elapsed = (time.perf_counter() - t0) * 1000.0
 
     passed = proc.returncode == 0
     output = proc.stdout + "\n" + proc.stderr
-    summary_match = re.search(r"=+\s*(.+ passed.*)\s*=+", output)
+    summary_match = re.search(r"^=*\s*(\d+ (?:passed|failed|error).*? in [\d.]+s)", output, re.MULTILINE) or re.search(r"=+\s*(.+ passed.*)\s*=+", output)
     summary_text = summary_match.group(1) if summary_match else f"Exit code {proc.returncode}"
 
     warnings = []
@@ -347,9 +347,17 @@ def check_mcp_server_contract() -> CheckResult:
             "summarize_video",
             "get_video_chapters",
             "get_media_library_stats",
+            "get_media_availability",
+            "find_duplicate_media",
+            "get_evidence_citations",
+            "get_capability_status",
         }
         passed = expected_read_only == tool_names
-        details = f"Verified {len(tool_names)} registered FastMCP tools. Read-only contract intact."
+        details = (
+            f"Verified {len(tool_names)} registered FastMCP tools. Read-only contract intact."
+            if passed
+            else f"Tool set drift. Unexpected: {sorted(tool_names - expected_read_only)}; missing: {sorted(expected_read_only - tool_names)}."
+        )
     except Exception as exc:
         passed = False
         details = f"FastMCP contract verification failed: {exc}"

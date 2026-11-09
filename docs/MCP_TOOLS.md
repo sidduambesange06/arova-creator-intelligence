@@ -20,7 +20,7 @@ By default, AI agents are provided with an exclusively **read-only** interface:
 
 ---
 
-## 2. The 8 Default Read-Only Tools
+## 2. The 12 Default Read-Only Tools
 
 ### 1. `list_videos`
 List indexed videos with optional collection and processing status filters.
@@ -167,6 +167,64 @@ Retrieve inventory counts and runtime metrics for the video library.
 - `total_transcripts_indexed` (`int`): Total indexed transcripts.
 - `total_scene_cuts` (`int`): Total detected visual scene cuts.
 - `engine` (`str`): Engine version string.
+
+---
+
+### 9. `get_media_availability`
+Check physical file presence, availability status, and playback readiness.
+
+**Parameters:**
+- `video_id` (`str | null`, optional): Video UUID.
+- `version_id` (`str | null`, optional): AssetVersion UUID.
+
+**Return Type:** `dict`
+- `version_id` (`str | null`): Resolved AssetVersion UUID.
+- `video_id` (`str | null`): Resolved Video UUID.
+- `availability` (`str`): Status (`"available"`, `"missing"`, `"untracked"`).
+- `can_play` (`bool`): Whether video file is locally present for playback.
+- `can_export` (`bool`): Whether video file is available for clip export.
+- `file_path` (`str | null`): Sanitized relative path.
+
+---
+
+### 10. `find_duplicate_media`
+Find duplicate media files with identical content SHA-256 digests across different locations.
+
+**Parameters:** None.
+
+**Return Type:** `list[dict]`
+- `version_id` (`str`): AssetVersion UUID.
+- `sha256` (`str`): Content SHA-256 digest.
+- `locations_count` (`int`): Count of physical locations.
+- `locations` (`list[dict]`): List of relative paths and availability.
+
+---
+
+### 11. `get_evidence_citations`
+Retrieve timestamped factual citations and evidence excerpts even when original video media is offline.
+
+**Parameters:**
+- `query` (`str`, required): Natural language query.
+- `video_id` (`str | null`, optional): Scope search to a specific video UUID.
+- `top_k` (`int`, optional, default: 5): Maximum number of citations.
+
+**Return Type:** `list[dict]`
+- `video_id` (`str`): Parent video UUID.
+- `citation_text` (`str`): Extracted transcript passage.
+- `start_time` (`float`): Citation start timecode in seconds.
+- `end_time` (`float`): Citation end timecode in seconds.
+- `relevance_score` (`float`): Relevance score.
+
+---
+
+### 12. `get_capability_status`
+Inspect system execution profile, AI capability state, and offline status.
+
+**Parameters:** None.
+
+**Return Type:** `dict`
+- `execution_profile` (`str`): Current execution profile (e.g. `"fully_offline_no_ai"`).
+- `capabilities` (`dict`): Status and provider details for ASR, embeddings, reranking, OCR.
 
 ---
 

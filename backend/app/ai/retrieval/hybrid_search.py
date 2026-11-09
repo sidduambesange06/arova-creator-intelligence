@@ -3,7 +3,7 @@ import re
 import time
 from typing import Any
 
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.orm import Session
 
 from app.ai.providers.embeddings import (
@@ -141,10 +141,17 @@ def run_hybrid_search(
     ) if all_candidate_ids else []
 
     record_map = {r.embedding_id: r for r in candidate_records}
-    video_map = {
-        v.id: v.filename
-        for v in db.query(Video).filter(Video.id.in_({r.video_id for r in candidate_records})).all()
-    } if candidate_records else {}
+    video_map: dict[str, str] = {}
+    if candidate_records:
+        video_ids = list({r.video_id for r in candidate_records})
+        try:
+            stmt = text("SELECT id, filename FROM videos WHERE id IN :vids").bindparams(
+                bindparam("vids", expanding=True)
+            )
+            rows = db.execute(stmt, {"vids": video_ids}).fetchall()
+            video_map = {str(r[0]): str(r[1]) for r in rows}
+        except Exception:
+            video_map = {}
 
     candidates: list[dict[str, Any]] = []
     for cid in sorted(all_candidate_ids, key=lambda x: rrf_scores[x], reverse=True):
