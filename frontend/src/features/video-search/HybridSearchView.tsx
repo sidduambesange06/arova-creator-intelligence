@@ -1,14 +1,20 @@
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import {
   askVideoAi,
+  executeSharedTool,
+  fetchSharedTools,
+  runEvalBenchmark,
+  runSmartLoopAgent,
+  searchSemantic,
   type AskQuestionResponse,
   type EvalBenchmarkReport,
   exportVideoClip,
   getClipDownloadUrl,
   getVideoStreamUrl,
   type HybridSearchResponse,
-  runEvalBenchmark,
-  searchSemantic,
+  type SharedToolDefinition,
+  type SmartLoopResult,
+  type ToolExecuteResult,
 } from "../../services/api";
 
 const SUGGESTIONS = [
@@ -25,28 +31,63 @@ const QA_PRESETS = [
 ];
 
 export function HybridSearchView() {
+  const [activeTab, setActiveTab] = useState<"search" | "smart-loop" | "tools">("search");
+
+  // Semantic Search State
   const [query, setQuery] = useState<string>("");
   const [useReranker, setUseReranker] = useState<boolean>(true);
   const [searching, setSearching] = useState<boolean>(false);
   const [searchResponse, setSearchResponse] = useState<HybridSearchResponse | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
 
+  // Grounded Q&A State
   const [qaQuery, setQaQuery] = useState<string>("");
+  const [qaProvider, setQaProvider] = useState<string>("local");
   const [askingQa, setAskingQa] = useState<boolean>(false);
   const [qaResponse, setQaResponse] = useState<AskQuestionResponse | null>(null);
   const [qaError, setQaError] = useState<string | null>(null);
 
+  // Channel Filter & Video Player preview
   const [channelFilter, setChannelFilter] = useState<"all" | "speech" | "visual" | "multimodal">("all");
-
-  const [evalReport, setEvalReport] = useState<EvalBenchmarkReport | null>(null);
-  const [runningEval, setRunningEval] = useState<boolean>(false);
-  const [evalError, setEvalError] = useState<string | null>(null);
-
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [activeVideoTime, setActiveVideoTime] = useState<number>(0);
   const [copiedSnippetId, setCopiedSnippetId] = useState<string | null>(null);
   const [exportingClipKey, setExportingClipKey] = useState<string | null>(null);
   const videoPlayerRef = useRef<HTMLVideoElement | null>(null);
+
+  // ML Evaluation State
+  const [evalReport, setEvalReport] = useState<EvalBenchmarkReport | null>(null);
+  const [runningEval, setRunningEval] = useState<boolean>(false);
+  const [evalError, setEvalError] = useState<string | null>(null);
+
+  // Smart Loop Agent State
+  const [agentQuery, setAgentQuery] = useState<string>("");
+  const [agentTurns, setAgentTurns] = useState<number>(3);
+  const [runningAgent, setRunningAgent] = useState<boolean>(false);
+  const [agentResult, setAgentResult] = useState<SmartLoopResult | null>(null);
+  const [agentError, setAgentError] = useState<string | null>(null);
+
+  // Shared Tool Explorer State
+  const [tools, setTools] = useState<SharedToolDefinition[]>([]);
+  const [selectedTool, setSelectedTool] = useState<string>("");
+  const [toolArgsJson, setToolArgsJson] = useState<string>("{}");
+  const [executingTool, setExecutingTool] = useState<boolean>(false);
+  const [toolResult, setToolResult] = useState<ToolExecuteResult | null>(null);
+  const [toolError, setToolError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeTab === "tools" && tools.length === 0) {
+      void fetchSharedTools()
+        .then((t) => {
+          setTools(t);
+          if (t.length > 0) {
+            setSelectedTool(t[0].name);
+            setToolArgsJson(JSON.stringify(t[0].parameters ? {} : {}, null, 2));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [activeTab, tools.length]);
 
   const handleExportClip = async (videoId: string, startTime: number, endTime: number) => {
     const key = `${videoId}-${startTime.toFixed(1)}-${endTime.toFixed(1)}`;
@@ -66,7 +107,6 @@ export function HybridSearchView() {
       setExportingClipKey(null);
     }
   };
-
 
   const executeSearch = async (queryString: string) => {
     const q = queryString.trim();
@@ -121,6 +161,48 @@ export function HybridSearchView() {
     }
   };
 
+  const handleRunSmartLoop = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!agentQuery.trim()) return;
+    setRunningAgent(true);
+    setAgentError(null);
+    setAgentResult(null);
+    try {
+      const res = await runSmartLoopAgent({
+        query: agentQuery.trim(),
+        max_turns: agentTurns,
+        provider: qaProvider,
+      });
+      setAgentResult(res);
+    } catch (err) {
+      setAgentError(err instanceof Error ? err.message : "Smart Loop execution failed");
+    } finally {
+      setRunningAgent(false);
+    }
+  };
+
+  const handleExecuteTool = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!selectedTool) return;
+    setExecutingTool(true);
+    setToolError(null);
+    setToolResult(null);
+    try {
+      let parsed = {};
+      try {
+        parsed = JSON.parse(toolArgsJson);
+      } catch {
+        throw new Error("Invalid JSON in arguments field");
+      }
+      const res = await executeSharedTool(selectedTool, parsed);
+      setToolResult(res);
+    } catch (err) {
+      setToolError(err instanceof Error ? err.message : "Tool execution failed");
+    } finally {
+      setExecutingTool(false);
+    }
+  };
+
   const jumpToClip = (videoId: string, startTime: number) => {
     setActiveVideoId(videoId);
     setActiveVideoTime(startTime);
@@ -137,436 +219,631 @@ export function HybridSearchView() {
     }
   };
 
-  const copyQuote = (item: { video_id: string; filename: string; start_time: number; end_time: number; chunk_text: string }) => {
-    const text = `> **[${item.filename}](${getVideoStreamUrl(item.video_id)}#t=${item.start_time.toFixed(1)})** [${item.start_time.toFixed(1)}s - ${item.end_time.toFixed(1)}s]\n> "${item.chunk_text}"\n`;
+  const copyQuote = (item: {
+    video_id: string;
+    filename: string;
+    start_time: number;
+    end_time: number;
+    chunk_text: string;
+  }) => {
+    const text = `> **[${item.filename}](${getVideoStreamUrl(item.video_id)}#t=${item.start_time.toFixed(
+      1
+    )})** [${item.start_time.toFixed(1)}s - ${item.end_time.toFixed(1)}s]\n> "${item.chunk_text}"\n`;
     void navigator.clipboard.writeText(text);
     setCopiedSnippetId(`${item.start_time}`);
     setTimeout(() => setCopiedSnippetId(null), 2000);
   };
 
-  const filteredResults = searchResponse?.results.filter((item) => {
-    if (channelFilter === "all") return true;
-    return item.match_channel === channelFilter;
-  }) ?? [];
+  const filteredResults =
+    searchResponse?.results.filter((item) => {
+      if (channelFilter === "all") return true;
+      return item.match_channel === channelFilter;
+    }) ?? [];
 
   return (
     <div className="space-y-6">
-      {/* Search Header & Query Form */}
-      <div className="border-b border-[#172338] pb-5 space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-xl font-semibold tracking-tight text-slate-100">
-                Hybrid Video RAG &amp; Cross-Encoder Search
-              </h2>
-              <span className="px-2 py-0.5 rounded text-[11px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60">
-                Stage-1 RRF + Stage-2 Cross-Encoder
-              </span>
+      {/* Top Section Nav Tabs */}
+      <div className="flex items-center gap-2 border-b border-[#243149] pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveTab("search")}
+          className={`px-3 py-1.5 rounded-control text-xs font-semibold font-sans transition-colors ${
+            activeTab === "search"
+              ? "bg-[#9B8CFF] text-[#080B12]"
+              : "text-slate-400 hover:text-white bg-[#111827]"
+          }`}
+        >
+          Semantic &amp; Hybrid Search
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("smart-loop")}
+          className={`px-3 py-1.5 rounded-control text-xs font-semibold font-sans transition-colors ${
+            activeTab === "smart-loop"
+              ? "bg-[#9B8CFF] text-[#080B12]"
+              : "text-slate-400 hover:text-white bg-[#111827]"
+          }`}
+        >
+          Smart Loop Autonomous Agent
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("tools")}
+          className={`px-3 py-1.5 rounded-control text-xs font-semibold font-sans transition-colors ${
+            activeTab === "tools"
+              ? "bg-[#9B8CFF] text-[#080B12]"
+              : "text-slate-400 hover:text-white bg-[#111827]"
+          }`}
+        >
+          Shared Tool Explorer ({tools.length || "13"})
+        </button>
+      </div>
+
+      {/* TAB 1: SEMANTIC & HYBRID SEARCH */}
+      {activeTab === "search" && (
+        <div className="space-y-6">
+          <div className="border-b border-[#172338] pb-5 space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <h2 className="text-xl font-semibold tracking-tight text-slate-100">
+                    Hybrid Video RAG &amp; Cross-Encoder Search
+                  </h2>
+                  <span className="px-2 py-0.5 rounded text-[11px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60">
+                    Stage-1 RRF + Stage-2 Cross-Encoder
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Dense MiniLM embeddings + BM25 Lexical FTS5 fused via Reciprocal Rank Fusion ($k=60$)
+                  with joint attention re-ranking.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleRunBenchmark}
+                disabled={runningEval}
+                className="px-3.5 py-1.5 bg-[#0d1424] hover:bg-slate-800 border border-[#172338] rounded-lg text-slate-200 hover:text-white font-mono text-xs disabled:opacity-50 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
+              >
+                {runningEval ? "Running Golden Benchmark..." : "Run ML Evaluation Benchmark"}
+              </button>
             </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Dense MiniLM embeddings + BM25 Lexical FTS5 fused via Reciprocal Rank Fusion ($k=60$) with joint attention re-ranking.
-            </p>
+
+            <form onSubmit={handleSearch} className="space-y-3">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Enter natural language query (e.g. 'explain vector database indexing')..."
+                    className="w-full bg-[#090e18] border border-[#172338] rounded-lg px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none transition-colors duration-150"
+                    aria-label="Search query"
+                  />
+                  <span className="absolute right-3 top-2.5 px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-400 border border-slate-700 select-none">
+                    /
+                  </span>
+                </div>
+                <button
+                  type="submit"
+                  disabled={searching || !query.trim()}
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-white text-slate-950 rounded-lg text-xs font-semibold disabled:opacity-50 transition-colors duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
+                >
+                  {searching ? "Searching..." : "Search"}
+                </button>
+              </div>
+
+              {/* Reranker & Mode Toggles */}
+              <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={useReranker}
+                    onChange={(e) => setUseReranker(e.target.checked)}
+                    className="rounded bg-[#090e18] border-[#172338] text-slate-200 focus:ring-0"
+                  />
+                  <span className="text-slate-300 font-mono text-[11px]">
+                    Stage-2 Joint Cross-Encoder Re-ranker (ms-marco-MiniLM-L-6-v2)
+                  </span>
+                </label>
+
+                <div className="flex items-center gap-1.5 text-slate-400 font-mono text-[11px]">
+                  <span>Suggestions:</span>
+                  {SUGGESTIONS.map((sug) => (
+                    <button
+                      key={sug}
+                      type="button"
+                      onClick={() => {
+                        setQuery(sug);
+                        void executeSearch(sug);
+                      }}
+                      className="px-2 py-0.5 rounded bg-[#0d1424] hover:bg-slate-800 border border-[#172338] text-slate-300 transition-colors"
+                    >
+                      {sug}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </form>
           </div>
 
-          <button
-            type="button"
-            onClick={handleRunBenchmark}
-            disabled={runningEval}
-            className="px-3.5 py-1.5 bg-[#0d1424] hover:bg-slate-800 border border-[#172338] rounded-lg text-slate-200 hover:text-white font-mono text-xs disabled:opacity-50 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
-          >
-            {runningEval ? "Running Golden Benchmark..." : "Run ML Evaluation Benchmark"}
-          </button>
-        </div>
+          {searchError && (
+            <div className="p-3 rounded bg-rose-950/40 border border-rose-900 text-rose-300 text-xs font-mono">
+              {searchError}
+            </div>
+          )}
 
-        <form onSubmit={handleSearch} className="space-y-3">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
+          {evalError && (
+            <div className="p-3 rounded bg-rose-950/40 border border-rose-900 text-rose-300 text-xs font-mono">
+              {evalError}
+            </div>
+          )}
+
+          {activeVideoId && (
+            <div className="p-3 rounded-panel bg-[#111827] border border-[#243149] space-y-2">
+              <div className="flex items-center justify-between text-xs font-mono text-slate-400">
+                <span>Previewing clip @ {activeVideoTime.toFixed(1)}s</span>
+                <button
+                  type="button"
+                  onClick={() => setActiveVideoId(null)}
+                  className="text-slate-400 hover:text-white text-xs font-mono"
+                >
+                  âœ• Close Preview
+                </button>
+              </div>
+              <video
+                ref={videoPlayerRef}
+                controls
+                src={`${getVideoStreamUrl(activeVideoId)}#t=${activeVideoTime}`}
+                className="w-full max-h-64 object-contain rounded bg-black"
+              />
+            </div>
+          )}
+
+          {/* ML Benchmark Report */}
+          {evalReport && (
+            <div
+              data-testid="eval-benchmark-report"
+              className="p-4 rounded-panel bg-[#111827] border border-emerald-900/60 space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-emerald-400 font-mono">
+                  Stage-1 vs Stage-2 Benchmark Evaluation Report ({evalReport.num_queries} queries)
+                </h3>
+                <div className="flex items-center gap-3 text-xs font-mono">
+                  <span className="text-emerald-400 font-bold">
+                    MRR: +{evalReport.improvement_mrr_percent.toFixed(1)}%
+                  </span>
+                  <span className="text-emerald-400 font-bold">
+                    NDCG: +{evalReport.improvement_ndcg_percent.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left font-mono text-xs border border-[#172338] rounded-lg">
+                  <thead className="bg-[#090e18] text-slate-400">
+                    <tr>
+                      <th className="p-2 border-b border-[#172338]">Metric</th>
+                      <th className="p-2 border-b border-[#172338]">Stage-1 Bi-Encoder</th>
+                      <th className="p-2 border-b border-[#172338]">Stage-2 Cross-Encoder</th>
+                      <th className="p-2 border-b border-[#172338]">Delta</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#172338] text-slate-300">
+                    <tr>
+                      <td className="p-2 font-medium text-slate-200">MRR@10</td>
+                      <td className="p-2">{evalReport.stage1_biencoder_metrics.mrr_at_10.toFixed(4)}</td>
+                      <td className="p-2 text-emerald-400 font-bold">
+                        {evalReport.stage2_crossencoder_metrics.mrr_at_10.toFixed(4)}
+                      </td>
+                      <td className="p-2 font-semibold text-emerald-400">
+                        +{evalReport.improvement_mrr_percent.toFixed(1)}%
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="p-2 font-medium text-slate-200">NDCG@10</td>
+                      <td className="p-2">{evalReport.stage1_biencoder_metrics.ndcg_at_10.toFixed(4)}</td>
+                      <td className="p-2 text-emerald-400 font-bold">
+                        {evalReport.stage2_crossencoder_metrics.ndcg_at_10.toFixed(4)}
+                      </td>
+                      <td className="p-2 font-semibold text-emerald-400">
+                        +{evalReport.improvement_ndcg_percent.toFixed(1)}%
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Search Results Section */}
+          {searchResponse && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-3 text-xs text-slate-400 font-mono bg-[#090e18] p-3 rounded-lg border border-[#172338]">
+                <div>
+                  Retrieved <span className="text-white font-medium">{searchResponse.total_results}</span>{" "}
+                  candidate windows in <span className="text-white">{searchResponse.total_ms.toFixed(1)}ms</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-slate-500 text-[11px] mr-1">Channel:</span>
+                  {(["all", "speech", "visual", "multimodal"] as const).map((ch) => (
+                    <button
+                      key={ch}
+                      type="button"
+                      onClick={() => setChannelFilter(ch)}
+                      className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors ${
+                        channelFilter === ch
+                          ? "bg-slate-100 text-slate-950 font-bold"
+                          : "text-slate-400 hover:text-slate-200 bg-[#0d1424]"
+                      }`}
+                    >
+                      {ch === "all" ? "All Channels" : ch === "visual" ? "Visual OCR" : ch === "speech" ? "Speech ASR" : "Multimodal"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {filteredResults.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-400 font-mono bg-[#111827] rounded-panel border border-[#243149]">
+                  No matching video chunks found for &quot;{searchResponse.query}&quot;.
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {filteredResults.map((item, idx) => (
+                    <div
+                      key={item.embedding_id || idx}
+                      className="p-4 rounded-panel bg-[#111827] border border-[#243149] space-y-2.5 hover:border-[#334366] transition-colors"
+                    >
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-xs text-white">{item.filename}</span>
+                          <span className="px-2 py-0.5 rounded bg-[#060911] border border-[#172338] text-[11px] font-mono text-slate-300">
+                            [{item.start_time.toFixed(1)}s - {item.end_time.toFixed(1)}s]
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-[11px] font-mono text-slate-400">
+                            RRF: <span className="text-slate-200">{item.stage1_score.toFixed(4)}</span>
+                          </span>
+                          <span className="text-[11px] font-mono text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/60 font-semibold">
+                            {item.rerank_score.toFixed(4)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => jumpToClip(item.video_id, item.start_time)}
+                            className="px-2.5 py-1 bg-slate-100 hover:bg-white text-slate-950 rounded text-xs font-mono font-medium"
+                          >
+                            Play Preview
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => copyQuote(item)}
+                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-mono border border-slate-700"
+                          >
+                            {copiedSnippetId === `${item.start_time}` ? "Copied!" : "Copy Quote"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleExportClip(item.video_id, item.start_time, item.end_time)}
+                            disabled={exportingClipKey === `${item.video_id}-${item.start_time.toFixed(1)}-${item.end_time.toFixed(1)}`}
+                            className="px-2.5 py-1 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 rounded text-xs font-mono border border-emerald-800/80 disabled:opacity-50"
+                          >
+                            {exportingClipKey === `${item.video_id}-${item.start_time.toFixed(1)}-${item.end_time.toFixed(1)}` ? "Exporting..." : "Export Clip"}
+                          </button>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-slate-300 leading-relaxed font-sans bg-[#060911] p-2.5 rounded border border-[#172338]">
+                        &quot;{item.chunk_text}&quot;
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Grounded Q&A Section */}
+          <div className="p-5 rounded-panel bg-[#111827] border border-[#243149] space-y-4">
+            <div className="flex items-center justify-between border-b border-[#243149] pb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-[#F5F7FB]">
+                  Grounded Video Q&amp;A (Citations Linked to Timestamp)
+                </h3>
+                <p className="text-xs text-[#A2AEC0]">
+                  Synthesize verifiable answers strictly backed by retrieved video transcripts and scenes.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-mono text-slate-400">Provider:</span>
+                <select
+                  value={qaProvider}
+                  onChange={(e) => setQaProvider(e.target.value)}
+                  className="px-2 py-1 rounded bg-[#0B1019] border border-[#243149] text-xs font-mono text-white"
+                >
+                  <option value="local">local (100% on-device)</option>
+                  <option value="google-gemini">google-gemini</option>
+                  <option value="openai">openai</option>
+                  <option value="anthropic">anthropic</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
               <input
                 type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Enter natural language query (e.g. 'explain vector database indexing')..."
-                className="w-full bg-[#090e18] border border-[#172338] rounded-lg px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none transition-colors duration-150"
-                aria-label="Search query"
+                value={qaQuery}
+                onChange={(e) => setQaQuery(e.target.value)}
+                placeholder="Ask any question about your media archive..."
+                className="flex-1 px-3 py-2 rounded bg-[#0B1019] border border-[#243149] text-xs text-white focus:outline-none"
               />
-              <span className="absolute right-3 top-2.5 px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-400 border border-slate-700 select-none">
-                /
-              </span>
+              <button
+                type="button"
+                onClick={() => handleAskQuestion()}
+                disabled={askingQa || !qaQuery.trim()}
+                className="px-4 py-2 rounded bg-[#9B8CFF] text-[#080B12] text-xs font-semibold font-mono disabled:opacity-50"
+              >
+                {askingQa ? "Answering..." : "Ask AI"}
+              </button>
             </div>
-            <button
-              type="submit"
-              disabled={searching || !query.trim()}
-              className="px-5 py-2.5 bg-slate-100 hover:bg-white text-slate-950 rounded-lg text-xs font-semibold disabled:opacity-50 transition-colors duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
-            >
-              {searching ? "Searching..." : "Search"}
-            </button>
-          </div>
 
-          {/* Quick Query Suggestion Chips & Stage-2 Toggle */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] font-mono text-slate-500">Suggestions:</span>
-              {SUGGESTIONS.map((sug) => (
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-mono text-slate-400">
+              <span>Presets:</span>
+              {QA_PRESETS.map((p) => (
                 <button
-                  key={sug}
+                  key={p}
                   type="button"
-                  onClick={() => {
-                    setQuery(sug);
-                    void executeSearch(sug);
-                  }}
-                  className="px-2 py-0.5 rounded bg-[#090e18] hover:bg-slate-800 border border-[#172338] text-[11px] font-mono text-slate-400 hover:text-slate-200 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
+                  onClick={() => void handleAskQuestion(p)}
+                  className="px-2 py-0.5 rounded bg-[#0B1019] hover:bg-[#172235] text-slate-300 border border-[#243149] transition-colors"
                 >
-                  {sug}
+                  {p}
                 </button>
               ))}
             </div>
 
-            <label className="flex items-center gap-2 text-slate-300 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={useReranker}
-                onChange={(e) => setUseReranker(e.target.checked)}
-                className="rounded border-slate-700 bg-slate-800 text-slate-200 focus-visible:ring-2 focus-visible:ring-slate-400"
-              />
-              <span className="text-xs">Enable Stage-2 Cross-Encoder Re-Ranking</span>
-            </label>
-          </div>
-        </form>
-      </div>
+            {qaError && (
+              <div className="p-2 rounded bg-rose-950/40 border border-rose-900 text-rose-300 text-xs font-mono">
+                {qaError}
+              </div>
+            )}
 
-      {/* Grounded Video Q&A Assistant Bar */}
-      <div className="arova-surface p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-cyan-400" />
-            <span className="text-xs font-semibold text-slate-200">
-              Ask Video Archive (Grounded AI Q&amp;A)
-            </span>
+            {qaResponse && (
+              <div className="p-4 rounded bg-[#0B1019] border border-[#243149] space-y-3 text-xs">
+                <div className="flex items-center justify-between text-[#9B8CFF] font-semibold">
+                  <span>Synthesized Answer</span>
+                  <span className="text-[10px] font-mono text-slate-400">{qaResponse.model_name}</span>
+                </div>
+                <p className="text-slate-200 leading-relaxed font-sans">{qaResponse.answer}</p>
+
+                {qaResponse.citations?.length > 0 && (
+                  <div className="pt-2 border-t border-[#243149] space-y-1.5">
+                    <span className="text-[11px] font-mono text-slate-400">Grounding Citations:</span>
+                    {qaResponse.citations.map((c, i) => (
+                      <div
+                        key={i}
+                        className="p-2 rounded bg-[#111827] border border-[#243149] flex items-center justify-between font-mono text-[11px]"
+                      >
+                        <span className="text-slate-300 truncate max-w-md">{c.snippet}</span>
+                        <span className="text-[#51DCC8] shrink-0">
+                          {c.filename} [{c.timestamp_label}]
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-          <span className="text-[11px] font-mono text-slate-400">
-            Strictly cites real timecodes with live video seek
-          </span>
         </div>
+      )}
 
-        {/* Preset Question Pills */}
-        <div className="flex flex-wrap gap-1.5">
-          {QA_PRESETS.map((p, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => void handleAskQuestion(p)}
-              className="px-2.5 py-1 rounded bg-[#060911] hover:bg-[#0d1424] border border-[#172338] text-[11px] font-mono text-slate-300 hover:text-white transition-colors"
-            >
-              &quot;{p}&quot;
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={(e) => { e.preventDefault(); void handleAskQuestion(); }} className="flex gap-2">
-          <input
-            type="text"
-            value={qaQuery}
-            onChange={(e) => setQaQuery(e.target.value)}
-            placeholder="Ask anything about what was spoken or shown on screen..."
-            aria-label="Ask video question"
-            className="flex-1 bg-[#090e18] border border-[#172338] rounded-lg px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={askingQa || !qaQuery.trim()}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium disabled:opacity-50 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
-          >
-            {askingQa ? "Synthesizing..." : "Ask Archive"}
-          </button>
-        </form>
-
-        {qaError && (
-          <div className="border border-rose-900/50 bg-rose-950/20 rounded-lg p-3 text-xs text-rose-300 font-mono">
-            {qaError}
-          </div>
-        )}
-
-        {qaResponse && (
-          <div className="p-3.5 rounded-lg border border-[#172338] bg-[#090e18] space-y-2.5">
-            <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 border-b border-[#172338] pb-1.5">
-              <span>Answer grounded in {qaResponse.citations.length} video segment(s)</span>
-              <span className="text-emerald-400">Model: {qaResponse.model_name}</span>
+      {/* TAB 2: SMART LOOP AUTONOMOUS AGENT */}
+      {activeTab === "smart-loop" && (
+        <div className="p-5 rounded-panel bg-[#111827] border border-[#243149] space-y-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#9B8CFF]/10 text-[#9B8CFF] border border-[#9B8CFF]/30">
+                STEP 7 MULTI-TURN AGENT
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#172235] text-slate-400 border border-[#243149]">
+                AUTONOMOUS REASONING LOOP
+              </span>
             </div>
-            <p className="text-xs text-slate-200 leading-relaxed font-sans whitespace-pre-line">
-              {qaResponse.answer}
+            <h2 className="text-lg font-semibold text-[#F5F7FB] mt-1">Smart Loop Agent Runner</h2>
+            <p className="text-xs text-[#A2AEC0]">
+              Goal-directed multi-turn tool execution loop. The agent reasons, selects tools (search, transcript,
+              metadata, clips), executes them autonomously, and synthesizes grounded answers.
             </p>
-            {qaResponse.citations.length > 0 && (
-              <div className="space-y-1.5 pt-1">
-                <span className="text-[11px] font-mono text-slate-400 block">Video Citations:</span>
-                <div className="flex flex-wrap gap-2">
-                  {qaResponse.citations.map((c, i) => (
-                    <div key={i} className="inline-flex items-center gap-1 rounded bg-[#0d1424] border border-[#172338] pr-1">
-                      <button
-                        type="button"
-                        onClick={() => jumpToClip(c.video_id, c.start_time)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono text-slate-300 hover:text-white transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
-                      >
-                        <span className="text-emerald-400 font-medium">[{c.timestamp_label}]</span>
-                        <span className="truncate max-w-[140px]">{c.filename}</span>
-                        <span className="text-[10px] text-slate-500">({c.match_channel})</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleExportClip(c.video_id, c.start_time, c.end_time)}
-                        disabled={exportingClipKey === `${c.video_id}-${c.start_time.toFixed(1)}-${c.end_time.toFixed(1)}`}
-                        className="px-1.5 py-0.5 rounded bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-800/60 text-[10px] font-mono text-emerald-300"
-                        title="Export clip segment"
-                      >
-                        {exportingClipKey === `${c.video_id}-${c.start_time.toFixed(1)}-${c.end_time.toFixed(1)}` ? "..." : "Export"}
-                      </button>
+          </div>
+
+          <form onSubmit={handleRunSmartLoop} className="space-y-3 font-sans">
+            <div className="space-y-1">
+              <label className="text-xs text-slate-300 font-medium">Goal Instruction / Query:</label>
+              <textarea
+                rows={3}
+                required
+                value={agentQuery}
+                onChange={(e) => setAgentQuery(e.target.value)}
+                placeholder="e.g. Find where the speaker introduces the vector database, verify the exact timecode, and summarize the key argument."
+                className="w-full px-3 py-2 rounded bg-[#0B1019] border border-[#243149] text-xs text-white focus:outline-none font-sans"
+              />
+            </div>
+
+            <div className="flex items-center gap-4 text-xs font-mono">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400">Max Iterations:</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={agentTurns}
+                  onChange={(e) => setAgentTurns(parseInt(e.target.value, 10))}
+                  className="w-16 px-2 py-1 rounded bg-[#0B1019] border border-[#243149] text-white"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={runningAgent || !agentQuery.trim()}
+                className="px-5 py-2 rounded-control bg-[#9B8CFF] hover:bg-[#8b7aee] text-[#080B12] text-xs font-semibold font-mono disabled:opacity-50"
+              >
+                {runningAgent ? "Executing Autonomous Loop..." : "Run Smart Loop Agent"}
+              </button>
+            </div>
+          </form>
+
+          {agentError && (
+            <div className="p-3 rounded bg-rose-950/40 border border-rose-900 text-rose-300 text-xs font-mono">
+              {agentError}
+            </div>
+          )}
+
+          {agentResult && (
+            <div className="space-y-4 pt-3 border-t border-[#243149]">
+              <div className="p-4 rounded bg-[#0B1019] border border-[#243149] space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold text-[#51DCC8]">
+                  <span>Autonomous Synthesis Final Answer</span>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    {agentResult.total_steps} Steps Â· {agentResult.latency_ms.toFixed(0)}ms
+                  </span>
+                </div>
+                <p className="text-xs text-slate-200 leading-relaxed font-sans">{agentResult.final_answer}</p>
+              </div>
+
+              {/* Multi-turn Execution Steps */}
+              <div className="space-y-2">
+                <h3 className="text-xs font-semibold text-slate-300 font-mono">Autonomous Execution Trace</h3>
+                <div className="space-y-2">
+                  {agentResult.steps.map((st) => (
+                    <div
+                      key={st.step}
+                      className="p-3 rounded bg-[#0B1019] border border-[#243149] space-y-1.5 text-xs font-mono"
+                    >
+                      <div className="flex items-center justify-between text-[#9B8CFF]">
+                        <span className="font-semibold">
+                          Step #{st.step}: Executed {st.tool}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        Arguments: {JSON.stringify(st.arguments)}
+                      </div>
+                      <p className="text-slate-300 font-sans text-xs bg-[#111827] p-2 rounded border border-[#243149]">
+                        {st.result_summary}
+                      </p>
                     </div>
                   ))}
                 </div>
               </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Errors */}
-      {searchError && (
-        <div className="border border-rose-900/50 bg-rose-950/20 rounded-lg p-3 text-xs text-rose-300 font-mono flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
-          <span>{searchError}</span>
-        </div>
-      )}
-
-      {evalError && (
-        <div className="border border-rose-900/50 bg-rose-950/20 rounded-lg p-3 text-xs text-rose-300 font-mono flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
-          <span>{evalError}</span>
-        </div>
-      )}
-
-      {/* Video Player Preview HUD (Floating / Side-by-Side) */}
-      {activeVideoId && (
-        <div className="arova-surface p-4 space-y-3">
-          <div className="flex items-center justify-between text-xs font-mono text-slate-300">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Studio Clip Preview at {activeVideoTime.toFixed(1)}s</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveVideoId(null)}
-              className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-mono border border-slate-700 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
-            >
-              Close
-            </button>
-          </div>
-          <video
-            ref={videoPlayerRef}
-            src={getVideoStreamUrl(activeVideoId)}
-            controls
-            autoPlay
-            className="w-full max-h-96 rounded-lg bg-black border border-[#172338]"
-            onLoadedMetadata={() => {
-              if (videoPlayerRef.current) {
-                videoPlayerRef.current.currentTime = activeVideoTime;
-              }
-            }}
-          />
-        </div>
-      )}
-
-      {/* ML Evaluation Benchmark Results Table */}
-      {evalReport && (
-        <div data-testid="eval-benchmark-report" className="arova-surface p-5 space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div>
-              <h3 className="text-xs font-semibold text-slate-100">
-                ML Evaluation Benchmark: Stage-1 (Bi-Encoder) vs Stage-2 (Cross-Encoder)
-              </h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Evaluated across {evalReport.num_queries} golden test queries with ground-truth relevance.
-              </p>
-            </div>
-            <div className="flex gap-2 font-mono text-xs">
-              <span className="px-2.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-400">
-                MRR: +{evalReport.improvement_mrr_percent.toFixed(1)}%
-              </span>
-              <span className="px-2.5 py-0.5 rounded bg-[#090e18] border border-[#172338] text-slate-300">
-                NDCG: +{evalReport.improvement_ndcg_percent.toFixed(1)}%
-              </span>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left font-mono text-xs border border-[#172338] rounded-lg overflow-hidden">
-              <thead className="bg-[#090e18] text-slate-400 text-xs">
-                <tr>
-                  <th className="p-2.5 border-b border-[#172338] font-medium">Metric</th>
-                  <th className="p-2.5 border-b border-[#172338] font-medium">Stage-1 (Bi-Encoder + FTS5)</th>
-                  <th className="p-2.5 border-b border-[#172338] font-medium">Stage-2 (Cross-Encoder Re-ranked)</th>
-                  <th className="p-2.5 border-b border-[#172338] font-medium">Relative Delta</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#172338] text-slate-300">
-                <tr className="bg-[#060911]/40">
-                  <td className="p-2.5 font-medium text-slate-200">MRR@10</td>
-                  <td className="p-2.5">{evalReport.stage1_biencoder_metrics.mrr_at_10.toFixed(4)}</td>
-                  <td className="p-2.5 text-emerald-400 font-bold">{evalReport.stage2_crossencoder_metrics.mrr_at_10.toFixed(4)}</td>
-                  <td className="p-2.5 font-semibold text-emerald-400">+{evalReport.improvement_mrr_percent.toFixed(1)}%</td>
-                </tr>
-                <tr>
-                  <td className="p-2.5 font-medium text-slate-200">NDCG@10</td>
-                  <td className="p-2.5">{evalReport.stage1_biencoder_metrics.ndcg_at_10.toFixed(4)}</td>
-                  <td className="p-2.5 text-emerald-400 font-bold">{evalReport.stage2_crossencoder_metrics.ndcg_at_10.toFixed(4)}</td>
-                  <td className="p-2.5 font-semibold text-emerald-400">+{evalReport.improvement_ndcg_percent.toFixed(1)}%</td>
-                </tr>
-                <tr className="bg-[#060911]/40">
-                  <td className="p-2.5">Recall@1</td>
-                  <td className="p-2.5">{evalReport.stage1_biencoder_metrics.recall_at_1.toFixed(4)}</td>
-                  <td className="p-2.5">{evalReport.stage2_crossencoder_metrics.recall_at_1.toFixed(4)}</td>
-                  <td className="p-2.5">-</td>
-                </tr>
-                <tr>
-                  <td className="p-2.5">Recall@3</td>
-                  <td className="p-2.5">{evalReport.stage1_biencoder_metrics.recall_at_3.toFixed(4)}</td>
-                  <td className="p-2.5">{evalReport.stage2_crossencoder_metrics.recall_at_3.toFixed(4)}</td>
-                  <td className="p-2.5">-</td>
-                </tr>
-                <tr className="bg-[#060911]/40">
-                  <td className="p-2.5">Recall@5</td>
-                  <td className="p-2.5">{evalReport.stage1_biencoder_metrics.recall_at_5.toFixed(4)}</td>
-                  <td className="p-2.5">{evalReport.stage2_crossencoder_metrics.recall_at_5.toFixed(4)}</td>
-                  <td className="p-2.5">-</td>
-                </tr>
-                <tr>
-                  <td className="p-2.5">Recall@10</td>
-                  <td className="p-2.5">{evalReport.stage1_biencoder_metrics.recall_at_10.toFixed(4)}</td>
-                  <td className="p-2.5">{evalReport.stage2_crossencoder_metrics.recall_at_10.toFixed(4)}</td>
-                  <td className="p-2.5">-</td>
-                </tr>
-                <tr className="bg-[#060911]/40">
-                  <td className="p-2.5">Latency p50 / p95 (ms)</td>
-                  <td className="p-2.5">
-                    {evalReport.stage1_latency_ms.p50.toFixed(1)} / {evalReport.stage1_latency_ms.p95.toFixed(1)} ms
-                  </td>
-                  <td className="p-2.5 text-slate-300">
-                    {evalReport.stage2_latency_ms.p50.toFixed(1)} / {evalReport.stage2_latency_ms.p95.toFixed(1)} ms
-                  </td>
-                  <td className="p-2.5 text-slate-400">Joint Cross-Attention</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Search Results Section */}
-      {searchResponse && (
-        <div className="space-y-3">
-          {/* Results Summary Bar + Channel Filters */}
-          <div className="flex items-center justify-between flex-wrap gap-3 text-xs text-slate-400 font-mono bg-[#090e18] p-3 rounded-lg border border-[#172338]">
-            <div className="flex items-center gap-2">
-              <span>
-                Retrieved <span className="text-white font-medium">{searchResponse.total_results}</span> candidate windows in <span className="text-white">{searchResponse.total_ms.toFixed(1)}ms</span>
-              </span>
-              <span className="text-slate-600">·</span>
-              <span className="text-[11px] text-slate-500">
-                Stage-1: {searchResponse.stage1_ms.toFixed(1)}ms · Stage-2 Rerank: {searchResponse.stage2_rerank_ms.toFixed(1)}ms
-              </span>
-            </div>
-
-            {/* Channel Filters */}
-            <div className="flex items-center gap-1">
-              <span className="text-slate-500 text-[11px] mr-1">Channel:</span>
-              {(["all", "speech", "visual", "multimodal"] as const).map((ch) => (
-                <button
-                  key={ch}
-                  type="button"
-                  onClick={() => setChannelFilter(ch)}
-                  className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors ${
-                    channelFilter === ch
-                      ? "bg-slate-100 text-slate-950 font-bold"
-                      : "text-slate-400 hover:text-slate-200 bg-[#0d1424]"
-                  }`}
-                >
-                  {ch === "all" ? "All Channels" : ch === "visual" ? "Visual OCR" : ch === "speech" ? "Speech ASR" : "Multimodal"}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {filteredResults.length === 0 ? (
-            <div className="arova-surface border-dashed border-[#172338] p-8 text-center text-xs text-slate-400 space-y-1">
-              <p className="font-medium text-slate-300">No matching video chunks found for &quot;{searchResponse.query}&quot;.</p>
-              <p className="text-[11px] text-slate-500 font-mono">Try indexing more videos or broadening your query.</p>
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              {filteredResults.map((item, idx) => (
-                <div
-                  key={item.embedding_id || idx}
-                  className="arova-surface p-4 space-y-2.5 hover:border-[#253654] transition-colors"
-                >
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-xs text-white">{item.filename}</span>
-                      <span className="px-2 py-0.5 rounded bg-[#060911] border border-[#172338] text-[11px] font-mono text-slate-300">
-                        [{item.start_time.toFixed(1)}s - {item.end_time.toFixed(1)}s]
-                      </span>
-                      {item.match_channel === "visual" ? (
-                        <span className="px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-800/60 text-[10px] font-mono text-cyan-300">
-                          Visual OCR
-                        </span>
-                      ) : item.match_channel === "multimodal" ? (
-                        <span className="px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800/60 text-[10px] font-mono text-emerald-300">
-                          Multimodal
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded bg-[#060911] border border-[#172338] text-[10px] font-mono text-slate-400">
-                          Speech ASR
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-[11px] font-mono text-slate-400">
-                        RRF: <span className="text-slate-200">{item.stage1_score.toFixed(4)}</span>
-                      </span>
-                      <span className="text-[11px] font-mono text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/60">
-                        Cross-Encoder: <span className="font-semibold">{item.rerank_score.toFixed(4)}</span>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => jumpToClip(item.video_id, item.start_time)}
-                        className="px-2.5 py-1 bg-slate-100 hover:bg-white text-slate-950 rounded text-xs font-mono font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
-                      >
-                        Play Preview
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => copyQuote(item)}
-                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-mono border border-slate-700 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
-                      >
-                        {copiedSnippetId === `${item.start_time}` ? "Copied!" : "Copy Quote"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleExportClip(item.video_id, item.start_time, item.end_time)}
-                        disabled={exportingClipKey === `${item.video_id}-${item.start_time.toFixed(1)}-${item.end_time.toFixed(1)}`}
-                        className="px-2.5 py-1 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 rounded text-xs font-mono border border-emerald-800/80 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:outline-none disabled:opacity-50"
-                      >
-                        {exportingClipKey === `${item.video_id}-${item.start_time.toFixed(1)}-${item.end_time.toFixed(1)}` ? "Exporting..." : "Export Clip"}
-                      </button>
-
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-slate-300 leading-relaxed font-sans bg-[#060911] p-2.5 rounded border border-[#172338]">
-                    &quot;{item.chunk_text}&quot;
-                  </p>
-                </div>
-              ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* TAB 3: SHARED TOOL EXPLORER */}
+      {activeTab === "tools" && (
+        <div className="p-5 rounded-panel bg-[#111827] border border-[#243149] space-y-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#51DCC8]/10 text-[#51DCC8] border border-[#51DCC8]/30">
+                SHARED TOOL EXECUTION ENGINE
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#172235] text-slate-400 border border-[#243149]">
+                READ-ONLY AGENT TOOLS
+              </span>
+            </div>
+            <h2 className="text-lg font-semibold text-[#F5F7FB] mt-1">Shared Tool Catalog &amp; Console</h2>
+            <p className="text-xs text-[#A2AEC0]">
+              Shared tool execution runtime unified across AI Agents, FastMCP, and the Workstation UI.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Tool Selection List */}
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold text-slate-300">Registered Tools ({tools.length})</h3>
+              <div className="space-y-1 max-h-96 overflow-y-auto">
+                {tools.map((t) => (
+                  <div
+                    key={t.name}
+                    onClick={() => {
+                      setSelectedTool(t.name);
+                      setToolArgsJson(JSON.stringify({}, null, 2));
+                    }}
+                    className={`p-2.5 rounded cursor-pointer text-xs font-mono transition-colors ${
+                      selectedTool === t.name
+                        ? "bg-[#172235] text-[#9B8CFF] border border-[#9B8CFF]/40"
+                        : "bg-[#0B1019] text-slate-300 hover:bg-[#172235]/60 border border-[#243149]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">{t.name}</span>
+                      <span
+                        className={`text-[9px] px-1 py-0.2 rounded uppercase ${
+                          t.read_only ? "bg-emerald-950 text-emerald-300" : "bg-amber-950 text-amber-300"
+                        }`}
+                      >
+                        {t.read_only ? "Read Only" : "Gated Write"}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1 truncate">{t.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Tool Runner Console */}
+            <div className="lg:col-span-2 space-y-4">
+              {selectedTool ? (
+                <form onSubmit={handleExecuteTool} className="space-y-3 font-sans">
+                  <div className="flex items-center justify-between text-xs border-b border-[#243149] pb-2">
+                    <span className="font-semibold text-white font-mono">Execute: {selectedTool}</span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-300 font-mono">Arguments JSON Payload:</label>
+                    <textarea
+                      rows={4}
+                      value={toolArgsJson}
+                      onChange={(e) => setToolArgsJson(e.target.value)}
+                      className="w-full px-3 py-2 rounded bg-[#0B1019] border border-[#243149] text-xs font-mono text-[#51DCC8] focus:outline-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={executingTool}
+                    className="px-4 py-1.5 rounded bg-[#9B8CFF] text-[#080B12] text-xs font-semibold font-mono disabled:opacity-50"
+                  >
+                    {executingTool ? "Executing Tool..." : "Run Tool In Enclave"}
+                  </button>
+
+                  {toolResult && (
+                    <div className="p-3 rounded bg-[#0B1019] border border-[#243149] space-y-1 text-xs font-mono">
+                      <div className="flex items-center justify-between text-slate-400">
+                        <span className="text-[#51DCC8] font-semibold">Result</span>
+                        <span>Latency: {toolResult.latency_ms.toFixed(1)}ms</span>
+                      </div>
+                      <pre className="p-2 rounded bg-[#080B12] text-slate-200 overflow-x-auto max-h-60 text-[11px]">
+                        {JSON.stringify(toolResult.result, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+
+                  {toolError && (
+                    <div className="p-2.5 rounded bg-rose-950/40 border border-rose-900 text-rose-300 text-xs font-mono">
+                      {toolError}
+                    </div>
+                  )}
+                </form>
+              ) : (
+                <div className="p-8 text-center text-xs text-slate-500 font-mono">
+                  Select a tool on the left to inspect its parameters and execute it.
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

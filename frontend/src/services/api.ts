@@ -65,8 +65,8 @@ export interface VideoSceneItem {
 
 const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
-export async function fetchHealth(signal?: AbortSignal): Promise<HealthResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/health`, { signal });
+export async function fetchHealth(_signal?: AbortSignal): Promise<HealthResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/health`);
   if (!res.ok) {
     throw new Error(`Health check failed with HTTP ${res.status}`);
   }
@@ -574,4 +574,703 @@ export async function fetchDatabaseRelationships(token: string): Promise<Databas
   }
   return res.json() as Promise<DatabaseRelationships>;
 }
+
+// ---------------------------------------------------------------------------
+// Single Video & Subtitles
+// ---------------------------------------------------------------------------
+
+export async function fetchVideo(videoId: string): Promise<VideoItem> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/videos/${encodeURIComponent(videoId)}`);
+  if (!res.ok) {
+    throw new Error(`Failed to load video (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<VideoItem>;
+}
+
+export async function uploadVideoSubtitles(
+  videoId: string,
+  content: string,
+  filename = "subtitles.srt",
+  language = "en"
+): Promise<TranscriptItem> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/videos/${encodeURIComponent(videoId)}/subtitles`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content, filename, language }),
+    }
+  );
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Subtitle ingestion failed (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<TranscriptItem>;
+}
+
+export async function addVideoToCollection(
+  collectionId: string,
+  videoId: string
+): Promise<CollectionItem> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/collections/${encodeURIComponent(collectionId)}/videos`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ video_id: videoId }),
+    }
+  );
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Failed to add video to collection (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<CollectionItem>;
+}
+
+// ---------------------------------------------------------------------------
+// Task 4B: Discovery Roots & Scans
+// ---------------------------------------------------------------------------
+
+export interface DiscoveryLibrary {
+  id: string;
+  label: string;
+  execution_profile: string;
+  created_at: string;
+  roots_count: number;
+}
+
+export interface DiscoveryRoot {
+  id: string;
+  library_id: string;
+  label: string;
+  root_type: string;
+  volume_id: string | null;
+  marker_id: string | null;
+  policy: string;
+  status: string;
+  last_scan_at: string | null;
+  locations_count: number;
+}
+
+export interface ScanRun {
+  id: string;
+  root_id: string;
+  status: string;
+  started_at: string;
+  finished_at: string | null;
+  checkpoint: string | null;
+  counts: {
+    scanned_files?: number;
+    discovered_media?: number;
+    new_assets?: number;
+    new_versions?: number;
+    new_locations?: number;
+    updated_locations?: number;
+    missing_locations?: number;
+    relocated_locations?: number;
+    errors?: number;
+  };
+}
+
+export async function fetchDiscoveryLibraries(): Promise<DiscoveryLibrary[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/discovery/libraries`);
+  if (!res.ok) {
+    throw new Error(`Failed to load discovery libraries (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<DiscoveryLibrary[]>;
+}
+
+export async function createDiscoveryLibrary(
+  label: string,
+  executionProfile = "fully_offline_no_ai"
+): Promise<DiscoveryLibrary> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/discovery/libraries`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ label, execution_profile: executionProfile }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Failed to create library (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<DiscoveryLibrary>;
+}
+
+export async function fetchDiscoveryRoots(libraryId?: string): Promise<DiscoveryRoot[]> {
+  if (libraryId) {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/discovery/libraries/${encodeURIComponent(libraryId)}/roots`
+    );
+    if (!res.ok) throw new Error(`Failed to load discovery roots (HTTP ${res.status})`);
+    return res.json() as Promise<DiscoveryRoot[]>;
+  }
+  const libs = await fetchDiscoveryLibraries();
+  if (libs.length === 0) return [];
+  const rootsNested = await Promise.all(
+    libs.map(async (l) => {
+      const res = await fetch(
+        `${API_BASE_URL}/api/v1/discovery/libraries/${encodeURIComponent(l.id)}/roots`
+      );
+      return res.ok ? ((await res.json()) as DiscoveryRoot[]) : [];
+    })
+  );
+  return rootsNested.flat();
+}
+
+export async function registerDiscoveryRoot(
+  libraryId: string,
+  path: string,
+  policy = "local_only",
+  label?: string
+): Promise<DiscoveryRoot> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/discovery/libraries/${encodeURIComponent(libraryId)}/roots`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        path,
+        policy,
+        label: label || null,
+        root_type: "local_fixed",
+      }),
+    }
+  );
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Failed to register root (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<DiscoveryRoot>;
+}
+
+export async function scanDiscoveryRoot(rootId: string): Promise<ScanRun> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/discovery/libraries/roots/${encodeURIComponent(rootId)}/scan`,
+    { method: "POST" }
+  );
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Scan execution failed (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<ScanRun>;
+}
+
+export async function fetchScanRuns(rootId: string): Promise<ScanRun[]> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/discovery/libraries/roots/${encodeURIComponent(rootId)}/scans`
+  );
+  if (!res.ok) throw new Error(`Failed to fetch scan runs (HTTP ${res.status})`);
+  return res.json() as Promise<ScanRun[]>;
+}
+
+// ---------------------------------------------------------------------------
+// Task 4C: Resumable DAG Jobs & Stages
+// ---------------------------------------------------------------------------
+
+export interface ProcessingJob {
+  id: string;
+  video_id: string;
+  job_type: string;
+  status: string;
+  progress: number;
+  error_message: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface StageRun {
+  id: string;
+  version_id: string;
+  stage: string;
+  fingerprint: string;
+  status: string;
+  skip_reason: string | null;
+  attempt: number;
+  lease_until: string | null;
+  heartbeat_at: string | null;
+  error_code: string | null;
+  error_detail: string | null;
+  output_ref: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface StageArtifact {
+  id: string;
+  version_id: string;
+  kind: string;
+  producer_stage: string;
+  producer_model: string | null;
+  producer_revision: string | null;
+  config_hash: string | null;
+  is_current: boolean;
+  trust: string;
+  created_at: string;
+}
+
+export async function fetchJobs(status?: string, videoId?: string): Promise<ProcessingJob[]> {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (videoId) params.set("video_id", videoId);
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  const res = await fetch(`${API_BASE_URL}/api/v1/jobs${qs}`);
+  if (!res.ok) throw new Error(`Failed to load jobs (HTTP ${res.status})`);
+  return res.json() as Promise<ProcessingJob[]>;
+}
+
+export async function fetchJobDetails(jobId: string): Promise<ProcessingJob> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/jobs/${encodeURIComponent(jobId)}`);
+  if (!res.ok) throw new Error(`Failed to load job details (HTTP ${res.status})`);
+  return res.json() as Promise<ProcessingJob>;
+}
+
+export async function cancelJob(jobId: string): Promise<ProcessingJob> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/jobs/${encodeURIComponent(jobId)}/cancel`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`Failed to cancel job (HTTP ${res.status})`);
+  return res.json() as Promise<ProcessingJob>;
+}
+
+export async function resumeJob(jobId: string): Promise<ProcessingJob> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/jobs/${encodeURIComponent(jobId)}/resume`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`Failed to resume job (HTTP ${res.status})`);
+  return res.json() as Promise<ProcessingJob>;
+}
+
+export async function fetchJobStages(jobId: string): Promise<StageRun[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/jobs/${encodeURIComponent(jobId)}/stages`);
+  if (!res.ok) throw new Error(`Failed to load job stages (HTTP ${res.status})`);
+  return res.json() as Promise<StageRun[]>;
+}
+
+export async function fetchVersionArtifacts(versionId: string): Promise<StageArtifact[]> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/jobs/versions/${encodeURIComponent(versionId)}/artifacts`
+  );
+  if (!res.ok) throw new Error(`Failed to load version artifacts (HTTP ${res.status})`);
+  return res.json() as Promise<StageArtifact[]>;
+}
+
+// ---------------------------------------------------------------------------
+// Task 4D: Portable Media Memory, Availability & Relinking
+// ---------------------------------------------------------------------------
+
+export interface ExportSummary {
+  export_id: string;
+  format_version: string;
+  created_at: string;
+  archive_name: string;
+  file_size_bytes: number;
+  sha256: string;
+  records_count: Record<string, number>;
+}
+
+export interface ImportDryRunReport {
+  valid: boolean;
+  format_version: string;
+  export_id: string;
+  total_entries: number;
+  records_to_import: Record<string, number>;
+  matching_existing_records: Record<string, number>;
+  duplicate_conflicts: number;
+  proposed_id_remappings: number;
+  estimated_size_bytes: number;
+  warnings: string[];
+  errors: string[];
+}
+
+export interface ImportResult {
+  status: string;
+  export_id: string;
+  imported_counts: Record<string, number>;
+  remapped_count: number;
+  warnings: string[];
+  errors: string[];
+}
+
+export interface MediaAvailability {
+  version_id: string;
+  video_id: string | null;
+  availability: string;
+  can_play: boolean;
+  can_export: boolean;
+  file_path: string | null;
+  root_type: string | null;
+  last_seen_at: string | null;
+}
+
+export interface RelinkResponse {
+  version_id: string;
+  location_id: string;
+  status: string;
+  rel_path: string;
+  message: string;
+}
+
+export interface DuplicateLocation {
+  location_id: string;
+  root_id: string;
+  rel_path: string;
+  availability: string;
+  last_seen_at: string | null;
+}
+
+export interface DuplicateGroup {
+  sha256: string;
+  version_id: string;
+  size_bytes: number;
+  locations_count: number;
+  locations: DuplicateLocation[];
+}
+
+export interface AnnotationItem {
+  id: string;
+  target_type: string;
+  target_id: string;
+  author_type: string;
+  display_name: string;
+  trust: string;
+  ai_run_id: string | null;
+  body: string;
+  created_at: string;
+}
+
+export async function exportPortableArchive(payload: {
+  library_id?: string;
+  asset_ids?: string[];
+  include_artifacts?: boolean;
+}): Promise<ExportSummary> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/portable/export`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Export failed (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<ExportSummary>;
+}
+
+export async function dryRunPortableImport(archivePath: string): Promise<ImportDryRunReport> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/portable/import/dry-run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ archive_path: archivePath }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Dry-run preview failed (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<ImportDryRunReport>;
+}
+
+export async function importPortableArchive(
+  archivePath: string,
+  conflictPolicy = "skip"
+): Promise<ImportResult> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/portable/import`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ archive_path: archivePath, conflict_policy: conflictPolicy }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Import failed (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<ImportResult>;
+}
+
+export async function fetchMediaAvailability(versionId: string): Promise<MediaAvailability> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/versions/${encodeURIComponent(versionId)}/availability`
+  );
+  if (!res.ok) throw new Error(`Failed to load availability (HTTP ${res.status})`);
+  return res.json() as Promise<MediaAvailability>;
+}
+
+export async function relinkMediaAsset(
+  versionId: string,
+  newFilePath: string
+): Promise<RelinkResponse> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/versions/${encodeURIComponent(versionId)}/relink`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ version_id: versionId, new_file_path: newFilePath }),
+    }
+  );
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Relink failed (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<RelinkResponse>;
+}
+
+export async function fetchDuplicateMedia(): Promise<DuplicateGroup[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/libraries/duplicates`);
+  if (!res.ok) throw new Error(`Failed to load duplicate media (HTTP ${res.status})`);
+  return res.json() as Promise<DuplicateGroup[]>;
+}
+
+export async function fetchAnnotations(videoId?: string): Promise<AnnotationItem[]> {
+  const query = videoId ? `?video_id=${encodeURIComponent(videoId)}` : "";
+  const res = await fetch(`${API_BASE_URL}/api/v1/annotations${query}`);
+  if (!res.ok) throw new Error(`Failed to load annotations (HTTP ${res.status})`);
+  return res.json() as Promise<AnnotationItem[]>;
+}
+
+export async function createAnnotation(payload: {
+  target_type: string;
+  target_id: string;
+  display_name: string;
+  body: string;
+  author_type?: string;
+  trust?: string;
+}): Promise<AnnotationItem> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/annotations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      author_type: "human",
+      trust: "human_confirmed",
+      ...payload,
+    }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Failed to create annotation (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<AnnotationItem>;
+}
+
+export async function deleteAnnotation(annotationId: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/annotations/${encodeURIComponent(annotationId)}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`Failed to delete annotation (HTTP ${res.status})`);
+}
+
+// ---------------------------------------------------------------------------
+// Step 6: BYO-AI Provider Gateway & Consents
+// ---------------------------------------------------------------------------
+
+export interface AIProviderInfo {
+  id: string;
+  name: string;
+  configured: boolean;
+  local: boolean;
+  default_model: string;
+  available_models: string[];
+}
+
+export interface ProviderVerifyResponse {
+  provider: string;
+  status: "verified" | "error";
+  model: string;
+  message: string;
+  latency_ms: number;
+}
+
+export interface ConsentItem {
+  id: string;
+  provider: string;
+  scope_type: string;
+  scope_target_id: string | null;
+  purpose: string;
+  granted_by: string;
+  granted_at: string;
+  expires_at: string | null;
+  active: boolean;
+}
+
+export interface AIRunItem {
+  id: string;
+  provider: string;
+  model: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  latency_ms: number;
+  video_id: string | null;
+  task_id: string | null;
+  consent_id: string | null;
+  created_at: string;
+}
+
+export async function fetchAiProviders(): Promise<AIProviderInfo[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/ai/providers`);
+  if (!res.ok) throw new Error(`Failed to load AI providers (HTTP ${res.status})`);
+  return res.json() as Promise<AIProviderInfo[]>;
+}
+
+export async function verifyAiProvider(payload: {
+  provider: string;
+  api_key?: string;
+  base_url?: string;
+  model?: string;
+}): Promise<ProviderVerifyResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/ai/providers/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Provider verification failed (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<ProviderVerifyResponse>;
+}
+
+export async function fetchAiConsents(activeOnly = false): Promise<ConsentItem[]> {
+  const query = activeOnly ? "?active_only=true" : "";
+  const res = await fetch(`${API_BASE_URL}/api/v1/ai/consents${query}`);
+  if (!res.ok) throw new Error(`Failed to load consents (HTTP ${res.status})`);
+  return res.json() as Promise<ConsentItem[]>;
+}
+
+export async function grantAiConsent(payload: {
+  provider: string;
+  purpose: string;
+  scope_type?: string;
+  scope_target_id?: string;
+  duration_hours?: number;
+}): Promise<ConsentItem> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/ai/consents`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Grant consent failed (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<ConsentItem>;
+}
+
+export async function revokeAiConsent(consentId: string): Promise<void> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/ai/consents/${encodeURIComponent(consentId)}`,
+    { method: "DELETE" }
+  );
+  if (!res.ok) throw new Error(`Failed to revoke consent (HTTP ${res.status})`);
+}
+
+export async function fetchAiRuns(limit = 50): Promise<AIRunItem[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/ai/runs?limit=${limit}`);
+  if (!res.ok) throw new Error(`Failed to load AI runs (HTTP ${res.status})`);
+  return res.json() as Promise<AIRunItem[]>;
+}
+
+// ---------------------------------------------------------------------------
+// Step 7: Shared Tool Engine & Smart Loop
+// ---------------------------------------------------------------------------
+
+export interface SharedToolParameter {
+  type: string;
+  description?: string;
+  required?: boolean;
+  default?: any;
+}
+
+export interface SharedToolDefinition {
+  name: string;
+  description: string;
+  read_only: boolean;
+  parameters: Record<string, SharedToolParameter>;
+}
+
+export interface ToolExecuteResult {
+  tool: string;
+  arguments: Record<string, any>;
+  result: any;
+  latency_ms: number;
+}
+
+export interface SmartLoopStep {
+  step: number;
+  tool: string;
+  arguments: Record<string, any>;
+  result_summary: string;
+}
+
+export interface SmartLoopResult {
+  query: string;
+  provider: string;
+  final_answer: string;
+  total_steps: number;
+  steps: SmartLoopStep[];
+  citations: VideoCitation[];
+  latency_ms: number;
+}
+
+export async function fetchSharedTools(): Promise<SharedToolDefinition[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/tools`);
+  if (!res.ok) throw new Error(`Failed to load shared tools (HTTP ${res.status})`);
+  const data = (await res.json()) as { tools: SharedToolDefinition[] };
+  return data.tools;
+}
+
+export async function executeSharedTool(
+  tool: string,
+  args: Record<string, any>
+): Promise<ToolExecuteResult> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/tools/execute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tool, arguments: args }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Tool execution failed (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<ToolExecuteResult>;
+}
+
+export async function runSmartLoopAgent(payload: {
+  query: string;
+  video_id?: string;
+  max_turns?: number;
+  provider?: string;
+}): Promise<SmartLoopResult> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/agent/smart-loop`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Smart Loop agent execution failed (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<SmartLoopResult>;
+}
+
+// ---------------------------------------------------------------------------
+// System Telemetry
+// ---------------------------------------------------------------------------
+
+export interface WorkerStats {
+  jobs_completed: number;
+  jobs_failed: number;
+  last_rtf: number;
+  avg_rtf: number;
+  total_audio_sec: number;
+  total_proc_sec: number;
+}
+
+export interface SystemTelemetry {
+  worker: WorkerStats;
+  evaluation: any | null;
+  server_timestamp: string;
+}
+
+export async function fetchSystemTelemetry(): Promise<SystemTelemetry> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/system/telemetry`);
+  if (!res.ok) throw new Error(`Failed to load telemetry (HTTP ${res.status})`);
+  return res.json() as Promise<SystemTelemetry>;
+}
+
 
