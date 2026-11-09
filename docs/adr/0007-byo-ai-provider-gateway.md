@@ -88,3 +88,4 @@ We introduce the **BYO-AI Provider Gateway** (`backend/app/ai/providers/gateway.
 
 - **Backwards Compatibility:** Existing endpoints (`/api/v1/ai/ask`, `/api/v1/ai/summarize`) and test suites (`test_prompt_injection_redteam.py`, `test_ai_consent_boundary.py`, `test_clips_and_summary.py`) remain 100% compatible.
 - **Verification:** 14 unit tests in `backend/tests/unit/test_byo_ai_gateway.py` covering provider discovery, credential validation, local fallback, consent rules, network fault injection, and REST endpoints. Full test suite: 225/225 passed.
+
