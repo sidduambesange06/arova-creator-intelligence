@@ -460,12 +460,25 @@ def get_evidence_citations(
 
 def get_capability_status(db: Session | None = None) -> dict[str, Any]:
     """Inspect system execution profile, AI capability state, and offline status."""
+    from app.ai.providers.gateway import get_ai_gateway
+    from app.core.config import settings
+
+    gateway = get_ai_gateway()
+    has_remote_consent = bool(settings.AI_REMOTE_CONSENT)
+    cloud_status = "available" if has_remote_consent else "disabled_by_user"
+    cloud_reason = "consent_granted" if has_remote_consent else "privacy_policy_blocked"
+
     return {
-        "execution_profile": "fully_offline_no_ai",
+        "execution_profile": "hybrid_ai" if has_remote_consent else "fully_offline_no_ai",
         "capabilities": {
             "transcription": {"status": "available", "provider": "faster-whisper"},
             "hybrid_search": {"status": "available", "provider": "chromadb+fts5"},
             "portable_memory": {"status": "available", "format_version": "1.0.0"},
-            "cloud_ai": {"status": "disabled_by_user", "reason": "privacy_policy_blocked"},
+            "cloud_ai": {
+                "status": cloud_status,
+                "reason": cloud_reason,
+                "providers": [p["provider_id"] for p in gateway.list_providers() if p["provider_id"] != "local"],
+            },
         },
     }
+

@@ -68,6 +68,10 @@ class SummarizeRequest(BaseModel):
     video_id: str
     api_key: str | None = None
     consent_remote_ai: bool = False
+    provider: str | None = Field(default=None, description="Target AI provider: local, google-gemini, openai, anthropic")
+    model: str | None = Field(default=None, description="Optional model identifier")
+    base_url: str | None = Field(default=None, description="Custom endpoint URL (e.g. for local Ollama / vLLM)")
+
 
 
 class SummarizeResponse(BaseModel):
@@ -152,10 +156,14 @@ def summarize_video(
             video_id=payload.video_id,
             api_key=payload.api_key,
             consent_remote_ai=payload.consent_remote_ai,
+            provider=payload.provider,
+            model=payload.model,
+            base_url=payload.base_url,
         )
-        is_remote = summary_obj.model_name.startswith("gemini")
+        is_remote = not summary_obj.model_name.startswith("extractive")
         has_consent = payload.consent_remote_ai or settings.AI_REMOTE_CONSENT
         consent_source = "request" if payload.consent_remote_ai else ("admin_setting" if settings.AI_REMOTE_CONSENT else None)
+        provider_name = payload.provider or ("google-gemini" if summary_obj.model_name.startswith("gemini") else ("openai" if "gpt" in summary_obj.model_name else "local"))
         return SummarizeResponse(
             video_id=summary_obj.video_id,
             summary=summary_obj.summary_text,
@@ -163,7 +171,7 @@ def summarize_video(
             chapters=json.loads(summary_obj.chapters_json),
             model_name=summary_obj.model_name,
             remote_egress=is_remote,
-            provider="google-gemini" if is_remote else "local",
+            provider=provider_name if is_remote else "local",
             egress_data_categories=["video_full_transcript"] if is_remote else [],
             consent_source=consent_source if is_remote else None,
         )
@@ -178,6 +186,9 @@ class AskQuestionRequest(BaseModel):
     video_id: str | None = Field(default=None, description="Optional video ID filter")
     api_key: str | None = None
     consent_remote_ai: bool = False
+    provider: str | None = Field(default=None, description="Target AI provider: local, google-gemini, openai, anthropic")
+    model: str | None = Field(default=None, description="Optional model identifier")
+    base_url: str | None = Field(default=None, description="Custom endpoint URL (e.g. for local Ollama / vLLM)")
 
 
 @router.post("/ai/ask")
@@ -191,6 +202,10 @@ def ask_video_ai(
         video_id=payload.video_id,
         api_key=payload.api_key,
         consent_remote_ai=payload.consent_remote_ai,
+        provider=payload.provider,
+        model=payload.model,
+        base_url=payload.base_url,
     )
+
 
 
