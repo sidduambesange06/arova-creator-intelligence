@@ -62,10 +62,10 @@ export class ErrorBoundary extends Component<Props, State> {
             </p>
           </div>
 
-          {this.state.errorInfo && (
+          {import.meta.env.DEV && this.state.errorInfo && (
             <details className="text-xs font-mono text-slate-400">
               <summary className="cursor-pointer hover:text-slate-200">
-                Component Stack Trace
+                Component Stack Trace (Dev Only)
               </summary>
               <pre className="mt-2 p-2 rounded bg-[#080B12] border border-[#243149] text-[10px] overflow-x-auto text-slate-400">
                 {this.state.errorInfo.componentStack}
@@ -100,3 +100,4 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
+
