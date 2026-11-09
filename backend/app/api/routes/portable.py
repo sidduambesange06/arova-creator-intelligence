@@ -6,6 +6,8 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -45,6 +47,12 @@ router = APIRouter(prefix="/api/v1", tags=["portable"])
 # PORTABLE ARCHIVE ENDPOINTS
 # -----------------------------------------------------------------------------
 
+class ImportRequestPayload(BaseModel):
+    archive_path: str | None = None
+    conflict_policy: str = "skip"
+    library_id: str | None = None
+
+
 @router.post("/portable/export", response_model=ExportSummary)
 def export_archive_endpoint(
     req: ExportRequest | None = None,
@@ -65,18 +73,75 @@ def export_archive_endpoint(
         target_archive_path=target_path,
         request=req,
     )
+    summary.download_url = f"/api/v1/portable/exports/{target_path.name}"
     return summary
+
+
+@router.get("/portable/exports/{filename}")
+def download_portable_export(filename: str) -> FileResponse:
+    """Download an exported .arova archive file with strict path-traversal denial."""
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Invalid export filename")
+
+    clean_name = Path(filename).name
+    if not clean_name.endswith((".arova", ".zip")):
+        raise HTTPException(status_code=400, detail="Requested file is not an archive")
+
+    export_dir = (Path(settings.DATA_DIR) / "exports").resolve()
+    target_path = (export_dir / clean_name).resolve()
+
+    if not str(target_path).startswith(str(export_dir)) or not target_path.is_file():
+        raise HTTPException(status_code=404, detail=f"Exported archive '{clean_name}' not found")
+
+    return FileResponse(
+        path=str(target_path),
+        media_type="application/vnd.arova.archive",
+        filename=clean_name,
+    )
+
+
+@router.post("/portable/import/upload")
+async def upload_portable_archive_file(
+    file: UploadFile = File(...),
+) -> dict[str, Any]:
+    """Upload an .arova archive file from the browser to prepare for dry-run or import."""
+    raw_name = file.filename or "archive.arova"
+    clean_name = Path(raw_name).name
+    if not clean_name.endswith((".arova", ".zip")):
+        raise HTTPException(status_code=400, detail="Only .arova and .zip archives are supported")
+
+    imports_dir = (Path(settings.DATA_DIR) / "imports").resolve()
+    imports_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = int(datetime.now(timezone.utc).timestamp())
+    safe_name = f"{timestamp}_{clean_name}"
+    target_path = imports_dir / safe_name
+
+    content = await file.read()
+    with open(target_path, "wb") as f:
+        f.write(content)
+
+    return {
+        "archive_path": str(target_path),
+        "filename": safe_name,
+        "size_bytes": len(content),
+    }
 
 
 @router.post("/portable/import/dry-run", response_model=ImportDryRunReport)
 def dry_run_import_endpoint(
-    archive_path: str = Query(description="Filesystem path to the .arova archive"),
+    archive_path: str | None = Query(default=None, description="Filesystem path to the .arova archive"),
+    payload: ImportRequestPayload | None = None,
     db: Session = Depends(get_db),
 ) -> ImportDryRunReport:
     """Validate archive integrity and preview planned imports without modifying database."""
-    target_path = Path(archive_path).resolve()
+    resolved_path_str = archive_path or (payload.archive_path if payload else None)
+    if not resolved_path_str:
+        raise HTTPException(status_code=400, detail="archive_path must be provided in query or request body")
+
+    target_path = Path(resolved_path_str).resolve()
     if not target_path.is_file():
-        raise HTTPException(status_code=404, detail=f"Archive file not found: {archive_path}")
+        raise HTTPException(status_code=404, detail=f"Archive file not found: {resolved_path_str}")
 
     try:
         report = dry_run_import_archive(db=db, archive_path=target_path)
@@ -89,17 +154,29 @@ def dry_run_import_endpoint(
 
 @router.post("/portable/import", response_model=ImportResult)
 def import_archive_endpoint(
-    archive_path: str = Query(description="Filesystem path to the .arova archive"),
+    archive_path: str | None = Query(default=None, description="Filesystem path to the .arova archive"),
     library_id: str | None = Query(default=None),
+    payload: ImportRequestPayload | None = None,
     db: Session = Depends(get_db),
 ) -> ImportResult:
     """Safely import validated records from .arova archive into database."""
-    target_path = Path(archive_path).resolve()
+    resolved_path_str = archive_path or (payload.archive_path if payload else None)
+    if not resolved_path_str:
+        raise HTTPException(status_code=400, detail="archive_path must be provided in query or request body")
+
+    target_path = Path(resolved_path_str).resolve()
     if not target_path.is_file():
-        raise HTTPException(status_code=404, detail=f"Archive file not found: {archive_path}")
+        raise HTTPException(status_code=404, detail=f"Archive file not found: {resolved_path_str}")
+
+    target_lib_id = library_id or (payload.library_id if payload else None)
+    target_conflict_policy = payload.conflict_policy if payload else "skip"
 
     try:
-        result = import_portable_archive(db=db, archive_path=target_path, library_id=library_id)
+        result = import_portable_archive(
+            db=db,
+            archive_path=target_path,
+            library_id=target_lib_id,
+        )
         if result.status == "rejected":
             raise HTTPException(status_code=400, detail="; ".join(result.errors))
         return result

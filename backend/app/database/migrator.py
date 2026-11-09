@@ -326,13 +326,15 @@ def run_idempotent_backfill(session: Session) -> dict[str, int]:
     locations_count = 0
 
     for vid in unlinked_videos:
-        # Create Asset
-        asset = Asset(
-            id=vid.id,
-            created_at=vid.created_at,
-        )
-        session.add(asset)
-        session.flush()
+        # Create or fetch Asset
+        asset = session.query(Asset).filter_by(id=vid.id).first()
+        if not asset:
+            asset = Asset(
+                id=vid.id,
+                created_at=vid.created_at,
+            )
+            session.add(asset)
+            session.flush()
 
         # Create AssetVersion
         media_meta = json.dumps(
@@ -359,17 +361,27 @@ def run_idempotent_backfill(session: Session) -> dict[str, int]:
 
         asset.current_version_id = version.id
 
-        # Create AssetLocation
-        location = AssetLocation(
-            id=str(uuid.uuid4()),
-            version_id=version.id,
+        # Create or update AssetLocation
+        norm_path = vid.filename.strip().lower()
+        existing_loc = session.query(AssetLocation).filter_by(
             root_id=default_root.id,
-            rel_path=vid.filename,
-            rel_path_norm=vid.filename.strip().lower(),
-            last_seen_at=vid.created_at,
-            availability=LocationAvailability.AVAILABLE.value,
-        )
-        session.add(location)
+            rel_path_norm=norm_path,
+        ).first()
+        if existing_loc:
+            location = existing_loc
+            location.version_id = version.id
+            location.availability = LocationAvailability.AVAILABLE.value
+        else:
+            location = AssetLocation(
+                id=str(uuid.uuid4()),
+                version_id=version.id,
+                root_id=default_root.id,
+                rel_path=vid.filename,
+                rel_path_norm=norm_path,
+                last_seen_at=vid.created_at,
+                availability=LocationAvailability.AVAILABLE.value,
+            )
+            session.add(location)
 
         # Bridge back to Video
         vid.asset_id = asset.id

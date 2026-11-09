@@ -35,6 +35,7 @@ class ExportSummary(BaseModel):
     file_size_bytes: int
     sha256: str
     records_count: dict[str, int] = Field(default_factory=dict)
+    download_url: str | None = None
 
 
 class ImportDryRunReport(BaseModel):

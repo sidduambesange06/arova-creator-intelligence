@@ -782,3 +782,33 @@ def test_rest_api_annotations_endpoints(client: TestClient, seeded_db: tuple) ->
     res_del = client.delete(f"/api/v1/annotations/{annot_id}")
     assert res_del.status_code == 200
     assert res_del.json()["status"] == "deleted"
+
+
+def test_rest_api_export_download_and_upload(client: TestClient, seeded_db: tuple) -> None:
+    session, asset, version, video, _ = seeded_db
+
+    # 1. Export archive and verify download_url
+    res_exp = client.post("/api/v1/portable/export?output_filename=test_download.arova")
+    assert res_exp.status_code == 200
+    exp_json = res_exp.json()
+    assert exp_json["download_url"] == "/api/v1/portable/exports/test_download.arova"
+
+    # 2. Download the exported archive
+    res_down = client.get("/api/v1/portable/exports/test_download.arova")
+    assert res_down.status_code == 200
+    assert res_down.headers["content-type"] == "application/vnd.arova.archive"
+    assert len(res_down.content) > 0
+
+    # 3. Deny path traversal on download
+    res_bad = client.get("/api/v1/portable/exports/..%2F..%2Fmain.py")
+    assert res_bad.status_code in (400, 404)
+
+    # 4. Upload archive for import
+    files = {"file": ("test_upload.arova", res_down.content, "application/octet-stream")}
+    res_upload = client.post("/api/v1/portable/import/upload", files=files)
+    assert res_upload.status_code == 200
+    upload_data = res_upload.json()
+    assert "archive_path" in upload_data
+    assert upload_data["filename"].endswith("_test_upload.arova")
+    assert upload_data["size_bytes"] == len(res_down.content)
+

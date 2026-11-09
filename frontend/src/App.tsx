@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { CommandPaletteModal, type CommandItem } from "./components/CommandPaletteModal";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { DatabaseExplorerView } from "./features/database-explorer/DatabaseExplorerView";
 import { DiscoverySourcesView } from "./features/discovery/DiscoverySourcesView";
 import { MediaLibraryView } from "./features/media-library/MediaLibraryView";
@@ -17,11 +18,11 @@ export type NavSection =
   | "overview"
   | "media-library"
   | "workstation"
-  | "hybrid-search"
   | "discovery-roots"
   | "processing-jobs"
-  | "privacy-ai"
   | "storage-backup"
+  | "hybrid-search"
+  | "privacy-ai"
   | "mcp-config"
   | "database-explorer"
   | "system";
@@ -37,7 +38,7 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    name: "Workstation",
+    name: "Workspace",
     items: [
       { id: "overview", label: "Mission Overview", tag: "Cockpit" },
       { id: "media-library", label: "Studio Media Library", tag: "Assets" },
@@ -45,18 +46,23 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    name: "Intelligence & DAG",
+    name: "Media Operations",
     items: [
-      { id: "hybrid-search", label: "Hybrid Search & Q&A", tag: "RAG" },
-      { id: "discovery-roots", label: "Library Discovery Roots", tag: "4B" },
-      { id: "processing-jobs", label: "DAG Jobs & Pipelines", tag: "4C" },
+      { id: "discovery-roots", label: "1. Add & Watch Folders", tag: "Roots" },
+      { id: "processing-jobs", label: "2. Processing Pipelines", tag: "DAG" },
+      { id: "storage-backup", label: "3. Archive & Export", tag: ".arova" },
+    ],
+  },
+  {
+    name: "Intelligence & AI",
+    items: [
+      { id: "hybrid-search", label: "Search & Ask Archive", tag: "RAG" },
       { id: "privacy-ai", label: "Privacy & BYO-AI", tag: "Gateway" },
     ],
   },
   {
-    name: "Storage & System",
+    name: "Developer Tools",
     items: [
-      { id: "storage-backup", label: "Portable .arova Memory", tag: "4D" },
       { id: "mcp-config", label: "MCP Agent Server", tag: "Protocol" },
       { id: "database-explorer", label: "Database Explorer", tag: "SQLite" },
       { id: "system", label: "Engine Telemetry & Health", tag: "Core" },
@@ -65,7 +71,7 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 export function App() {
-  const [activeSection, setActiveSection] = useState<NavSection>("system");
+  const [activeSection, setActiveSection] = useState<NavSection>("overview");
   const [selectedVideoId, setSelectedVideoId] = useState<string | undefined>(undefined);
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -279,40 +285,42 @@ export function App() {
 
         {/* View Router Content Area */}
         <div className="flex-1 p-6 lg:p-8 w-full max-w-[1920px] mx-auto">
-          {activeSection === "overview" ? (
-            <OverviewView
-              onNavigate={(s) => setActiveSection(s as NavSection)}
-              onSelectVideo={(vId) => {
-                setSelectedVideoId(vId);
-                setActiveSection("workstation");
-              }}
-            />
-          ) : activeSection === "media-library" ? (
-            <MediaLibraryView />
-          ) : activeSection === "workstation" ? (
-            <VideoWorkstationView initialVideoId={selectedVideoId} />
-          ) : activeSection === "hybrid-search" ? (
-            <HybridSearchView />
-          ) : activeSection === "discovery-roots" ? (
-            <DiscoverySourcesView />
-          ) : activeSection === "processing-jobs" ? (
-            <ProcessingJobsView />
-          ) : activeSection === "privacy-ai" ? (
-            <PrivacyAiView />
-          ) : activeSection === "storage-backup" ? (
-            <StorageBackupView />
-          ) : activeSection === "mcp-config" ? (
-            <McpConfigView />
-          ) : activeSection === "database-explorer" ? (
-            <DatabaseExplorerView />
-          ) : activeSection === "system" ? (
-            <SystemHealthView
-              health={health}
-              checking={checking}
-              error={error}
-              onRefresh={() => void checkHealth()}
-            />
-          ) : null}
+          <ErrorBoundary fallbackTitle="Workstation View Enclave">
+            {activeSection === "overview" ? (
+              <OverviewView
+                onNavigate={(s) => setActiveSection(s as NavSection)}
+                onSelectVideo={(vId) => {
+                  setSelectedVideoId(vId);
+                  setActiveSection("workstation");
+                }}
+              />
+            ) : activeSection === "media-library" ? (
+              <MediaLibraryView />
+            ) : activeSection === "workstation" ? (
+              <VideoWorkstationView initialVideoId={selectedVideoId} />
+            ) : activeSection === "hybrid-search" ? (
+              <HybridSearchView />
+            ) : activeSection === "discovery-roots" ? (
+              <DiscoverySourcesView />
+            ) : activeSection === "processing-jobs" ? (
+              <ProcessingJobsView />
+            ) : activeSection === "privacy-ai" ? (
+              <PrivacyAiView />
+            ) : activeSection === "storage-backup" ? (
+              <StorageBackupView />
+            ) : activeSection === "mcp-config" ? (
+              <McpConfigView />
+            ) : activeSection === "database-explorer" ? (
+              <DatabaseExplorerView />
+            ) : activeSection === "system" ? (
+              <SystemHealthView
+                health={health}
+                checking={checking}
+                error={error}
+                onRefresh={() => void checkHealth()}
+              />
+            ) : null}
+          </ErrorBoundary>
         </div>
       </main>
 

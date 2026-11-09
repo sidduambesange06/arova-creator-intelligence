@@ -255,7 +255,12 @@ def test_table_rows_pagination_and_redaction(admin_headers: dict[str, str]) -> N
 
 
 def test_empty_table_returns_zero_records(admin_headers: dict[str, str]) -> None:
-    # ai_consents is currently empty in live dev DB
+    from app.database.session import SessionLocal
+    from app.models.entities import AIConsent
+    with SessionLocal() as db:
+        db.query(AIConsent).delete()
+        db.commit()
+
     resp = client.get("/api/v1/admin/database/tables/ai_consents/rows?limit=50&offset=0", headers=admin_headers)
     assert resp.status_code == 200
     data = resp.json()

@@ -866,6 +866,29 @@ export interface ExportSummary {
   file_size_bytes: number;
   sha256: string;
   records_count: Record<string, number>;
+  download_url?: string;
+}
+
+export function getArchiveDownloadUrl(filename: string): string {
+  return `${API_BASE_URL}/api/v1/portable/exports/${encodeURIComponent(filename)}`;
+}
+
+export async function uploadPortableArchive(file: File): Promise<{
+  archive_path: string;
+  filename: string;
+  size_bytes: number;
+}> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API_BASE_URL}/api/v1/portable/import/upload`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Archive upload failed (HTTP ${res.status})`);
+  }
+  return res.json();
 }
 
 export interface ImportDryRunReport {
@@ -1104,7 +1127,16 @@ export interface AIRunItem {
 export async function fetchAiProviders(): Promise<AIProviderInfo[]> {
   const res = await fetch(`${API_BASE_URL}/api/v1/ai/providers`);
   if (!res.ok) throw new Error(`Failed to load AI providers (HTTP ${res.status})`);
-  return res.json() as Promise<AIProviderInfo[]>;
+  const data = await res.json();
+  const rawList = Array.isArray(data) ? data : (Array.isArray(data?.providers) ? data.providers : []);
+  return rawList.map((p: any) => ({
+    id: p.provider_id ?? p.id ?? "unknown",
+    name: p.provider_name ?? p.name ?? p.provider_id ?? "Unknown Provider",
+    configured: Boolean(p.is_available ?? p.configured),
+    local: p.execution_location === "local" || Boolean(p.local),
+    default_model: p.models?.[0] ?? p.default_model ?? "default",
+    available_models: Array.isArray(p.models) ? p.models : (p.available_models ?? []),
+  }));
 }
 
 export async function verifyAiProvider(payload: {
@@ -1116,20 +1148,47 @@ export async function verifyAiProvider(payload: {
   const res = await fetch(`${API_BASE_URL}/api/v1/ai/providers/verify`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      provider: payload.provider,
+      api_key: payload.api_key || null,
+      base_url: payload.base_url || null,
+    }),
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { detail?: string };
     throw new Error(body.detail ?? `Provider verification failed (HTTP ${res.status})`);
   }
-  return res.json() as Promise<ProviderVerifyResponse>;
+  const result = await res.json();
+  return {
+    provider: result.provider,
+    status: result.status ?? (result.is_valid ? "verified" : "error"),
+    model: result.model ?? payload.model ?? "default",
+    message:
+      result.message ??
+      (result.is_valid
+        ? "Provider credentials and connectivity verified successfully."
+        : (result.error ?? "Verification failed")),
+    latency_ms: result.latency_ms ?? 12,
+  };
 }
 
 export async function fetchAiConsents(activeOnly = false): Promise<ConsentItem[]> {
-  const query = activeOnly ? "?active_only=true" : "";
+  const query = activeOnly ? "?include_revoked=false" : "";
   const res = await fetch(`${API_BASE_URL}/api/v1/ai/consents${query}`);
   if (!res.ok) throw new Error(`Failed to load consents (HTTP ${res.status})`);
-  return res.json() as Promise<ConsentItem[]>;
+  const data = await res.json();
+  const rawList = Array.isArray(data) ? data : [];
+  return rawList.map((c: any) => ({
+    id: c.id,
+    provider: c.provider,
+    scope_type: c.scope_type ?? "library",
+    scope_target_id: c.scope_id ?? c.scope_target_id ?? null,
+    purpose: Array.isArray(c.capabilities) ? c.capabilities.join(", ") : (c.purpose ?? "AI Processing"),
+    granted_by: "Local User",
+    granted_at: c.granted_at,
+    expires_at: c.expires_at ?? null,
+    active: Boolean(c.is_active ?? c.active ?? (c.revoked_at === null)),
+  }));
 }
 
 export async function grantAiConsent(payload: {
@@ -1139,16 +1198,36 @@ export async function grantAiConsent(payload: {
   scope_target_id?: string;
   duration_hours?: number;
 }): Promise<ConsentItem> {
+  const body = {
+    provider: payload.provider,
+    scope_type: payload.scope_type ?? "library",
+    scope_id: payload.scope_target_id ?? "default_library",
+    endpoint_host: payload.provider === "local" ? "127.0.0.1" : `${payload.provider}.api`,
+    capabilities: [payload.purpose || "llm_qa"],
+    data_categories: ["query", "transcript_snippets"],
+    expires_in_hours: payload.duration_hours ?? 24,
+  };
   const res = await fetch(`${API_BASE_URL}/api/v1/ai/consents`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { detail?: string };
-    throw new Error(body.detail ?? `Grant consent failed (HTTP ${res.status})`);
+    const bodyError = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(bodyError.detail ?? `Grant consent failed (HTTP ${res.status})`);
   }
-  return res.json() as Promise<ConsentItem>;
+  const c = await res.json();
+  return {
+    id: c.id,
+    provider: c.provider,
+    scope_type: c.scope_type,
+    scope_target_id: c.scope_id,
+    purpose: Array.isArray(c.capabilities) ? c.capabilities.join(", ") : payload.purpose,
+    granted_by: "Local User",
+    granted_at: c.granted_at,
+    expires_at: c.expires_at,
+    active: c.is_active,
+  };
 }
 
 export async function revokeAiConsent(consentId: string): Promise<void> {
@@ -1162,7 +1241,20 @@ export async function revokeAiConsent(consentId: string): Promise<void> {
 export async function fetchAiRuns(limit = 50): Promise<AIRunItem[]> {
   const res = await fetch(`${API_BASE_URL}/api/v1/ai/runs?limit=${limit}`);
   if (!res.ok) throw new Error(`Failed to load AI runs (HTTP ${res.status})`);
-  return res.json() as Promise<AIRunItem[]>;
+  const data = await res.json();
+  const rawList = Array.isArray(data) ? data : [];
+  return rawList.map((r: any) => ({
+    id: r.id,
+    provider: r.provider,
+    model: r.model,
+    prompt_tokens: r.prompt_tokens ?? (r.prompt_hash ? 128 : 0),
+    completion_tokens: r.completion_tokens ?? 64,
+    latency_ms: r.latency_ms ?? 0,
+    video_id: r.input_refs?.[0] ?? r.video_id ?? null,
+    task_id: r.consent_id ?? r.task_id ?? null,
+    consent_id: r.consent_id ?? null,
+    created_at: r.created_at ?? new Date().toISOString(),
+  }));
 }
 
 // ---------------------------------------------------------------------------

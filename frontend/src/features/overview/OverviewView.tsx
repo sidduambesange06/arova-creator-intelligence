@@ -49,11 +49,12 @@ export function OverviewView({ onNavigate, onSelectVideo }: OverviewViewProps) {
         ]);
         if (!cancelled) {
           setStats(statsData);
-          setRecentVideos(vids);
-          if (vids.length > 0 && !selectedVideoId) {
-            setSelectedVideoId(vids[0].id);
+          const safeVids = Array.isArray(vids) ? vids : [];
+          setRecentVideos(safeVids);
+          if (safeVids.length > 0 && !selectedVideoId) {
+            setSelectedVideoId(safeVids[0].id);
           }
-          setRecentJobs(jobs);
+          setRecentJobs(Array.isArray(jobs) ? jobs : []);
         }
       } catch (err) {
         if (!cancelled) {
@@ -183,6 +184,66 @@ export function OverviewView({ onNavigate, onSelectVideo }: OverviewViewProps) {
         </div>
       </div>
 
+      {/* 3-Step Guided Workflow Banner */}
+      <div className="p-5 rounded-panel bg-[#111827] border border-[#243149] space-y-3 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#9B8CFF]/10 text-[#9B8CFF] border border-[#9B8CFF]/30 font-semibold">
+              START HERE
+            </span>
+            <h2 className="text-sm font-semibold text-[#F5F7FB]">How Arova Creator Intelligence Works</h2>
+          </div>
+          <span className="text-[11px] font-mono text-slate-400 hidden sm:inline">Follow the 3-step loop</span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+          {/* Step 1 */}
+          <div
+            onClick={() => onNavigate("discovery-roots")}
+            className="p-3.5 rounded bg-[#0B1019] border border-[#243149] hover:border-[#51DCC8]/60 cursor-pointer transition-colors space-y-1.5 group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#51DCC8] font-mono">STEP 1: ADD FOLDERS</span>
+              <span className="text-[10px] font-mono text-slate-500 group-hover:text-[#51DCC8]">Open →</span>
+            </div>
+            <p className="text-xs font-medium text-[#F5F7FB]">Discovery Roots</p>
+            <p className="text-[11px] text-slate-400 leading-normal">
+              Register your local video directories or external hard drives for automatic scanning.
+            </p>
+          </div>
+
+          {/* Step 2 */}
+          <div
+            onClick={() => onNavigate("processing-jobs")}
+            className="p-3.5 rounded bg-[#0B1019] border border-[#243149] hover:border-[#9B8CFF]/60 cursor-pointer transition-colors space-y-1.5 group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#9B8CFF] font-mono">STEP 2: RUN PIPELINES</span>
+              <span className="text-[10px] font-mono text-slate-500 group-hover:text-[#9B8CFF]">Open →</span>
+            </div>
+            <p className="text-xs font-medium text-[#F5F7FB]">Processing DAG Jobs</p>
+            <p className="text-[11px] text-slate-400 leading-normal">
+              Extract Whisper speech transcripts, optical OCR text, visual scene cuts, and embeddings.
+            </p>
+          </div>
+
+          {/* Step 3 */}
+          <div
+            onClick={() => onNavigate("hybrid-search")}
+            className="p-3.5 rounded bg-[#0B1019] border border-[#243149] hover:border-[#F4BF69]/60 cursor-pointer transition-colors space-y-1.5 group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#F4BF69] font-mono">STEP 3: SEARCH & ASK</span>
+              <span className="text-[10px] font-mono text-slate-500 group-hover:text-[#F4BF69]">Open →</span>
+            </div>
+            <p className="text-xs font-medium text-[#F5F7FB]">Hybrid RAG &amp; Moments</p>
+            <p className="text-[11px] text-slate-400 leading-normal">
+              Ask questions to find exact video seconds, export clips, or backup your portable .arova archive.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* 6 Key Metrics Matrix */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="p-3.5 rounded-panel bg-[#111827] border border-[#243149] flex flex-col justify-between">
@@ -196,7 +257,11 @@ export function OverviewView({ onNavigate, onSelectVideo }: OverviewViewProps) {
         <div className="p-3.5 rounded-panel bg-[#111827] border border-[#243149] flex flex-col justify-between">
           <span className="text-[11px] font-mono text-slate-400">Total Duration</span>
           <span className="text-xl font-bold font-mono text-[#9B8CFF] mt-1">
-            {stats ? `${stats.total_duration_sec.toFixed(1)}s` : loading ? "â€¦" : "0s"}
+            {stats && stats.total_duration_sec != null
+              ? `${Number(stats.total_duration_sec).toFixed(1)}s`
+              : loading
+              ? "…"
+              : "0s"}
           </span>
           <span className="text-[10px] text-slate-500 font-mono mt-1">Playable runtime</span>
         </div>
@@ -228,7 +293,7 @@ export function OverviewView({ onNavigate, onSelectVideo }: OverviewViewProps) {
         <div className="p-3.5 rounded-panel bg-[#111827] border border-[#243149] flex flex-col justify-between">
           <span className="text-[11px] font-mono text-slate-400">Active Pipeline</span>
           <span className="text-xl font-bold font-mono text-emerald-400 mt-1">
-            {recentJobs.filter((j) => j.status === "running").length}
+            {Array.isArray(recentJobs) ? recentJobs.filter((j) => j?.status === "running").length : 0}
           </span>
           <span className="text-[10px] text-slate-500 font-mono mt-1">Running jobs</span>
         </div>
@@ -267,7 +332,7 @@ export function OverviewView({ onNavigate, onSelectVideo }: OverviewViewProps) {
                   <div className="min-w-0 pr-3">
                     <p className="text-xs font-medium text-[#F5F7FB] truncate">{vid.filename}</p>
                     <p className="text-[10px] font-mono text-slate-400 mt-0.5">
-                      {vid.duration.toFixed(1)}s Â· {vid.width}x{vid.height} Â· {vid.codec}
+                      {vid.duration != null ? Number(vid.duration).toFixed(1) : "0.0"}s · {vid.width}x{vid.height} · {vid.codec}
                     </p>
                   </div>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#172235] text-[#51DCC8] border border-[#51DCC8]/30 shrink-0">
