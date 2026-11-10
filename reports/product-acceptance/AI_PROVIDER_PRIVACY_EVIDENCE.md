@@ -172,3 +172,4 @@ Question: "What did Thom say about recalibrating the tracking beam?"
 ```
 
 **Verdict:** The Privacy & BYO-AI Gateway strictly enforces non-bypassable privacy boundaries, secret redaction, time-bounded consent, immediate revocation, and seamless local-first fallback with zero cloud leakage.
+

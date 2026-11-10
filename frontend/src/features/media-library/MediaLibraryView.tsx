@@ -26,7 +26,11 @@ function formatDuration(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-export function MediaLibraryView() {
+interface MediaLibraryViewProps {
+  onNavigate?: (section: string) => void;
+}
+
+export function MediaLibraryView({ onNavigate }: MediaLibraryViewProps) {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [collections, setCollections] = useState<CollectionItem[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string>("");
@@ -235,14 +239,14 @@ export function MediaLibraryView() {
         <div>
           <div className="flex items-center gap-2.5">
             <h2 className="text-xl font-semibold tracking-tight text-slate-100">
-              Studio Video Workstation
+              Studio Media Library &amp; Vault
             </h2>
             <span className="px-2 py-0.5 rounded text-[11px] font-mono text-slate-300 bg-[#0d1424] border border-[#172338]">
               {videos.length} Video{videos.length === 1 ? "" : "s"} In Vault
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Local FFmpeg probe, Faster-Whisper ASR, scene segmentation, and HTTP 206 chunked playback.
+            Indexed local footage, collections, and media assets. Processed with Faster-Whisper ASR and scene cuts.
           </p>
         </div>
 
@@ -265,40 +269,54 @@ export function MediaLibraryView() {
       </div>
 
       {/* Import & Filter Controls */}
-      <form
-        onSubmit={(e) => void handleImport(e)}
-        className="arova-surface p-3 flex flex-wrap items-center gap-2.5"
-      >
-        <div className="relative flex-1 min-w-[280px]">
-          <input
-            type="text"
-            value={importPath}
-            onChange={(e) => setImportPath(e.target.value)}
-            placeholder="Local video file or folder path (e.g. ./sample_data/demo_developer_lecture.mp4)"
-            aria-label="Local video file or folder path"
-            className="w-full bg-[#060911] border border-[#172338] rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-500 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
-          />
-        </div>
-        <select
-          aria-label="Filter by collection"
-          value={selectedCollection}
-          onChange={(e) => setSelectedCollection(e.target.value)}
-          className="bg-[#060911] border border-[#172338] rounded-lg px-3 py-2 text-xs text-slate-200 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
+      <div className="space-y-1.5">
+        <form
+          onSubmit={(e) => void handleImport(e)}
+          className="arova-surface p-3 flex flex-wrap items-center gap-2.5"
         >
-          <option value="">All Collections</option>
-          {collections.map((col) => (
-            <option key={col.id} value={col.id}>
-              {col.name} ({col.video_count})
-            </option>
-          ))}
-        </select>
-        <button
-          type="submit"
-          className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-white text-xs font-semibold text-slate-950 transition-colors duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
-        >
-          Import Local Media
-        </button>
-      </form>
+          <div className="relative flex-1 min-w-[280px]">
+            <input
+              type="text"
+              value={importPath}
+              onChange={(e) => setImportPath(e.target.value)}
+              placeholder="Local video file or folder path (e.g. ./sample_data/demo_developer_lecture.mp4)"
+              aria-label="Local video file or folder path"
+              className="w-full bg-[#060911] border border-[#172338] rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-500 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
+            />
+          </div>
+          <select
+            aria-label="Filter by collection"
+            value={selectedCollection}
+            onChange={(e) => setSelectedCollection(e.target.value)}
+            className="bg-[#060911] border border-[#172338] rounded-lg px-3 py-2 text-xs text-slate-200 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
+          >
+            <option value="">All Collections</option>
+            {collections.map((col) => (
+              <option key={col.id} value={col.id}>
+                {col.name} ({col.video_count})
+              </option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-white text-xs font-semibold text-slate-950 transition-colors duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
+          >
+            Import Local Media
+          </button>
+        </form>
+        {onNavigate && (
+          <div className="px-1 text-[11px] font-mono text-slate-400 flex items-center justify-between">
+            <span>Paths must reside inside approved directories.</span>
+            <button
+              type="button"
+              onClick={() => onNavigate("discovery-roots")}
+              className="text-[#9B8CFF] hover:underline"
+            >
+              Manage Watched Discovery Folders &rarr;
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Notifications */}
       {statusMessage && (
@@ -655,11 +673,20 @@ export function MediaLibraryView() {
         {loading ? (
           <p className="text-xs text-slate-400 font-mono">Scanning media library...</p>
         ) : videos.length === 0 ? (
-          <div className="arova-surface border-dashed border-[#172338] p-8 text-center space-y-1">
-            <p className="text-xs text-slate-300 font-medium">No videos indexed in this collection yet.</p>
-            <p className="text-[11px] text-slate-500 font-mono">
-              Provide an absolute or relative video path in the bar above to start indexing.
+          <div className="arova-surface border-dashed border-[#172338] p-8 text-center space-y-3">
+            <p className="text-sm font-semibold text-slate-200">No videos indexed in this collection yet.</p>
+            <p className="text-xs text-slate-400 max-w-md mx-auto">
+              Add a watched media folder to discover footage automatically, or import an individual file above.
             </p>
+            {onNavigate && (
+              <button
+                type="button"
+                onClick={() => onNavigate("discovery-roots")}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-control bg-[#9B8CFF] hover:bg-[#8b7aee] text-[#080B12] text-xs font-semibold font-mono shadow-sm transition-colors"
+              >
+                + Add &amp; Watch Video Folder
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">

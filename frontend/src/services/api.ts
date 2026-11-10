@@ -673,7 +673,7 @@ export interface ScanRun {
 }
 
 export async function fetchDiscoveryLibraries(): Promise<DiscoveryLibrary[]> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/discovery/libraries`);
+  const res = await fetch(`${API_BASE_URL}/api/v1/libraries`);
   if (!res.ok) {
     throw new Error(`Failed to load discovery libraries (HTTP ${res.status})`);
   }
@@ -684,7 +684,7 @@ export async function createDiscoveryLibrary(
   label: string,
   executionProfile = "fully_offline_no_ai"
 ): Promise<DiscoveryLibrary> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/discovery/libraries`, {
+  const res = await fetch(`${API_BASE_URL}/api/v1/libraries`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ label, execution_profile: executionProfile }),
@@ -699,7 +699,7 @@ export async function createDiscoveryLibrary(
 export async function fetchDiscoveryRoots(libraryId?: string): Promise<DiscoveryRoot[]> {
   if (libraryId) {
     const res = await fetch(
-      `${API_BASE_URL}/api/v1/discovery/libraries/${encodeURIComponent(libraryId)}/roots`
+      `${API_BASE_URL}/api/v1/libraries/${encodeURIComponent(libraryId)}/roots`
     );
     if (!res.ok) throw new Error(`Failed to load discovery roots (HTTP ${res.status})`);
     return res.json() as Promise<DiscoveryRoot[]>;
@@ -709,7 +709,7 @@ export async function fetchDiscoveryRoots(libraryId?: string): Promise<Discovery
   const rootsNested = await Promise.all(
     libs.map(async (l) => {
       const res = await fetch(
-        `${API_BASE_URL}/api/v1/discovery/libraries/${encodeURIComponent(l.id)}/roots`
+        `${API_BASE_URL}/api/v1/libraries/${encodeURIComponent(l.id)}/roots`
       );
       return res.ok ? ((await res.json()) as DiscoveryRoot[]) : [];
     })
@@ -724,7 +724,7 @@ export async function registerDiscoveryRoot(
   label?: string
 ): Promise<DiscoveryRoot> {
   const res = await fetch(
-    `${API_BASE_URL}/api/v1/discovery/libraries/${encodeURIComponent(libraryId)}/roots`,
+    `${API_BASE_URL}/api/v1/libraries/${encodeURIComponent(libraryId)}/roots`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -745,7 +745,7 @@ export async function registerDiscoveryRoot(
 
 export async function scanDiscoveryRoot(rootId: string): Promise<ScanRun> {
   const res = await fetch(
-    `${API_BASE_URL}/api/v1/discovery/libraries/roots/${encodeURIComponent(rootId)}/scan`,
+    `${API_BASE_URL}/api/v1/libraries/roots/${encodeURIComponent(rootId)}/scan`,
     { method: "POST" }
   );
   if (!res.ok) {
@@ -757,7 +757,7 @@ export async function scanDiscoveryRoot(rootId: string): Promise<ScanRun> {
 
 export async function fetchScanRuns(rootId: string): Promise<ScanRun[]> {
   const res = await fetch(
-    `${API_BASE_URL}/api/v1/discovery/libraries/roots/${encodeURIComponent(rootId)}/scans`
+    `${API_BASE_URL}/api/v1/libraries/roots/${encodeURIComponent(rootId)}/scans`
   );
   if (!res.ok) throw new Error(`Failed to fetch scan runs (HTTP ${res.status})`);
   return res.json() as Promise<ScanRun[]>;

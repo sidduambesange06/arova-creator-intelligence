@@ -114,3 +114,4 @@
 - **Recommended Solution:** When a video has `can_play === false`, display a "Locate Missing Video File" button directly on the video player container, allowing the user to pick the relocated file on disk and auto-trigger relinking.
 - **Verification Criteria:** Dropping or selecting moved video file triggers relink API call and resumes playback.
 - **Estimated Effort:** 2.0 hours.
+

@@ -295,13 +295,13 @@ export function App() {
                 }}
               />
             ) : activeSection === "media-library" ? (
-              <MediaLibraryView />
+              <MediaLibraryView onNavigate={(s) => setActiveSection(s as NavSection)} />
             ) : activeSection === "workstation" ? (
               <VideoWorkstationView initialVideoId={selectedVideoId} />
             ) : activeSection === "hybrid-search" ? (
               <HybridSearchView />
             ) : activeSection === "discovery-roots" ? (
-              <DiscoverySourcesView />
+              <DiscoverySourcesView onNavigate={(s) => setActiveSection(s as NavSection)} />
             ) : activeSection === "processing-jobs" ? (
               <ProcessingJobsView />
             ) : activeSection === "privacy-ai" ? (

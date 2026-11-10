@@ -68,3 +68,4 @@ However, several human-factors rough edges, technical jargon leaks, and mental m
    - Add search mode filter pills (`Dialogue`, `Visuals`, `All`) to Hybrid Search.
    - Add token-to-video-hour translation in Privacy & BYO-AI model descriptions.
    - Add collapsible/dismissible state for the 3-step Cockpit banner.
+

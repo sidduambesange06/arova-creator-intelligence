@@ -178,3 +178,4 @@ Caught Exception: ArchiveSecurityError: Suspicious decompression ratio (904.4:1 
 ```
 
 **Verdict:** The Portable `.arova` export, download, inspection, defense, dry-run, restoration, and relinking workflows are fully verified and hardened.
+

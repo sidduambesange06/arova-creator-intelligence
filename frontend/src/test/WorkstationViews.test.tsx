@@ -212,7 +212,7 @@ describe("Cinematic Instrument Workstation Views", () => {
     it("renders discovery roots and triggers on-demand scan", async () => {
       vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
         const url = String(input);
-        if (url.includes("/api/v1/discovery/libraries/roots/root-1/scan") && init?.method === "POST") {
+        if (url.includes("/roots/root-1/scan") && init?.method === "POST") {
           return new Response(
             JSON.stringify({
               id: "scan-101",
@@ -226,10 +226,10 @@ describe("Cinematic Instrument Workstation Views", () => {
             { status: 200, headers: { "Content-Type": "application/json" } }
           );
         }
-        if (url.includes("/api/v1/discovery/libraries/roots/root-1/scans")) {
+        if (url.includes("/roots/root-1/scans")) {
           return new Response(JSON.stringify([]), { status: 200 });
         }
-        if (url.includes("/api/v1/discovery/libraries/lib-1/roots")) {
+        if (url.includes("/lib-1/roots")) {
           return new Response(
             JSON.stringify([
               {
@@ -248,7 +248,7 @@ describe("Cinematic Instrument Workstation Views", () => {
             { status: 200, headers: { "Content-Type": "application/json" } }
           );
         }
-        if (url.includes("/api/v1/discovery/libraries")) {
+        if (url.includes("/libraries")) {
           return new Response(
             JSON.stringify([
               {
