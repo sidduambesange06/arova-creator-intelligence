@@ -27,6 +27,7 @@ class SemanticSearchRequest(BaseModel):
     top_k: int = Field(default=10, ge=1, le=50)
     use_reranker: bool = Field(default=True, description="Enable Stage-2 Cross-Encoder ML re-ranking")
     video_id: str | None = Field(default=None, description="Optional video ID filter")
+    channel: str = Field(default="all", description="Evidence channel filter: all, speech, visual, multimodal")
 
 
 class TranscriptSearchRequest(BaseModel):
@@ -97,6 +98,7 @@ def search_semantic(
         top_k=payload.top_k,
         use_reranker=payload.use_reranker,
         video_id_filter=payload.video_id,
+        channel_filter=payload.channel,
     )
 
 
@@ -184,6 +186,7 @@ def summarize_video(
 class AskQuestionRequest(BaseModel):
     query: str = Field(..., min_length=1, description="Question about video content")
     video_id: str | None = Field(default=None, description="Optional video ID filter")
+    channel: str = Field(default="all", description="Evidence channel filter: all, speech, visual, multimodal")
     api_key: str | None = None
     consent_remote_ai: bool = False
     provider: str | None = Field(default=None, description="Target AI provider: local, google-gemini, openai, anthropic")
@@ -200,6 +203,7 @@ def ask_video_ai(
         db=db,
         query=payload.query,
         video_id=payload.video_id,
+        channel=payload.channel,
         api_key=payload.api_key,
         consent_remote_ai=payload.consent_remote_ai,
         provider=payload.provider,

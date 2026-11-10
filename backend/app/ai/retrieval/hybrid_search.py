@@ -37,6 +37,29 @@ class HybridSearchResponse:
     stage2_rerank_ms: float
     total_ms: float
     results: list[SearchResultItem]
+    channel_filter: str = "all"
+    visual_evidence_count: int = 0
+
+
+def _split_chunk_channels(chunk_text: str) -> tuple[str, str]:
+    """Split a multimodal chunk into (spoken_text, visual_ocr_text)."""
+    marker = "[On-Screen Visual Text]:"
+    if marker in chunk_text:
+        parts = chunk_text.split(marker, 1)
+        return parts[0].strip(), parts[1].strip()
+    return chunk_text.strip(), ""
+
+
+def _text_for_channel(chunk_text: str, channel: str) -> str:
+    """Return channel-isolated text for retrieval/scoring, or empty string if ineligible."""
+    speech_part, vis_part = _split_chunk_channels(chunk_text)
+    if channel == "speech":
+        return speech_part
+    if channel == "visual":
+        return vis_part
+    if channel == "multimodal":
+        return chunk_text if (speech_part and vis_part) else ""
+    return chunk_text
 
 
 def _sanitize_fts_query(raw_query: str) -> str:
@@ -55,12 +78,28 @@ def run_hybrid_search(
     top_k: int = 10,
     use_reranker: bool = True,
     video_id_filter: str | None = None,
+    channel_filter: str = "all",
     storage_dir: str | None = None,
     embedder: EmbeddingProvider | None = None,
     reranker: CrossEncoderReranker | None = None,
 ) -> HybridSearchResponse:
     t_start = time.perf_counter()
     q_clean = query.strip()
+    norm_channel = (channel_filter or "all").strip().lower()
+    if norm_channel not in ("all", "speech", "visual", "multimodal"):
+        norm_channel = "all"
+
+    # Count indexed chunks containing visual OCR evidence for transparent channel diagnostics
+    try:
+        vis_sql = "SELECT COUNT(*) FROM embedding_records WHERE chunk_text LIKE '%[On-Screen Visual Text]:%'"
+        vis_params: dict[str, Any] = {}
+        if video_id_filter:
+            vis_sql += " AND video_id = :vid"
+            vis_params["vid"] = video_id_filter
+        visual_evidence_count = int(db.execute(text(vis_sql), vis_params).scalar() or 0)
+    except Exception:
+        visual_evidence_count = 0
+
     if not q_clean:
         return HybridSearchResponse(
             query=query,
@@ -69,6 +108,8 @@ def run_hybrid_search(
             stage2_rerank_ms=0.0,
             total_ms=0.0,
             results=[],
+            channel_filter=norm_channel,
+            visual_evidence_count=visual_evidence_count,
         )
 
     t_s1_start = time.perf_counter()
@@ -76,31 +117,35 @@ def run_hybrid_search(
     q_vec = active_embedder.embed_text(q_clean)
     stored_vectors = load_vectors_from_disk(storage_dir=storage_dir)
 
+    # Pre-compute eligible embedding IDs at the retrieval layer when video or channel filter is active
+    eligible_channel_texts: dict[str, str] | None = None
+    if video_id_filter or norm_channel != "all":
+        rec_query = db.query(EmbeddingRecord.embedding_id, EmbeddingRecord.chunk_text)
+        if video_id_filter:
+            rec_query = rec_query.filter(EmbeddingRecord.video_id == video_id_filter)
+        eligible_channel_texts = {}
+        for eid, ctext in rec_query.all():
+            ch_txt = _text_for_channel(ctext or "", norm_channel)
+            if ch_txt:
+                eligible_channel_texts[str(eid)] = ch_txt
+
     # 1. Dense Vector Scoring (Cosine similarity)
     dense_scores: dict[str, float] = {}
     if q_vec and stored_vectors:
         for emb_id, vec in stored_vectors.items():
+            if eligible_channel_texts is not None and emb_id not in eligible_channel_texts:
+                continue
             if len(vec) == len(q_vec):
                 # L2 normalized dot product = cosine similarity
                 sim = sum(a * b for a, b in zip(q_vec, vec, strict=False))
                 dense_scores[emb_id] = round(sim, 4)
 
-    # Filter by video_id if requested
-    if video_id_filter:
-        valid_ids = {
-            r[0]
-            for r in db.execute(
-                text("SELECT embedding_id FROM embedding_records WHERE video_id = :vid"),
-                {"vid": video_id_filter},
-            ).fetchall()
-        }
-        dense_scores = {k: v for k, v in dense_scores.items() if k in valid_ids}
-
     sorted_dense = sorted(dense_scores.items(), key=lambda x: x[1], reverse=True)[:20]
     dense_ranks = {item[0]: rank for rank, item in enumerate(sorted_dense, start=1)}
 
-    # 2. Lexical Scoring (SQLite FTS5)
+    # 2. Lexical Scoring (SQLite FTS5 + channel-isolated lexical verification)
     fts_query = _sanitize_fts_query(q_clean)
+    query_words = set(re.findall(r"\w+", q_clean.lower()))
     lexical_ranks: dict[str, int] = {}
     try:
         sql = """
@@ -112,13 +157,43 @@ def run_hybrid_search(
         if video_id_filter:
             sql += " AND video_id = :vid"
             params["vid"] = video_id_filter
-        sql += " ORDER BY rank LIMIT 20"
+        sql += " ORDER BY rank LIMIT 50"
 
         fts_rows = db.execute(text(sql), params).fetchall()
-        for rank, row in enumerate(fts_rows, start=1):
-            lexical_ranks[str(row[0])] = rank
+        lex_rank = 1
+        for row in fts_rows:
+            eid = str(row[0])
+            if eligible_channel_texts is not None:
+                if eid not in eligible_channel_texts:
+                    continue
+                if norm_channel in ("speech", "visual") and query_words:
+                    ch_lower = eligible_channel_texts[eid].lower()
+                    if not any(w in ch_lower for w in query_words):
+                        continue
+            lexical_ranks[eid] = lex_rank
+            lex_rank += 1
+            if lex_rank > 20:
+                break
     except Exception:
         lexical_ranks = {}
+
+    # When speech-only or visual-only filter is active, prevent dense vector bleed from the excluded channel
+    if norm_channel in ("speech", "visual") and eligible_channel_texts is not None and query_words:
+        filtered_dense_ranks: dict[str, int] = {}
+        d_rank = 1
+        for eid, _ in sorted_dense:
+            ch_txt = eligible_channel_texts.get(eid, "")
+            full_rec = db.query(EmbeddingRecord.chunk_text).filter_by(embedding_id=eid).first()
+            full_txt = full_rec[0] if full_rec else ch_txt
+            sp_part, vis_part = _split_chunk_channels(full_txt)
+            other_part = vis_part.lower() if norm_channel == "speech" else sp_part.lower()
+            target_part = sp_part.lower() if norm_channel == "speech" else vis_part.lower()
+            # Exclude if query terms appear ONLY in the excluded channel and not in the target channel
+            if any(w in other_part for w in query_words) and not any(w in target_part for w in query_words):
+                continue
+            filtered_dense_ranks[eid] = d_rank
+            d_rank += 1
+        dense_ranks = filtered_dense_ranks
 
     # 3. Reciprocal Rank Fusion (RRF)
     all_candidate_ids = set(dense_ranks.keys()) | set(lexical_ranks.keys())
@@ -157,12 +232,16 @@ def run_hybrid_search(
     for cid in sorted(all_candidate_ids, key=lambda x: rrf_scores[x], reverse=True):
         rec = record_map.get(cid)
         if rec:
+            scoring_text = _text_for_channel(rec.chunk_text, norm_channel)
+            if not scoring_text:
+                continue
             candidates.append(
                 {
                     "embedding_id": cid,
                     "video_id": rec.video_id,
                     "filename": video_map.get(rec.video_id, "unknown.mp4"),
-                    "chunk_text": rec.chunk_text,
+                    "chunk_text": scoring_text if norm_channel in ("speech", "visual") else rec.chunk_text,
+                    "raw_chunk_text": rec.chunk_text,
                     "start_time": rec.start_time,
                     "end_time": rec.end_time,
                     "stage1_score": rrf_scores[cid],
@@ -187,29 +266,33 @@ def run_hybrid_search(
         final_list = candidates[:top_k]
 
     results: list[SearchResultItem] = []
-    query_words = set(re.findall(r"\w+", q_clean.lower()))
     for rank, item in enumerate(final_list, start=1):
-        txt = item["chunk_text"]
-        match_chan = "speech"
-        if "[On-Screen Visual Text]:" in txt:
-            parts = txt.split("[On-Screen Visual Text]:")
-            speech_part = parts[0].lower()
-            vis_part = parts[1].lower() if len(parts) > 1 else ""
-            m_vis = any(w in vis_part for w in query_words)
-            m_speech = any(w in speech_part for w in query_words)
-            if m_vis and m_speech:
-                match_chan = "multimodal"
-            elif m_vis:
-                match_chan = "visual"
-            else:
-                match_chan = "speech"
+        raw_txt = item.get("raw_chunk_text", item["chunk_text"])
+        speech_part, vis_part = _split_chunk_channels(raw_txt)
+        if norm_channel == "speech":
+            match_chan = "speech"
+        elif norm_channel == "visual":
+            match_chan = "visual"
+        elif norm_channel == "multimodal":
+            match_chan = "multimodal"
+        else:
+            match_chan = "speech"
+            if vis_part:
+                m_vis = any(w in vis_part.lower() for w in query_words)
+                m_speech = any(w in speech_part.lower() for w in query_words)
+                if m_vis and m_speech:
+                    match_chan = "multimodal"
+                elif m_vis:
+                    match_chan = "visual"
+                else:
+                    match_chan = "speech"
 
         results.append(
             SearchResultItem(
                 embedding_id=item["embedding_id"],
                 video_id=item["video_id"],
                 filename=item["filename"],
-                chunk_text=item["chunk_text"],
+                chunk_text=raw_txt,
                 start_time=item["start_time"],
                 end_time=item["end_time"],
                 stage1_score=item["stage1_score"],
@@ -227,5 +310,7 @@ def run_hybrid_search(
         stage2_rerank_ms=stage2_rerank_ms,
         total_ms=round(t_total, 2),
         results=results,
+        channel_filter=norm_channel,
+        visual_evidence_count=visual_evidence_count,
     )
 

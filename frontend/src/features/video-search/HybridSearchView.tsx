@@ -108,20 +108,31 @@ export function HybridSearchView() {
     }
   };
 
-  const executeSearch = async (queryString: string) => {
+  const executeSearch = async (
+    queryString: string,
+    overrideChannel?: "all" | "speech" | "visual" | "multimodal"
+  ) => {
     const q = queryString.trim();
     if (!q) return;
+    const activeChan = overrideChannel ?? channelFilter;
 
     setSearching(true);
     setSearchError(null);
     try {
-      const resp = await searchSemantic(q, useReranker, 10);
+      const resp = await searchSemantic(q, useReranker, 10, undefined, activeChan);
       setSearchResponse(resp);
     } catch (err) {
       setSearchError(err instanceof Error ? err.message : "Search failed");
       setSearchResponse(null);
     } finally {
       setSearching(false);
+    }
+  };
+
+  const handleChannelChange = (nextChannel: "all" | "speech" | "visual" | "multimodal") => {
+    setChannelFilter(nextChannel);
+    if (query.trim()) {
+      void executeSearch(query, nextChannel);
     }
   };
 
@@ -138,7 +149,10 @@ export function HybridSearchView() {
     setAskingQa(true);
     setQaError(null);
     try {
-      const resp = await askVideoAi(q);
+      const resp = await askVideoAi(q, undefined, {
+        channel: channelFilter,
+        provider: qaProvider,
+      });
       setQaResponse(resp);
     } catch (err) {
       setQaError(err instanceof Error ? err.message : "Grounded Q&A failed");
@@ -284,20 +298,20 @@ export function HybridSearchView() {
         <div className="space-y-6">
           <div className="border-b border-[#172338] pb-5 space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-3">
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <h2 className="text-xl font-semibold tracking-tight text-slate-100">
-                    Hybrid Video RAG &amp; Cross-Encoder Search
-                  </h2>
-                  <span className="px-2 py-0.5 rounded text-[11px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60">
-                    Stage-1 RRF + Stage-2 Cross-Encoder
-                  </span>
+                <div>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h2 className="text-xl font-semibold tracking-tight text-[#F5F7FB]">
+                      Hybrid Video RAG &amp; Cross-Encoder Search
+                    </h2>
+                    <span className="px-2 py-0.5 rounded text-[11px] font-mono text-[#51DCC8] bg-[#51DCC8]/10 border border-[#51DCC8]/30">
+                      Stage-1 RRF + Stage-2 Cross-Encoder
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#A2AEC0] mt-1">
+                    Dense MiniLM embeddings + BM25 Lexical FTS5 fused via Reciprocal Rank Fusion (k = 60)
+                    with joint attention re-ranking.
+                  </p>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Dense MiniLM embeddings + BM25 Lexical FTS5 fused via Reciprocal Rank Fusion ($k=60$)
-                  with joint attention re-ranking.
-                </p>
-              </div>
 
               <button
                 type="button"
@@ -333,36 +347,68 @@ export function HybridSearchView() {
                 </button>
               </div>
 
-              {/* Reranker & Mode Toggles */}
-              <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
+              {/* Evidence Channel Scope & Reranker Toggles */}
+              <div className="flex items-center justify-between flex-wrap gap-3 pt-1">
+                <div
+                  role="group"
+                  aria-label="Evidence channel filter"
+                  className="flex items-center gap-1.5 flex-wrap"
+                >
+                  <span className="text-[11px] font-mono text-[#6B778C] uppercase tracking-wider mr-1">
+                    Retrieval Channel:
+                  </span>
+                  {(
+                    [
+                      { id: "all", label: "All Evidence" },
+                      { id: "speech", label: "Spoken Dialogue Only" },
+                      { id: "visual", label: "Visual OCR Only" },
+                      { id: "multimodal", label: "Multimodal Fusion" },
+                    ] as const
+                  ).map((ch) => (
+                    <button
+                      key={ch.id}
+                      type="button"
+                      data-testid={`channel-filter-${ch.id}`}
+                      onClick={() => handleChannelChange(ch.id)}
+                      className={`px-2.5 py-1 rounded text-[11px] font-mono transition-colors ${
+                        channelFilter === ch.id
+                          ? "bg-[#9B8CFF] text-[#080B12] font-semibold"
+                          : "bg-[#111827] text-[#A2AEC0] hover:text-[#F5F7FB] border border-[#243149]"
+                      }`}
+                    >
+                      {ch.label}
+                    </button>
+                  ))}
+                </div>
+
                 <label className="flex items-center gap-2 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={useReranker}
                     onChange={(e) => setUseReranker(e.target.checked)}
-                    className="rounded bg-[#090e18] border-[#172338] text-slate-200 focus:ring-0"
+                    className="rounded bg-[#090e18] border-[#243149] text-[#9B8CFF] focus:ring-0"
                   />
-                  <span className="text-slate-300 font-mono text-[11px]">
+                  <span className="text-[#A2AEC0] font-mono text-[11px]">
                     Stage-2 Joint Cross-Encoder Re-ranker (ms-marco-MiniLM-L-6-v2)
                   </span>
                 </label>
+              </div>
 
-                <div className="flex items-center gap-1.5 text-slate-400 font-mono text-[11px]">
-                  <span>Suggestions:</span>
-                  {SUGGESTIONS.map((sug) => (
-                    <button
-                      key={sug}
-                      type="button"
-                      onClick={() => {
-                        setQuery(sug);
-                        void executeSearch(sug);
-                      }}
-                      className="px-2 py-0.5 rounded bg-[#0d1424] hover:bg-slate-800 border border-[#172338] text-slate-300 transition-colors"
-                    >
-                      {sug}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex items-center gap-1.5 flex-wrap text-[#A2AEC0] font-mono text-[11px]">
+                <span>Suggestions:</span>
+                {SUGGESTIONS.map((sug) => (
+                  <button
+                    key={sug}
+                    type="button"
+                    onClick={() => {
+                      setQuery(sug);
+                      void executeSearch(sug);
+                    }}
+                    className="px-2 py-0.5 rounded bg-[#0d1424] hover:bg-[#172235] border border-[#243149] text-slate-300 transition-colors"
+                  >
+                    {sug}
+                  </button>
+                ))}
               </div>
             </form>
           </div>
@@ -388,7 +434,7 @@ export function HybridSearchView() {
                   onClick={() => setActiveVideoId(null)}
                   className="text-slate-400 hover:text-white text-xs font-mono"
                 >
-                  âœ• Close Preview
+                  &times; Close Preview
                 </button>
               </div>
               <video
@@ -460,86 +506,106 @@ export function HybridSearchView() {
           {/* Search Results Section */}
           {searchResponse && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between flex-wrap gap-3 text-xs text-slate-400 font-mono bg-[#090e18] p-3 rounded-lg border border-[#172338]">
-                <div>
-                  Retrieved <span className="text-white font-medium">{searchResponse.total_results}</span>{" "}
-                  candidate windows in <span className="text-white">{searchResponse.total_ms.toFixed(1)}ms</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-slate-500 text-[11px] mr-1">Channel:</span>
-                  {(["all", "speech", "visual", "multimodal"] as const).map((ch) => (
-                    <button
-                      key={ch}
-                      type="button"
-                      onClick={() => setChannelFilter(ch)}
-                      className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors ${
-                        channelFilter === ch
-                          ? "bg-slate-100 text-slate-950 font-bold"
-                          : "text-slate-400 hover:text-slate-200 bg-[#0d1424]"
-                      }`}
-                    >
-                      {ch === "all" ? "All Channels" : ch === "visual" ? "Visual OCR" : ch === "speech" ? "Speech ASR" : "Multimodal"}
-                    </button>
-                  ))}
+              <div className="flex items-center justify-between flex-wrap gap-3 text-xs text-slate-400 font-mono bg-[#0B1019] p-3 rounded-lg border border-[#243149]">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span>
+                    Retrieved <span className="text-white font-medium">{searchResponse.total_results}</span>{" "}
+                    candidate windows in <span className="text-white">{searchResponse.total_ms.toFixed(1)}ms</span>
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-[#172235] border border-[#243149] text-[10px] text-[#9B8CFF]">
+                    Scope: {channelFilter === "all" ? "All Evidence" : channelFilter === "visual" ? "Visual OCR Only" : channelFilter === "speech" ? "Spoken Dialogue Only" : "Multimodal"}
+                  </span>
+                  {typeof searchResponse.visual_evidence_count === "number" && (
+                    <span className="text-[11px] text-[#6B778C]">
+                      · Indexed OCR windows: {searchResponse.visual_evidence_count}
+                    </span>
+                  )}
                 </div>
               </div>
 
               {filteredResults.length === 0 ? (
-                <div className="p-8 text-center text-xs text-slate-400 font-mono bg-[#111827] rounded-panel border border-[#243149]">
-                  No matching video chunks found for &quot;{searchResponse.query}&quot;.
+                <div className="p-8 text-center text-xs text-[#A2AEC0] font-mono bg-[#111827] rounded-panel border border-[#243149] space-y-2">
+                  <div className="text-[#F5F7FB] font-semibold">
+                    No matching video chunks found for &quot;{searchResponse.query}&quot;
+                    {channelFilter !== "all" ? ` in channel "${channelFilter}"` : ""}.
+                  </div>
+                  {channelFilter === "visual" && searchResponse.visual_evidence_count === 0 && (
+                    <p className="text-[11px] text-[#F4BF69] max-w-xl mx-auto">
+                      No on-screen visual OCR text has been extracted for your indexed videos yet (or Tesseract OCR was unavailable during scene indexing). Switch to &quot;All Evidence&quot; or &quot;Spoken Dialogue Only&quot; to search speech transcripts.
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2.5">
-                  {filteredResults.map((item, idx) => (
-                    <div
-                      key={item.embedding_id || idx}
-                      className="p-4 rounded-panel bg-[#111827] border border-[#243149] space-y-2.5 hover:border-[#334366] transition-colors"
-                    >
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-xs text-white">{item.filename}</span>
-                          <span className="px-2 py-0.5 rounded bg-[#060911] border border-[#172338] text-[11px] font-mono text-slate-300">
-                            [{item.start_time.toFixed(1)}s - {item.end_time.toFixed(1)}s]
-                          </span>
+                  {filteredResults.map((item, idx) => {
+                    const ch = item.match_channel || "speech";
+                    return (
+                      <div
+                        key={item.embedding_id || idx}
+                        className="p-4 rounded-panel bg-[#111827] border border-[#243149] space-y-2.5 hover:border-[#334366] transition-colors"
+                      >
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium text-xs text-[#F5F7FB]">{item.filename}</span>
+                            <span className="px-2 py-0.5 rounded bg-[#080B12] border border-[#243149] text-[11px] font-mono text-[#51DCC8]">
+                              [{item.start_time.toFixed(1)}s - {item.end_time.toFixed(1)}s]
+                            </span>
+                            <span
+                              data-testid={`result-channel-badge-${idx}`}
+                              className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider border ${
+                                ch === "visual"
+                                  ? "bg-[#6BCBFF]/10 text-[#6BCBFF] border-[#6BCBFF]/30"
+                                  : ch === "multimodal"
+                                  ? "bg-[#9B8CFF]/10 text-[#9B8CFF] border-[#9B8CFF]/30"
+                                  : "bg-[#51DCC8]/10 text-[#51DCC8] border-[#51DCC8]/30"
+                              }`}
+                            >
+                              {ch === "visual"
+                                ? "Visual OCR"
+                                : ch === "multimodal"
+                                ? "Multimodal (Speech + OCR)"
+                                : "Spoken Dialogue"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[11px] font-mono text-slate-400">
+                              RRF: <span className="text-slate-200">{item.stage1_score.toFixed(4)}</span>
+                            </span>
+                            <span className="text-[11px] font-mono text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/60 font-semibold">
+                              {item.rerank_score.toFixed(4)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => jumpToClip(item.video_id, item.start_time)}
+                              className="px-2.5 py-1 bg-[#9B8CFF] hover:bg-[#8b7aee] text-[#080B12] rounded text-xs font-mono font-semibold"
+                            >
+                              Play Preview
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => copyQuote(item)}
+                              className="px-2.5 py-1 bg-[#172235] hover:bg-[#1e2c44] text-slate-200 rounded text-xs font-mono border border-[#243149]"
+                            >
+                              {copiedSnippetId === `${item.start_time}` ? "Copied!" : "Copy Quote"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleExportClip(item.video_id, item.start_time, item.end_time)}
+                              disabled={exportingClipKey === `${item.video_id}-${item.start_time.toFixed(1)}-${item.end_time.toFixed(1)}`}
+                              className="px-2.5 py-1 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 rounded text-xs font-mono border border-emerald-800/80 disabled:opacity-50"
+                            >
+                              {exportingClipKey === `${item.video_id}-${item.start_time.toFixed(1)}-${item.end_time.toFixed(1)}` ? "Exporting..." : "Export Clip"}
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-2.5">
-                          <span className="text-[11px] font-mono text-slate-400">
-                            RRF: <span className="text-slate-200">{item.stage1_score.toFixed(4)}</span>
-                          </span>
-                          <span className="text-[11px] font-mono text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/60 font-semibold">
-                            {item.rerank_score.toFixed(4)}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => jumpToClip(item.video_id, item.start_time)}
-                            className="px-2.5 py-1 bg-slate-100 hover:bg-white text-slate-950 rounded text-xs font-mono font-medium"
-                          >
-                            Play Preview
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => copyQuote(item)}
-                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-mono border border-slate-700"
-                          >
-                            {copiedSnippetId === `${item.start_time}` ? "Copied!" : "Copy Quote"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void handleExportClip(item.video_id, item.start_time, item.end_time)}
-                            disabled={exportingClipKey === `${item.video_id}-${item.start_time.toFixed(1)}-${item.end_time.toFixed(1)}`}
-                            className="px-2.5 py-1 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 rounded text-xs font-mono border border-emerald-800/80 disabled:opacity-50"
-                          >
-                            {exportingClipKey === `${item.video_id}-${item.start_time.toFixed(1)}-${item.end_time.toFixed(1)}` ? "Exporting..." : "Export Clip"}
-                          </button>
-                        </div>
+                        <p className="text-xs text-slate-300 leading-relaxed font-sans bg-[#080B12] p-2.5 rounded border border-[#243149] whitespace-pre-line">
+                          &quot;{item.chunk_text}&quot;
+                        </p>
                       </div>
-
-                      <p className="text-xs text-slate-300 leading-relaxed font-sans bg-[#060911] p-2.5 rounded border border-[#172338]">
-                        &quot;{item.chunk_text}&quot;
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -547,19 +613,28 @@ export function HybridSearchView() {
 
           {/* Grounded Q&A Section */}
           <div className="p-5 rounded-panel bg-[#111827] border border-[#243149] space-y-4">
-            <div className="flex items-center justify-between border-b border-[#243149] pb-3">
+            <div className="flex items-center justify-between flex-wrap gap-3 border-b border-[#243149] pb-3">
               <div>
-                <h3 className="text-sm font-semibold text-[#F5F7FB]">
-                  Grounded Video Q&amp;A (Citations Linked to Timestamp)
-                </h3>
-                <p className="text-xs text-[#A2AEC0]">
-                  Synthesize verifiable answers strictly backed by retrieved video transcripts and scenes.
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-semibold text-[#F5F7FB]">
+                    Grounded Video Q&amp;A (Citations Linked to Timestamp)
+                  </h3>
+                  <span
+                    data-testid="qa-active-channel-badge"
+                    className="px-2 py-0.5 rounded bg-[#172235] border border-[#243149] text-[10px] font-mono text-[#51DCC8]"
+                  >
+                    Evidence Scope: {channelFilter === "all" ? "All Evidence" : channelFilter === "visual" ? "Visual OCR Only" : channelFilter === "speech" ? "Spoken Dialogue Only" : "Multimodal"}
+                  </span>
+                </div>
+                <p className="text-xs text-[#A2AEC0] mt-0.5">
+                  Synthesize verifiable answers strictly backed by retrieved video evidence within the active retrieval channel.
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-mono text-slate-400">Provider:</span>
                 <select
+                  aria-label="Q&A AI Provider"
                   value={qaProvider}
                   onChange={(e) => setQaProvider(e.target.value)}
                   className="px-2 py-1 rounded bg-[#0B1019] border border-[#243149] text-xs font-mono text-white"
@@ -575,6 +650,7 @@ export function HybridSearchView() {
             <div className="flex gap-2">
               <input
                 type="text"
+                aria-label="Grounded Q&A question"
                 value={qaQuery}
                 onChange={(e) => setQaQuery(e.target.value)}
                 placeholder="Ask any question about your media archive..."
@@ -612,24 +688,50 @@ export function HybridSearchView() {
 
             {qaResponse && (
               <div className="p-4 rounded bg-[#0B1019] border border-[#243149] space-y-3 text-xs">
-                <div className="flex items-center justify-between text-[#9B8CFF] font-semibold">
-                  <span>Synthesized Answer</span>
-                  <span className="text-[10px] font-mono text-slate-400">{qaResponse.model_name}</span>
+                <div className="flex items-center justify-between flex-wrap gap-2 text-[#9B8CFF] font-semibold">
+                  <span>Synthesized Grounded Answer</span>
+                  <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+                    {qaResponse.channel_filter && (
+                      <span className="px-1.5 py-0.5 rounded bg-[#172235] text-[#51DCC8] border border-[#243149]">
+                        Channel: {qaResponse.channel_filter}
+                      </span>
+                    )}
+                    <span>{qaResponse.model_name}</span>
+                  </div>
                 </div>
-                <p className="text-slate-200 leading-relaxed font-sans">{qaResponse.answer}</p>
+                <p className="text-slate-200 leading-relaxed font-sans whitespace-pre-line">{qaResponse.answer}</p>
 
                 {qaResponse.citations?.length > 0 && (
                   <div className="pt-2 border-t border-[#243149] space-y-1.5">
-                    <span className="text-[11px] font-mono text-slate-400">Grounding Citations:</span>
+                    <span className="text-[11px] font-mono text-slate-400">
+                      Grounding Citations (click timestamp to preview clip):
+                    </span>
                     {qaResponse.citations.map((c, i) => (
                       <div
                         key={i}
-                        className="p-2 rounded bg-[#111827] border border-[#243149] flex items-center justify-between font-mono text-[11px]"
+                        className="p-2.5 rounded bg-[#111827] border border-[#243149] flex items-center justify-between flex-wrap gap-2 font-mono text-[11px]"
                       >
-                        <span className="text-slate-300 truncate max-w-md">{c.snippet}</span>
-                        <span className="text-[#51DCC8] shrink-0">
-                          {c.filename} [{c.timestamp_label}]
-                        </span>
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[9px] uppercase shrink-0 border ${
+                              c.match_channel === "visual"
+                                ? "bg-[#6BCBFF]/10 text-[#6BCBFF] border-[#6BCBFF]/30"
+                                : c.match_channel === "multimodal"
+                                ? "bg-[#9B8CFF]/10 text-[#9B8CFF] border-[#9B8CFF]/30"
+                                : "bg-[#51DCC8]/10 text-[#51DCC8] border-[#51DCC8]/30"
+                            }`}
+                          >
+                            {c.match_channel || "speech"}
+                          </span>
+                          <span className="text-slate-300 truncate">{c.snippet}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => jumpToClip(c.video_id, c.start_time)}
+                          className="px-2 py-0.5 rounded bg-[#172235] hover:bg-[#9B8CFF] hover:text-[#080B12] text-[#51DCC8] border border-[#243149] transition-colors shrink-0"
+                        >
+                          &#9654; {c.filename} [{c.timestamp_label}]
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -706,7 +808,7 @@ export function HybridSearchView() {
                 <div className="flex items-center justify-between text-xs font-semibold text-[#51DCC8]">
                   <span>Autonomous Synthesis Final Answer</span>
                   <span className="text-[10px] font-mono text-slate-400">
-                    {agentResult.total_steps} Steps Â· {agentResult.latency_ms.toFixed(0)}ms
+                    {agentResult.total_steps} Steps &middot; {agentResult.latency_ms.toFixed(0)}ms
                   </span>
                 </div>
                 <p className="text-xs text-slate-200 leading-relaxed font-sans">{agentResult.final_answer}</p>

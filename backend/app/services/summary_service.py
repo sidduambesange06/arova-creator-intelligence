@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.ai.providers.base import AICapability
 from app.ai.providers.gateway import get_ai_gateway
-from app.ai.retrieval.hybrid_search import run_hybrid_search
+from app.ai.retrieval.hybrid_search import _text_for_channel, run_hybrid_search
 from app.core.config import settings
 from app.models.entities import Transcript, Video, VideoSummary
 
@@ -134,25 +134,42 @@ def answer_video_question(
     db: Session,
     query: str,
     video_id: str | None = None,
+    channel: str = "all",
     api_key: str | None = None,
     consent_remote_ai: bool = False,
     provider: str | None = None,
     model: str | None = None,
     base_url: str | None = None,
 ) -> dict[str, Any]:
+    norm_channel = (channel or "all").strip().lower()
+    if norm_channel not in ("all", "speech", "visual", "multimodal"):
+        norm_channel = "all"
+
     search_resp = run_hybrid_search(
         db=db,
         query=query,
         top_k=5,
         use_reranker=True,
         video_id_filter=video_id,
+        channel_filter=norm_channel,
     )
     if not search_resp.results:
+        if norm_channel == "visual" and search_resp.visual_evidence_count == 0:
+            empty_msg = "No on-screen visual OCR text has been extracted for the indexed media archive yet. Switch to All Evidence or Spoken Dialogue."
+        elif norm_channel == "visual":
+            empty_msg = "No matching on-screen visual OCR text was found for this question in the Visual OCR channel."
+        elif norm_channel == "speech":
+            empty_msg = "No relevant spoken dialogue was found matching this question in the Spoken Dialogue channel."
+        else:
+            empty_msg = "No relevant spoken or visual content was found matching this question."
+
         return {
             "query": query,
-            "answer": "No relevant spoken or visual content was found matching this question.",
+            "answer": empty_msg,
             "citations": [],
             "model_name": "grounded-retrieval",
+            "channel_filter": norm_channel,
+            "visual_evidence_count": search_resp.visual_evidence_count,
             "remote_egress": False,
             "provider": "local",
             "egress_data_categories": [],
@@ -163,7 +180,8 @@ def answer_video_question(
     evidence_blocks = []
     for item in search_resp.results:
         time_str = f"{int(item.start_time // 60)}:{int(item.start_time % 60):02d} - {int(item.end_time // 60)}:{int(item.end_time % 60):02d}"
-        sanitized_chunk = sanitize_untrusted_media_text(item.chunk_text)
+        effective_chunk = _text_for_channel(item.chunk_text, norm_channel) or item.chunk_text
+        sanitized_chunk = sanitize_untrusted_media_text(effective_chunk)
         citations.append(
             {
                 "video_id": item.video_id,
@@ -208,6 +226,8 @@ def answer_video_question(
                     "answer": response.text.strip(),
                     "citations": citations,
                     "model_name": response.model_name,
+                    "channel_filter": norm_channel,
+                    "visual_evidence_count": search_resp.visual_evidence_count,
                     "remote_egress": True,
                     "provider": response.provider,
                     "egress_data_categories": response.data_categories_egressed,
@@ -219,14 +239,16 @@ def answer_video_question(
     # Deterministic extractive grounded answer (offline local mode)
     best = search_resp.results[0]
     best_time = f"{int(best.start_time // 60)}:{int(best.start_time % 60):02d} - {int(best.end_time // 60)}:{int(best.end_time % 60):02d}"
-    channel = getattr(best, "match_channel", "speech")
-    channel_desc = f" ({channel} channel)" if channel else ""
-    best_text = sanitize_untrusted_media_text(best.chunk_text)
+    channel_tag = getattr(best, "match_channel", "speech")
+    channel_desc = f" ({channel_tag} channel)" if channel_tag else ""
+    best_raw = _text_for_channel(best.chunk_text, norm_channel) or best.chunk_text
+    best_text = sanitize_untrusted_media_text(best_raw)
     answer = f"According to {best.filename} at [{best_time}]{channel_desc}: \"{best_text}\""
     if len(search_resp.results) > 1:
         second = search_resp.results[1]
         sec_time = f"{int(second.start_time // 60)}:{int(second.start_time % 60):02d} - {int(second.end_time // 60)}:{int(second.end_time % 60):02d}"
-        second_text = sanitize_untrusted_media_text(second.chunk_text)
+        sec_raw = _text_for_channel(second.chunk_text, norm_channel) or second.chunk_text
+        second_text = sanitize_untrusted_media_text(sec_raw)
         answer += f"\n\nContext at [{sec_time}]: \"{second_text}\""
 
     return {
@@ -234,6 +256,8 @@ def answer_video_question(
         "answer": answer,
         "citations": citations,
         "model_name": "grounded-extractive-local",
+        "channel_filter": norm_channel,
+        "visual_evidence_count": search_resp.visual_evidence_count,
         "remote_egress": False,
         "provider": "local",
         "egress_data_categories": [],

@@ -178,6 +178,8 @@ export async function fetchVideoScenes(videoId: string): Promise<VideoSceneItem[
   return res.json() as Promise<VideoSceneItem[]>;
 }
 
+export type EvidenceChannel = "all" | "speech" | "visual" | "multimodal";
+
 export interface SearchResultItem {
   embedding_id: string;
   video_id: string;
@@ -198,6 +200,8 @@ export interface HybridSearchResponse {
   stage2_rerank_ms: number;
   total_ms: number;
   results: SearchResultItem[];
+  channel_filter?: EvidenceChannel;
+  visual_evidence_count?: number;
 }
 
 export interface RankingMetrics {
@@ -224,7 +228,8 @@ export async function searchSemantic(
   query: string,
   useReranker: boolean = true,
   topK: number = 10,
-  videoId?: string
+  videoId?: string,
+  channel: EvidenceChannel = "all"
 ): Promise<HybridSearchResponse> {
   const res = await fetch(`${API_BASE_URL}/api/v1/search/semantic`, {
     method: "POST",
@@ -234,6 +239,7 @@ export async function searchSemantic(
       top_k: topK,
       use_reranker: useReranker,
       video_id: videoId || null,
+      channel,
     }),
   });
   if (!res.ok) {
@@ -316,11 +322,20 @@ export interface AskQuestionResponse {
   answer: string;
   citations: VideoCitation[];
   model_name: string;
+  channel_filter?: EvidenceChannel;
+  visual_evidence_count?: number;
+  provider?: string;
+  remote_egress?: boolean;
 }
 
 export async function askVideoAi(
   query: string,
-  videoId?: string
+  videoId?: string,
+  options?: {
+    channel?: EvidenceChannel;
+    provider?: string;
+    consent_remote_ai?: boolean;
+  }
 ): Promise<AskQuestionResponse> {
   const res = await fetch(`${API_BASE_URL}/api/v1/ai/ask`, {
     method: "POST",
@@ -328,6 +343,9 @@ export async function askVideoAi(
     body: JSON.stringify({
       query,
       video_id: videoId || null,
+      channel: options?.channel || "all",
+      provider: options?.provider || null,
+      consent_remote_ai: Boolean(options?.consent_remote_ai),
     }),
   });
   if (!res.ok) {
@@ -1302,14 +1320,21 @@ export interface SmartLoopResult {
 export async function fetchSharedTools(): Promise<SharedToolDefinition[]> {
   const res = await fetch(`${API_BASE_URL}/api/v1/tools`);
   if (!res.ok) throw new Error(`Failed to load shared tools (HTTP ${res.status})`);
-  const data = (await res.json()) as { tools: SharedToolDefinition[] };
-  return data.tools;
+  const data = (await res.json()) as { tools?: any[] };
+  const rawTools = Array.isArray(data?.tools) ? data.tools : [];
+  return rawTools.map((t: any) => ({
+    name: t.name,
+    description: t.description ?? "",
+    read_only: Boolean(t.read_only ?? t.is_read_only ?? true),
+    parameters: t.parameters ?? {},
+  }));
 }
 
 export async function executeSharedTool(
   tool: string,
   args: Record<string, any>
 ): Promise<ToolExecuteResult> {
+  const t0 = performance.now();
   const res = await fetch(`${API_BASE_URL}/api/v1/tools/execute`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1319,7 +1344,13 @@ export async function executeSharedTool(
     const body = (await res.json().catch(() => ({}))) as { detail?: string };
     throw new Error(body.detail ?? `Tool execution failed (HTTP ${res.status})`);
   }
-  return res.json() as Promise<ToolExecuteResult>;
+  const raw = await res.json();
+  return {
+    tool: raw.tool ?? tool,
+    arguments: raw.arguments ?? args,
+    result: raw.result ?? raw,
+    latency_ms: typeof raw.latency_ms === "number" ? raw.latency_ms : Math.round(performance.now() - t0),
+  };
 }
 
 export async function runSmartLoopAgent(payload: {
@@ -1328,6 +1359,7 @@ export async function runSmartLoopAgent(payload: {
   max_turns?: number;
   provider?: string;
 }): Promise<SmartLoopResult> {
+  const t0 = performance.now();
   const res = await fetch(`${API_BASE_URL}/api/v1/agent/smart-loop`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1337,7 +1369,25 @@ export async function runSmartLoopAgent(payload: {
     const body = (await res.json().catch(() => ({}))) as { detail?: string };
     throw new Error(body.detail ?? `Smart Loop agent execution failed (HTTP ${res.status})`);
   }
-  return res.json() as Promise<SmartLoopResult>;
+  const raw = await res.json();
+  const rawSteps = Array.isArray(raw.steps) ? raw.steps : [];
+  return {
+    query: raw.query ?? payload.query,
+    provider: raw.provider ?? payload.provider ?? "local",
+    final_answer: raw.final_answer ?? "",
+    total_steps: typeof raw.total_steps === "number" ? raw.total_steps : (raw.total_turns ?? rawSteps.length),
+    steps: rawSteps.map((s: any, idx: number) => ({
+      step: s.step ?? s.turn ?? idx + 1,
+      tool: s.tool ?? s.tool_name ?? "tool",
+      arguments: s.arguments ?? {},
+      result_summary:
+        typeof s.result_summary === "string"
+          ? s.result_summary
+          : JSON.stringify(s.result ?? s.error ?? s.status ?? {}),
+    })),
+    citations: Array.isArray(raw.citations) ? raw.citations : [],
+    latency_ms: typeof raw.latency_ms === "number" ? raw.latency_ms : Math.round(performance.now() - t0),
+  };
 }
 
 // ---------------------------------------------------------------------------
