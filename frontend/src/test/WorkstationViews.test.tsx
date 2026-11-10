@@ -205,6 +205,19 @@ describe("Cinematic Instrument Workstation Views", () => {
         expect(screen.getByText(/Clip ready: clip_vid-1_10s_20s.mp4/i)).toBeInTheDocument();
         expect(screen.getByText("Download MP4")).toBeInTheDocument();
       });
+
+      // Verify new transport controls, range selection, and transcript filtering
+      expect(screen.getByRole("button", { name: "-5s" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "+5s" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Preview Selection" })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Set Range" }));
+      expect(screen.getByText(/Set In: 0.00s/i)).toBeInTheDocument();
+      expect(screen.getByText(/Set Out: 5.00s/i)).toBeInTheDocument();
+
+      const filterInput = screen.getByLabelText("Filter transcript segments");
+      fireEvent.change(filterInput, { target: { value: "nonexistent phrase" } });
+      expect(screen.getByText(/No dialogue segments match the current filter/i)).toBeInTheDocument();
     });
   });
 

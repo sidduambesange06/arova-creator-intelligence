@@ -30,7 +30,11 @@ const QA_PRESETS = [
   "Summarize key performance numbers and latency results.",
 ];
 
-export function HybridSearchView() {
+interface HybridSearchViewProps {
+  onSelectVideo?: (videoId: string, startTime?: number) => void;
+}
+
+export function HybridSearchView({ onSelectVideo }: HybridSearchViewProps) {
   const [activeTab, setActiveTab] = useState<"search" | "smart-loop" | "tools">("search");
 
   // Semantic Search State
@@ -582,6 +586,15 @@ export function HybridSearchView() {
                             >
                               Play Preview
                             </button>
+                            {onSelectVideo && (
+                              <button
+                                type="button"
+                                onClick={() => onSelectVideo(item.video_id, item.start_time)}
+                                className="px-2.5 py-1 bg-[#172235] hover:bg-[#232f48] text-[#9B8CFF] rounded text-xs font-mono border border-[#9B8CFF]/40"
+                              >
+                                Open in Workstation
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => copyQuote(item)}

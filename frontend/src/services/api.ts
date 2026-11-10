@@ -142,6 +142,10 @@ export function getVideoThumbnailUrl(videoId: string): string {
   return `${API_BASE_URL}/api/v1/videos/${encodeURIComponent(videoId)}/thumbnail`;
 }
 
+export function getSceneThumbnailUrl(videoId: string, sceneIndex: number): string {
+  return `${API_BASE_URL}/api/v1/videos/${encodeURIComponent(videoId)}/scenes/${sceneIndex}/thumbnail`;
+}
+
 export async function processVideo(
   videoId: string
 ): Promise<{ video_id: string; status: string; job_id?: string }> {
@@ -370,7 +374,9 @@ export interface ClipExportResponse {
   clip_filename: string;
   start_time: number;
   end_time: number;
+  requested_duration?: number;
   duration: number;
+  export_mode?: string;
   file_size: number;
   download_url: string;
 }

@@ -193,6 +193,14 @@ def measure_clip_duration(clip_path: str | Path) -> float:
     return round(float(duration), 3)
 
 
+_LAST_EXPORT_MODES: dict[str, str] = {}
+
+
+def get_last_export_mode(clip_path: str | Path) -> str:
+    """Return the recorded export mode ('stream_copy' or 'reencoded_libx264') for a clip."""
+    return _LAST_EXPORT_MODES.get(Path(clip_path).name, "stream_copy")
+
+
 def export_subclip(
     video_path: str | Path,
     start_time: float,
@@ -263,9 +271,11 @@ def export_subclip(
             timeout=60,
         )
 
+        export_mode = "stream_copy"
         # Step 2: Fallback to ultrafast libx264 transcode if stream copy fails or produces empty file
         # shortcut: falls back to ultrafast libx264 when stream copy fails on non-keyframe boundaries, upgrade to smart cut if sample-accurate GOP re-encoding is required.
         if proc.returncode != 0 or not temp_file.is_file() or temp_file.stat().st_size == 0:
+            export_mode = "reencoded_libx264"
             if temp_file.exists():
                 temp_file.unlink(missing_ok=True)
             cmd_transcode = [
@@ -317,6 +327,7 @@ def export_subclip(
             promoted_path.unlink(missing_ok=True)
             raise RuntimeError(f"Export verification failed: generated clip could not be measured: {verif_err}") from verif_err
 
+        _LAST_EXPORT_MODES[promoted_path.name] = export_mode
         return promoted_path
 
     finally:

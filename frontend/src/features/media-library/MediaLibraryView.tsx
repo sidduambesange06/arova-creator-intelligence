@@ -28,9 +28,10 @@ function formatDuration(seconds: number): string {
 
 interface MediaLibraryViewProps {
   onNavigate?: (section: string) => void;
+  onSelectVideo?: (videoId: string, startTime?: number) => void;
 }
 
-export function MediaLibraryView({ onNavigate }: MediaLibraryViewProps) {
+export function MediaLibraryView({ onNavigate, onSelectVideo }: MediaLibraryViewProps) {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [collections, setCollections] = useState<CollectionItem[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string>("");
@@ -506,6 +507,15 @@ export function MediaLibraryView({ onNavigate }: MediaLibraryViewProps) {
                     {summarizing ? "Generating..." : "AI Summary & Chapters"}
                   </button>
                 </div>
+                {onSelectVideo && (
+                  <button
+                    type="button"
+                    onClick={() => onSelectVideo(selectedVideo.id, currentTime)}
+                    className="w-full mt-2 py-1.5 px-3 rounded-lg bg-[#172235] hover:bg-[#232f48] border border-[#9B8CFF]/40 text-[#9B8CFF] text-xs font-mono font-semibold transition-colors"
+                  >
+                    Open in Precision Workstation &rarr;
+                  </button>
+                )}
               </div>
 
               {/* Optional AI Factual Summary Card */}
@@ -734,6 +744,15 @@ export function MediaLibraryView({ onNavigate }: MediaLibraryViewProps) {
                     >
                       Inspect &amp; Play
                     </button>
+                    {onSelectVideo && (
+                      <button
+                        type="button"
+                        onClick={() => onSelectVideo(v.id)}
+                        className="px-2 py-1 rounded bg-[#172235] hover:bg-[#232f48] border border-[#243149] text-xs font-mono text-[#9B8CFF] transition-colors"
+                      >
+                        Workstation
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => void handleDeleteIndex(v.id)}

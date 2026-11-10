@@ -73,10 +73,12 @@ const NAV_GROUPS: NavGroup[] = [
 export function App() {
   const [activeSection, setActiveSection] = useState<NavSection>("overview");
   const [selectedVideoId, setSelectedVideoId] = useState<string | undefined>(undefined);
+  const [selectedVideoStartTime, setSelectedVideoStartTime] = useState<number | undefined>(undefined);
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState<boolean>(true);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const checkHealth = useCallback(async (signal?: AbortSignal) => {
     setChecking(true);
@@ -122,7 +124,7 @@ export function App() {
       g.items.map((item) => ({
         id: `nav-${item.id}`,
         title: item.label,
-        subtitle: `Jump to ${g.name} â†’ ${item.label}`,
+        subtitle: `Jump to ${g.name} -> ${item.label}`,
         category: "Navigation" as const,
         onSelect: () => setActiveSection(item.id),
       }))
@@ -155,7 +157,11 @@ export function App() {
   return (
     <div className="min-h-screen flex bg-[#080B12] text-[#F5F7FB] font-sans selection:bg-[#9B8CFF]/30 selection:text-white">
       {/* Docked Sidebar Navigation */}
-      <aside className="w-64 border-r border-[#243149] bg-[#0B1019] flex flex-col justify-between p-4 shrink-0 h-screen sticky top-0 z-30 select-none">
+      <aside
+        className={`${
+          mobileMenuOpen ? "fixed inset-y-0 left-0 z-50 flex" : "hidden md:flex"
+        } w-64 border-r border-[#243149] bg-[#0B1019] flex-col justify-between p-4 shrink-0 h-screen md:sticky md:top-0 z-30 select-none`}
+      >
         <div className="space-y-5 overflow-y-auto pr-1">
           {/* Brand Header */}
           <div className="flex items-center gap-2.5 pb-2 border-b border-[#243149]/60">
@@ -197,7 +203,10 @@ export function App() {
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setActiveSection(item.id)}
+                      onClick={() => {
+                        setActiveSection(item.id);
+                        setMobileMenuOpen(false);
+                      }}
                       className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-control text-xs transition-colors focus-visible:outline-none ${
                         active
                           ? "bg-[#172235] text-white font-medium border border-[#9B8CFF]/50 shadow-sm"
@@ -256,20 +265,28 @@ export function App() {
       {/* Main Full-Screen Workstation Canvas */}
       <main className="flex-1 min-w-0 h-screen overflow-y-auto flex flex-col">
         {/* Studio Top Bar */}
-        <header className="h-14 border-b border-[#243149] bg-[#0B1019]/90 backdrop-blur px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
-          <div className="flex items-center gap-3 min-w-0">
+        <header className="h-14 border-b border-[#243149] bg-[#0B1019]/90 backdrop-blur px-4 md:px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              aria-label="Toggle Navigation Menu"
+              className="md:hidden px-2 py-1 rounded bg-[#172235] border border-[#243149] text-xs font-mono text-[#9B8CFF] shrink-0"
+            >
+              Menu
+            </button>
             <span className="text-xs font-semibold text-[#F5F7FB] truncate">{currentLabel}</span>
-            <span className="text-slate-600">/</span>
+            <span className="text-slate-600 hidden sm:inline">/</span>
             <span className="text-[11px] font-mono text-[#A2AEC0] hidden sm:inline truncate">
               Local-First Multimodal Creator Instrument
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#111827] border border-[#243149] text-[#51DCC8]">
               Local Enclave Active
             </span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#111827] border border-[#243149] text-slate-400">
+            <span className="hidden sm:inline text-[10px] font-mono px-2 py-0.5 rounded bg-[#111827] border border-[#243149] text-slate-400">
               Remote AI: Consented Only
             </span>
             <button
@@ -291,15 +308,32 @@ export function App() {
                 onNavigate={(s) => setActiveSection(s as NavSection)}
                 onSelectVideo={(vId) => {
                   setSelectedVideoId(vId);
+                  setSelectedVideoStartTime(undefined);
                   setActiveSection("workstation");
                 }}
               />
             ) : activeSection === "media-library" ? (
-              <MediaLibraryView onNavigate={(s) => setActiveSection(s as NavSection)} />
+              <MediaLibraryView
+                onNavigate={(s) => setActiveSection(s as NavSection)}
+                onSelectVideo={(vId, startSec) => {
+                  setSelectedVideoId(vId);
+                  setSelectedVideoStartTime(startSec);
+                  setActiveSection("workstation");
+                }}
+              />
             ) : activeSection === "workstation" ? (
-              <VideoWorkstationView initialVideoId={selectedVideoId} />
+              <VideoWorkstationView
+                initialVideoId={selectedVideoId}
+                initialStartTime={selectedVideoStartTime}
+              />
             ) : activeSection === "hybrid-search" ? (
-              <HybridSearchView />
+              <HybridSearchView
+                onSelectVideo={(vId, startSec) => {
+                  setSelectedVideoId(vId);
+                  setSelectedVideoStartTime(startSec);
+                  setActiveSection("workstation");
+                }}
+              />
             ) : activeSection === "discovery-roots" ? (
               <DiscoverySourcesView onNavigate={(s) => setActiveSection(s as NavSection)} />
             ) : activeSection === "processing-jobs" ? (
