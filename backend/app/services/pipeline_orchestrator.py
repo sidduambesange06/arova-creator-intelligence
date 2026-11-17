@@ -138,6 +138,14 @@ def ensure_asset_and_version(db: Session, video: Video) -> tuple[Asset, AssetVer
         if version:
             asset = db.get(Asset, version.asset_id)
             if asset:
+                if asset.current_version_id and asset.current_version_id != version.id:
+                    current_version = db.get(AssetVersion, asset.current_version_id)
+                    if current_version:
+                        video.version_id = current_version.id
+                        if current_version.sha256:
+                            video.file_hash = current_version.sha256
+                        db.flush()
+                        return asset, current_version
                 return asset, version
 
     file_path = Path(video.file_path).resolve()

@@ -1,7 +1,7 @@
 """REST API Routes for Task 4D: Portable Media Memory, Availability, Relinking, and Annotations."""
 
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 from uuid import uuid4
 
@@ -45,6 +45,58 @@ router = APIRouter(prefix="/api/v1", tags=["portable"])
 # PORTABLE ARCHIVE ENDPOINTS
 # -----------------------------------------------------------------------------
 
+def _resolve_safe_export_target(export_dir: Path, output_filename: str | None) -> Path:
+    """Resolve export target strictly inside export_dir without allowing traversal or overwrites."""
+    resolved_dir = export_dir.resolve()
+    resolved_dir.mkdir(parents=True, exist_ok=True)
+
+    if output_filename is not None:
+        raw = output_filename.strip()
+        win_path = PureWindowsPath(raw)
+        posix_path = Path(raw)
+        if (
+            not raw
+            or raw in (".", "..")
+            or "/" in raw
+            or "\\" in raw
+            or ".." in posix_path.parts
+            or ".." in win_path.parts
+            or posix_path.is_absolute()
+            or win_path.is_absolute()
+            or bool(win_path.drive)
+            or posix_path.name != raw
+            or win_path.name != raw
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid export filename: absolute paths and directory components are not permitted",
+            )
+        filename = raw if raw.endswith((".arova", ".zip")) else f"{raw}.arova"
+        if Path(filename).stem in ("", ".", ".."):
+            raise HTTPException(status_code=400, detail="Invalid export filename")
+    else:
+        ts = int(datetime.now(timezone.utc).timestamp())
+        filename = f"arova_memory_export_{ts}.arova"
+        if (resolved_dir / filename).exists() or (resolved_dir / filename).is_symlink():
+            filename = f"arova_memory_export_{ts}_{uuid4().hex[:8]}.arova"
+
+    candidate = resolved_dir / filename
+    if candidate.is_symlink():
+        raise HTTPException(status_code=400, detail="Export target cannot be a symbolic link")
+
+    target_path = candidate.resolve()
+    if target_path.parent != resolved_dir or resolved_dir not in target_path.parents:
+        raise HTTPException(status_code=400, detail="Export target must remain within the export directory")
+
+    if candidate.exists() or target_path.exists():
+        raise HTTPException(
+            status_code=409,
+            detail=f"Export archive '{filename}' already exists; refusing to overwrite",
+        )
+
+    return target_path
+
+
 @router.post("/portable/export", response_model=ExportSummary)
 def export_archive_endpoint(
     req: ExportRequest | None = None,
@@ -53,18 +105,19 @@ def export_archive_endpoint(
 ) -> ExportSummary:
     """Export media memory into a versioned .arova container archive."""
     export_dir = Path(settings.DATA_DIR) / "exports"
-    export_dir.mkdir(parents=True, exist_ok=True)
+    target_path = _resolve_safe_export_target(export_dir, output_filename)
 
-    filename = output_filename or f"arova_memory_export_{int(datetime.now(timezone.utc).timestamp())}.arova"
-    if not filename.endswith((".arova", ".zip")):
-        filename += ".arova"
+    try:
+        summary = export_portable_archive(
+            db=db,
+            target_archive_path=target_path,
+            request=req,
+        )
+    except FileExistsError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except (ArchiveSecurityError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    target_path = export_dir / filename
-    summary = export_portable_archive(
-        db=db,
-        target_archive_path=target_path,
-        request=req,
-    )
     return summary
 
 

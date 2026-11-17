@@ -25,7 +25,7 @@ import zipfile
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security import compute_sha256
+from app.core.security import compute_sha256, validate_media_path
 from app.models.entities import (
     Annotation,
     Artifact,
@@ -108,8 +108,14 @@ def export_portable_archive(
     request: ExportRequest | None = None,
 ) -> ExportSummary:
     """Export database intelligence records into a versioned streaming .arova archive."""
-    out_path = Path(target_archive_path).resolve()
+    raw_target = Path(target_archive_path)
+    if raw_target.is_symlink():
+        raise ArchiveSecurityError(f"Export target cannot be a symbolic link: {raw_target}")
+
+    out_path = raw_target.resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    if raw_target.exists() or out_path.exists():
+        raise FileExistsError(f"Export archive already exists and will not be overwritten: {out_path}")
 
     export_id = str(uuid4())
     created_at = _utcnow()
@@ -166,7 +172,7 @@ def export_portable_archive(
         "artifacts": len(artifacts),
     }
 
-    with zipfile.ZipFile(out_path, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+    with open(out_path, "xb") as raw_fh, zipfile.ZipFile(raw_fh, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
 
         def _write_ndjson_entry(filename: str, rows_gen: Generator[dict[str, Any], None, None]) -> None:
             buf = io.BytesIO()
@@ -894,7 +900,10 @@ def relink_asset_media(
     if not version:
         raise LookupError(f"AssetVersion {version_id} not found")
 
-    new_path = Path(new_file_path).resolve()
+    try:
+        new_path = validate_media_path(new_file_path, allowed_roots=allowed_roots)
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(f"Relink target file not found: {new_file_path}") from exc
     if not new_path.is_file():
         raise FileNotFoundError(f"Relink target file not found: {new_path}")
 

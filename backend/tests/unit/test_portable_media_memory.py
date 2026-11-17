@@ -94,8 +94,14 @@ def db_session(tmp_path: Path) -> Generator[Session, None, None]:
 
 
 @pytest.fixture()
-def seeded_db(db_session: Session, tmp_path: Path) -> tuple[Session, Asset, AssetVersion, Video, Path]:
+def seeded_db(
+    db_session: Session,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> tuple[Session, Asset, AssetVersion, Video, Path]:
     """Database pre-seeded with library, asset, version, location, video, and annotations."""
+    monkeypatch.setattr(settings, "ALLOWED_MEDIA_ROOTS", str(tmp_path))
+    monkeypatch.setattr(settings, "DATA_DIR", str(tmp_path / "data"))
     # 1. Library and Root
     media_dir = tmp_path / "media_root"
     media_dir.mkdir(parents=True, exist_ok=True)
@@ -782,3 +788,84 @@ def test_rest_api_annotations_endpoints(client: TestClient, seeded_db: tuple) ->
     res_del = client.delete(f"/api/v1/annotations/{annot_id}")
     assert res_del.status_code == 200
     assert res_del.json()["status"] == "deleted"
+
+
+def test_export_endpoint_rejects_traversal_absolute_and_overwrite(
+    client: TestClient,
+    seeded_db: tuple,
+    tmp_path: Path,
+) -> None:
+    session, asset, version, video, _ = seeded_db
+    outside_sentinel = tmp_path / "existing.arova"
+    outside_sentinel.write_bytes(b"DO_NOT_OVERWRITE_SENTINEL")
+
+    # Reject relative traversal, directory components, and absolute paths
+    for bad_name in (
+        "../../existing.arova",
+        "../outside.arova",
+        "subdir/nested.arova",
+        "subdir\\nested.arova",
+        str(tmp_path / "abs_evil.arova"),
+        "/tmp/evil.arova",
+        "C:drive_rel.arova",
+        ".",
+        "..",
+    ):
+        res_bad = client.post(
+            "/api/v1/portable/export",
+            params={"output_filename": bad_name},
+        )
+        assert res_bad.status_code == 400, f"Expected 400 for {bad_name!r}, got {res_bad.status_code}"
+
+    assert outside_sentinel.read_bytes() == b"DO_NOT_OVERWRITE_SENTINEL"
+
+    # Reject accidental overwrite of existing archive at API and service level
+    res_first = client.post(
+        "/api/v1/portable/export",
+        params={"output_filename": "unique_export.arova"},
+    )
+    assert res_first.status_code == 200
+
+    res_second = client.post(
+        "/api/v1/portable/export",
+        params={"output_filename": "unique_export.arova"},
+    )
+    assert res_second.status_code == 409
+
+    with pytest.raises(FileExistsError, match="already exists"):
+        export_portable_archive(db=session, target_archive_path=outside_sentinel)
+    assert outside_sentinel.read_bytes() == b"DO_NOT_OVERWRITE_SENTINEL"
+
+
+def test_relink_enforces_allowed_media_roots(
+    client: TestClient,
+    seeded_db: tuple,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session, asset, version, video, video_file = seeded_db
+    allowed_only = tmp_path / "allowed_only"
+    allowed_only.mkdir(parents=True, exist_ok=True)
+    outside_dir = tmp_path / "outside_dir"
+    outside_dir.mkdir(parents=True, exist_ok=True)
+
+    outside_file = outside_dir / "relocated_outside.mp4"
+    outside_file.write_bytes(video_file.read_bytes())
+
+    # Service-level check must reject paths outside allowed_roots before hashing
+    with pytest.raises(ValueError, match="outside allowed media roots"):
+        relink_asset_media(
+            db=session,
+            version_id=version.id,
+            new_file_path=outside_file,
+            allowed_roots=[allowed_only],
+        )
+
+    # REST endpoint must honor settings.ALLOWED_MEDIA_ROOTS and reject outside target with HTTP 400
+    monkeypatch.setattr(settings, "ALLOWED_MEDIA_ROOTS", str(allowed_only))
+    res = client.post(
+        f"/api/v1/versions/{version.id}/relink",
+        json={"version_id": version.id, "new_file_path": str(outside_file)},
+    )
+    assert res.status_code == 400
+    assert "outside allowed media roots" in res.json()["detail"]
