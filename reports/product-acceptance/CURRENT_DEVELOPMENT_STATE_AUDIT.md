@@ -125,7 +125,7 @@ The following features were discussed in early conceptual plans or backlog brain
 1. **Continuous Filesystem Watcher Daemon:** Automated polling or `watchdog` process that continuously monitors ingestion folders without explicit user or API trigger.
 2. **Background Audio Diarization:** Multi-speaker diarization (e.g., distinguishing Speaker A from Speaker B using PyAnnote).
 3. **Cross-Platform Native Desktop Installers:** One-click `.dmg` (macOS Apple Silicon/Intel), `.AppImage`/`.deb` (Linux), and `setup.exe` (Windows NSIS).
-4. **Creator Tone Memory & Script Generators:** **STRICTLY EXCLUDED** under Apache 2.0 open-source rules to protect commercial IP boundaries.
+4. **Commercial creator workflows:** Excluded from the open-source engine under the project's scope policy.
 
 ---
 
