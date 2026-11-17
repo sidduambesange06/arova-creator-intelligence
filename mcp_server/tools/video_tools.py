@@ -116,9 +116,14 @@ def search_video_content(
     query: str,
     top_k: int = 5,
     use_reranker: bool = True,
+    video_id: str | None = None,
+    channel: str = "all",
     db: Session | None = None,
 ) -> list[dict[str, Any]]:
     """Perform hybrid semantic search (Stage-1 Dense+BM25 RRF + Stage-2 Cross-Encoder)."""
+    from app.ai.retrieval.hybrid_search import validate_search_channel
+
+    norm_channel = validate_search_channel(channel)
     session = db or SessionLocal()
     try:
         resp = run_hybrid_search(
@@ -126,6 +131,8 @@ def search_video_content(
             query=query,
             top_k=top_k,
             use_reranker=use_reranker,
+            video_id_filter=video_id,
+            channel_filter=norm_channel,
         )
         return [
             {
@@ -429,15 +436,20 @@ def get_evidence_citations(
     query: str,
     video_id: str | None = None,
     top_k: int = 5,
+    channel: str = "all",
     db: Session | None = None,
 ) -> list[dict[str, Any]]:
     """Retrieve timestamped factual citations and evidence excerpts even when original video media is offline."""
+    from app.ai.retrieval.hybrid_search import validate_search_channel
+
+    norm_channel = validate_search_channel(channel)
     session = db or SessionLocal()
     try:
         results = run_hybrid_search(
             db=session,
             query=query,
             video_id_filter=video_id,
+            channel_filter=norm_channel,
             top_k=top_k,
             use_reranker=True,
         )

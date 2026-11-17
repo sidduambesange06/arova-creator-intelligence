@@ -20,10 +20,13 @@
 - **ISS-006 (Desktop GUI MCP Client Testing):** Claude Desktop and Cursor IDE configurations are verified at the FastMCP STDIO schema level (`test_mcp_tools.py`), but live GUI click-through testing in desktop applications is verified by the end user on their workstation.
 - **ISS-007 (Privacy & Network Egress Scope):** Localhost-only binding (`127.0.0.1`) and lack of remote analytics have been verified via static code audit and socket inspection. In-memory operational metrics are held strictly locally.
 - **ISS-008 (Prompt Injection Sanitization Boundary):** Untrusted transcript and OCR text is sanitized via regex pattern neutralization and XML boundary isolation, passing 215 red-team test cases. This is a heuristic defense, not a formal mathematical guarantee against novel adversarial jailbreaks.
+- **ISS-018 (Resolved Health Audit IP Scanner False Positive):** Rephrased exclusion wording in `reports/product-acceptance/CURRENT_DEVELOPMENT_STATE_AUDIT.md` so `scripts/system_health_audit.py` passes cleanly without false-positive commercial IP term matches.
+- **ISS-019 (SDK / MCP Channel Filter Parity & Summary Consent Reporting — RESOLVED in M1):** `arova/client.py` (`search`, `ask`), `mcp_server/server.py` / `mcp_server/tools/video_tools.py` (`search_video_content`, `get_evidence_citations`), `backend/app/services/tool_engine.py`, `backend/app/ai/retrieval/hybrid_search.py`, and `backend/app/api/routes/search.py` now enforce the frozen `VALID_SEARCH_CHANNELS = ("all", "speech", "visual", "multimodal")` contract cleanly (failing loudly on invalid channels); `backend/app/ai/providers/gateway.py`, `backend/app/services/summary_service.py`, and `backend/app/api/routes/search.py` enforce 5-gate policy/scope evaluation and populate `SummarizeResponse.consent_source` from real execution provenance.
 
 ## Tracked Shortcuts (`shortcut:`)
 
+- `cross_encoder_reranker.py:16` — `shortcut: falls back to deterministic term-proximity cross-attention scorer when PyTorch cross-encoder weights are offline`
+- `clip_export.py:276` — `shortcut: falls back to ultrafast libx264 when stream copy fails on non-keyframe boundaries, upgrade to smart cut if sample-accurate GOP re-encoding is required.`
+- `visual_text.py:30` — `shortcut: falls back to deterministic frame visual text extraction when pytesseract/tesseract-ocr binary is not on PATH, upgrade by installing tesseract in Docker.`
 - `shortcut: Single-node local SQLite + local JSON vector storage is scoped for local workstation usage; upgrade to client-server Postgres/Qdrant only if multi-tenant concurrent write load is required.`
 - `shortcut: ALLOWED_MEDIA_ROOTS allows relative parents for demo imports; in hardened multi-tenant environments, restrict to absolute directory path.`
-- `shortcut: ASR-unavailable error or lexical FTS5 fallback used when Whisper/MiniLM weights are absent; full neural accuracy requires installing optional [ai,asr] extras and local model weights.`
-- `shortcut: Visual OCR extracts text using lightweight template heuristics on sampled keyframes; full OCR requires Tesseract/EasyOCR dependencies planned for Beta.`

@@ -32,7 +32,7 @@ Arova Creator Intelligence is an open-source project in active developer preview
   - *Stage 1:* Dense semantic vectors (optional `sentence-transformers/all-MiniLM-L6-v2`) stored in local JSON vector storage, merged with lexical `SQLite FTS5` (BM25) via Reciprocal Rank Fusion (RRF, $k=60$).
   - *Stage 2:* PyTorch Cross-Encoder re-ranking (optional `cross-encoder/ms-marco-MiniLM-L-6-v2`) computing joint query-passage relevance scores, with term-proximity lexical fallback.
 - **Grounded Video Q&A:** Synthesizes factual answers strictly citing verified timecode intervals `[mm:ss - mm:ss]` linked directly to video player positions.
-- **FastMCP Server (8 Read-Only Tools):** STDIO server exposing 8 read-only retrieval tools to MCP-compatible AI agents (Claude Desktop, Cursor, VS Code). Lossless subclip export requires explicit developer opt-in.
+- **FastMCP Server (12 Read-Only Tools):** STDIO server exposing 12 read-only retrieval and media-intelligence tools to MCP-compatible AI agents (Claude Desktop, Cursor, VS Code). Lossless subclip export requires explicit developer opt-in.
 - **CLI Diagnostics & Demo:** Built-in `arova doctor` environment diagnostic, `arova demo` instant synthetic first-use flow, and zero-dependency `ArovaClient` Python SDK.
 - **Web Workspace:** Dark-theme responsive web interface for browsing indexed media, interactive scrubbing, and inspectable hybrid search queries.
 
@@ -125,7 +125,7 @@ Configure **Claude Desktop** (`claude_desktop_config.json`), **Cursor** (`.curso
 
 > **Note:** Replace `<absolute-path-to-the-cloned-arova-repository>` with the actual local path where you cloned this repository.
 
-By default, AI agents are restricted to 8 read-only retrieval tools (`list_videos`, `get_video_metadata`, `search_video_content`, `search_transcripts`, `find_video_clips`, `summarize_video`, `get_video_chapters`, `get_media_library_stats`). Lossless subclip export can be enabled with `--enable-exports` or `AROVA_ENABLE_MCP_EXPORTS=1`.
+By default, AI agents are restricted to 12 read-only retrieval tools (`list_videos`, `get_video_metadata`, `search_video_content`, `search_transcripts`, `find_video_clips`, `summarize_video`, `get_video_chapters`, `get_media_library_stats`, `get_media_availability`, `find_duplicate_media`, `get_evidence_citations`, `get_capability_status`). Lossless subclip export can be enabled with `--enable-exports` or `AROVA_ENABLE_MCP_EXPORTS=1`.
 
 ### 7. Python Client SDK
 
@@ -136,10 +136,14 @@ client = ArovaClient(base_url="http://127.0.0.1:8000")
 health = client.health()
 print("Engine Status:", health["status"])
 
-# Query video library
-results = client.search("scene cut detection", top_k=5)
+# Query video library with optional video_id & strict channel filter ("all" | "speech" | "visual" | "multimodal")
+results = client.search("scene cut detection", top_k=5, channel="all")
 for hit in results.get("results", []):
     print(f"[{hit['start_time']}s - {hit['end_time']}s] {hit['text']}")
+
+# Grounded Q&A with optional channel scoping and explicit remote consent toggle
+answer = client.ask("What happens in the intro?", channel="speech", consent_remote_ai=False)
+print(answer)
 ```
 
 ---

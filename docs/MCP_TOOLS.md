@@ -73,8 +73,10 @@ Perform hybrid two-stage semantic video search (Stage-1 Dense MiniLM + BM25 Lexi
 
 **Parameters:**
 - `query` (`str`, required): Natural language search prompt.
-- `top_k` (`int`, optional, default: 5): Maximum number of ranked results.
+- `top_k` (`int`, optional, default: `5`): Maximum number of ranked results.
 - `use_reranker` (`bool`, optional, default: `True`): Whether to apply Stage-2 Cross-Encoder scoring.
+- `video_id` (`str | null`, optional, default: `null`): Optional video UUID to scope retrieval to a single video.
+- `channel` (`Literal["all", "speech", "visual", "multimodal"]`, optional, default: `"all"`): Authoritative evidence channel filter; invalid values raise `ValueError` / validation error instead of silently falling back.
 
 **Return Type:** `list[dict]`
 - `video_id` (`str`): Parent video UUID.
@@ -206,7 +208,8 @@ Retrieve timestamped factual citations and evidence excerpts even when original 
 **Parameters:**
 - `query` (`str`, required): Natural language query.
 - `video_id` (`str | null`, optional): Scope search to a specific video UUID.
-- `top_k` (`int`, optional, default: 5): Maximum number of citations.
+- `top_k` (`int`, optional, default: `5`): Maximum number of citations.
+- `channel` (`Literal["all", "speech", "visual", "multimodal"]`, optional, default: `"all"`): Authoritative evidence channel filter; invalid values raise `ValueError` / validation error.
 
 **Return Type:** `list[dict]`
 - `video_id` (`str`): Parent video UUID.

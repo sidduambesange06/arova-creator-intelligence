@@ -1,0 +1,2 @@
+sample_data/indic_creator_bench/** text eol=lf
+*.jsonl text eol=lf

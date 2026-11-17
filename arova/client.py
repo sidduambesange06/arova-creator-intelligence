@@ -7,6 +7,18 @@ import urllib.parse
 import urllib.request
 
 
+VALID_SEARCH_CHANNELS: tuple[str, ...] = ("all", "speech", "visual", "multimodal")
+
+
+def _validate_channel(channel: str) -> str:
+    if not isinstance(channel, str):
+        raise ValueError(f"Invalid channel '{channel}'. Supported channels: {', '.join(VALID_SEARCH_CHANNELS)}")
+    norm = channel.strip().lower()
+    if norm not in VALID_SEARCH_CHANNELS:
+        raise ValueError(f"Invalid channel '{channel}'. Supported channels: {', '.join(VALID_SEARCH_CHANNELS)}")
+    return norm
+
+
 class ArovaClientError(Exception):
     """Raised when an API request to Arova server fails."""
 
@@ -69,19 +81,43 @@ class ArovaClient:
         """Retrieve full metadata for a specific video."""
         return self._request("GET", f"/api/v1/videos/{video_id}")
 
-    def search(self, query: str, top_k: int = 5, use_reranker: bool = True) -> dict[str, Any]:
-        """Execute two-stage hybrid semantic video search."""
-        payload = {
+    def search(
+        self,
+        query: str,
+        top_k: int = 5,
+        use_reranker: bool = True,
+        video_id: str | None = None,
+        channel: str = "all",
+    ) -> dict[str, Any]:
+        """Execute two-stage hybrid semantic video search with optional video and evidence channel filters."""
+        norm_channel = _validate_channel(channel)
+        payload: dict[str, Any] = {
             "query": query,
             "top_k": top_k,
             "use_reranker": use_reranker,
+            "channel": norm_channel,
         }
+        if video_id is not None:
+            payload["video_id"] = video_id
         return self._request("POST", "/api/v1/search/semantic", payload=payload)
 
-    def ask(self, question: str, video_id: str | None = None) -> dict[str, Any]:
+    def ask(
+        self,
+        question: str,
+        video_id: str | None = None,
+        channel: str = "all",
+        provider: str | None = None,
+        consent_remote_ai: bool = False,
+    ) -> dict[str, Any]:
         """Ask a factual question about indexed video content with timecode citations."""
-        payload = {
+        norm_channel = _validate_channel(channel)
+        payload: dict[str, Any] = {
             "query": question,
             "video_id": video_id,
+            "channel": norm_channel,
         }
+        if provider is not None:
+            payload["provider"] = provider
+        if consent_remote_ai:
+            payload["consent_remote_ai"] = True
         return self._request("POST", "/api/v1/ai/ask", payload=payload)

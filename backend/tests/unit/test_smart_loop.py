@@ -244,3 +244,59 @@ def test_api_run_smart_loop(client: TestClient) -> None:
     assert len(data["steps"]) >= 2
     assert "final_answer" in data
 
+
+def test_m1_tool_engine_search_channel_schema_and_validation(db_session: Session) -> None:
+    engine = get_tool_engine()
+    search_def = engine.get_tool("search_video_content")
+    props = search_def.parameters_schema["properties"]
+    assert "video_id" in props
+    assert props["channel"]["enum"] == ["all", "speech", "visual", "multimodal"]
+    assert props["channel"]["default"] == "all"
+
+    cite_def = engine.get_tool("get_evidence_citations")
+    assert cite_def.parameters_schema["properties"]["channel"]["enum"] == ["all", "speech", "visual", "multimodal"]
+
+    # Valid channel execution succeeds
+    ok_res = engine.execute_tool(
+        "search_video_content",
+        {"query": "autonomous agents", "channel": "speech"},
+        db=db_session,
+    )
+    assert ok_res["status"] == "success"
+    assert len(ok_res["result"]) >= 1
+
+    # Invalid channel fails cleanly
+    bad_res = engine.execute_tool(
+        "search_video_content",
+        {"query": "autonomous agents", "channel": "spoken"},
+        db=db_session,
+    )
+    assert bad_res["status"] == "error"
+    assert "Invalid channel" in bad_res["error"]
+
+
+def test_m1_tool_engine_media_availability_and_evidence_citations_validation(db_session: Session) -> None:
+    engine = get_tool_engine()
+    avail_def = engine.get_tool("get_media_availability")
+    assert avail_def is not None
+    avail_props = avail_def.parameters_schema["properties"]
+    assert "video_id" in avail_props
+    assert "version_id" in avail_props
+    assert "asset_id" not in avail_props
+    assert not avail_def.parameters_schema.get("required")
+
+    vid = db_session.query(Video).first()
+    assert vid is not None
+    ok_avail = engine.execute_tool("get_media_availability", {"video_id": vid.id}, db=db_session)
+    assert ok_avail["status"] == "success"
+    assert ok_avail["result"]["video_id"] == vid.id
+
+    bad_cite = engine.execute_tool(
+        "get_evidence_citations",
+        {"query": "autonomous agents", "channel": "spoken"},
+        db=db_session,
+    )
+    assert bad_cite["status"] == "error"
+    assert "Invalid channel" in bad_cite["error"]
+
+
