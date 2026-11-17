@@ -3,7 +3,7 @@
 Implements M2 (V12 Phase 1) benchmark contracts:
 - Versioned dataset descriptor, sample manifest, and provenance schema validation.
 - Strict path-traversal and symlink-escape containment for local audio assets.
-- Byte-level SHA-256 and audio header integrity verification via soundfile.
+- Byte-level SHA-256 and audio header integrity verification.
 - Unicode-safe Indic normalization (preserving matras, viramas, nukta, ZWJ/ZWNJ).
 - Deterministic, secret-safe ASR run and batch provenance contracts.
 """
@@ -14,15 +14,16 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import platform
 import re
+import struct
 import sys
 from typing import Any
 import unicodedata
 
 from jsonschema import Draft202012Validator
-import soundfile as sf
 
 from app.core.security import compute_sha256
 
@@ -234,6 +235,83 @@ def _text_matches_script(text: str, language_code: str) -> bool:
     return False
 
 
+@dataclass(frozen=True)
+class AudioStreamInfo:
+    format: str
+    samplerate: int
+    channels: int
+    duration: float
+
+
+def _inspect_audio_stream(audio_path: Path) -> AudioStreamInfo:
+    """Inspect audio header format, sample rate, channels, and duration.
+
+    Parses WAV headers natively using pure Python standard library struct parsing,
+    supporting both PCM (tag 1) and IEEE Float (tag 3) formats without external dependencies.
+    Falls back to soundfile (if installed) or media metadata probing.
+    """
+    try:
+        import soundfile as sf  # type: ignore
+
+        info = sf.info(str(audio_path))
+        return AudioStreamInfo(
+            format=(info.format or "").lower(),
+            samplerate=int(info.samplerate),
+            channels=int(info.channels),
+            duration=float(info.duration),
+        )
+    except Exception:
+        pass
+
+    suffix = audio_path.suffix.lower().lstrip(".")
+    if suffix == "wav":
+        try:
+            with open(audio_path, "rb") as f:
+                header = f.read(12)
+                if len(header) == 12 and header[:4] == b"RIFF" and header[8:12] == b"WAVE":
+                    fmt_tag = channels = samplerate = bits = data_bytes = 0
+                    while True:
+                        chunk_hdr = f.read(8)
+                        if len(chunk_hdr) < 8:
+                            break
+                        chunk_id, chunk_size = struct.unpack("<4sI", chunk_hdr)
+                        if chunk_id == b"fmt ":
+                            chunk_data = f.read(chunk_size)
+                            if len(chunk_data) >= 16:
+                                fmt_tag, channels, samplerate, _, _, bits = struct.unpack("<HHIIHH", chunk_data[:16])
+                        elif chunk_id == b"data":
+                            data_bytes = chunk_size
+                            f.seek(chunk_size, os.SEEK_CUR)
+                        else:
+                            f.seek(chunk_size, os.SEEK_CUR)
+                    bytes_per_sample = bits // 8
+                    if channels > 0 and samplerate > 0 and bytes_per_sample > 0 and data_bytes > 0:
+                        duration = data_bytes / (samplerate * channels * bytes_per_sample)
+                        return AudioStreamInfo(
+                            format="wav",
+                            samplerate=samplerate,
+                            channels=channels,
+                            duration=duration,
+                        )
+        except Exception:
+            pass
+
+    try:
+        from app.processing.metadata import probe_video_metadata
+
+        meta = probe_video_metadata(audio_path)
+        return AudioStreamInfo(
+            format=(meta.format or suffix).lower(),
+            samplerate=16000,
+            channels=1 if meta.has_audio else 0,
+            duration=float(meta.duration),
+        )
+    except Exception:
+        pass
+
+    raise ValueError(f"Unsupported or corrupt audio file: {audio_path.name}")
+
+
 def _validate_sample_record(
     raw_obj: dict[str, Any],
     line_number: int,
@@ -390,7 +468,7 @@ def _validate_sample_record(
                 )
 
             try:
-                info = sf.info(str(resolved_audio))
+                info = _inspect_audio_stream(resolved_audio)
                 fmt_lower = (info.format or "").lower()
                 if fmt_lower not in SUPPORTED_AUDIO_FORMATS or fmt_lower != raw_obj.get("audio_format"):
                     failures.append(

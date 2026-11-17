@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
+import struct
 from typing import Any
+import wave
 
-import numpy as np
 import pytest
-import soundfile as sf
 
 from app.ai.evaluation.indic_bench import (
     DATASET_SCHEMA_VERSION,
@@ -44,9 +45,15 @@ RUNTIME_SMOKE_DIR = REPO_ROOT / "data" / "indic_creator_bench" / "m2_smoke_10cli
 def _write_wav(path: Path, samplerate: int = 16000, duration_sec: float = 0.5) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
     n_samples = int(samplerate * duration_sec)
-    t = np.linspace(0.0, duration_sec, n_samples, endpoint=False, dtype=np.float32)
-    wave = 0.1 * np.sin(2.0 * np.pi * 440.0 * t)
-    sf.write(str(path), wave, samplerate, format="WAV", subtype="PCM_16")
+    with wave.open(str(path), "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(samplerate)
+        frames = bytearray()
+        for i in range(n_samples):
+            val = int(3276.7 * math.sin(2.0 * math.pi * 440.0 * (i / samplerate)))
+            frames.extend(struct.pack("<h", val))
+        wf.writeframes(frames)
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
