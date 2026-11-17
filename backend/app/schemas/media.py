@@ -61,7 +61,9 @@ class ClipExportResponse(BaseModel):
     clip_filename: str
     start_time: float
     end_time: float
+    requested_duration: float = 0.0
     duration: float
+    export_mode: str = "stream_copy"
     file_size: int
     download_url: str
 

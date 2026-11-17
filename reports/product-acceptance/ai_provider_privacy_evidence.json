@@ -1,0 +1,110 @@
+{
+  "providers": [
+    {
+      "provider_id": "local",
+      "provider_name": "Local Extractive Engine",
+      "execution_location": "local",
+      "is_available": true,
+      "capabilities": [
+        "summarization",
+        "llm_qa"
+      ],
+      "models": [
+        "grounded-extractive-local",
+        "extractive-grounded-local"
+      ]
+    },
+    {
+      "provider_id": "google-gemini",
+      "provider_name": "Google Gemini",
+      "execution_location": "remote",
+      "is_available": false,
+      "capabilities": [
+        "summarization",
+        "llm_qa"
+      ],
+      "models": [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash"
+      ]
+    },
+    {
+      "provider_id": "openai",
+      "provider_name": "OpenAI & Compatible (Ollama/vLLM)",
+      "execution_location": "remote",
+      "is_available": false,
+      "capabilities": [
+        "summarization",
+        "llm_qa"
+      ],
+      "models": [
+        "gpt-4o-mini",
+        "gpt-4o"
+      ]
+    },
+    {
+      "provider_id": "anthropic",
+      "provider_name": "Anthropic (Claude)",
+      "execution_location": "remote",
+      "is_available": false,
+      "capabilities": [
+        "summarization",
+        "llm_qa"
+      ],
+      "models": [
+        "claude-3-5-haiku-20241022",
+        "claude-3-5-sonnet-20241022"
+      ]
+    }
+  ],
+  "models": [
+    {
+      "model_id": "grounded-extractive-local",
+      "provider_id": "local",
+      "location": "local"
+    },
+    {
+      "model_id": "extractive-grounded-local",
+      "provider_id": "local",
+      "location": "local"
+    },
+    {
+      "model_id": "gemini-2.5-flash",
+      "provider_id": "google-gemini",
+      "location": "remote"
+    },
+    {
+      "model_id": "gemini-2.0-flash",
+      "provider_id": "google-gemini",
+      "location": "remote"
+    },
+    {
+      "model_id": "gpt-4o-mini",
+      "provider_id": "openai",
+      "location": "remote"
+    },
+    {
+      "model_id": "gpt-4o",
+      "provider_id": "openai",
+      "location": "remote"
+    },
+    {
+      "model_id": "claude-3-5-haiku-20241022",
+      "provider_id": "anthropic",
+      "location": "remote"
+    },
+    {
+      "model_id": "claude-3-5-sonnet-20241022",
+      "provider_id": "anthropic",
+      "location": "remote"
+    }
+  ],
+  "credentials_verification": "ALL_PROVIDERS_PASSED_ZERO_LEAKS",
+  "consent_lifecycle": "ALL_GATES_PASSED_STRICT_ENCLOSURE",
+  "zero_leakage_fallback": {
+    "provider": "local",
+    "remote_egress": false,
+    "audit_run_id": "18e6b9bc-8107-44a5-9fcf-ff05e867442a"
+  },
+  "overall_status": "PASSED_100_PERCENT"
+}

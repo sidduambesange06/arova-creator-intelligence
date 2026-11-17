@@ -343,3 +343,142 @@ def export_video_clip(
     finally:
         if db is None:
             session.close()
+
+
+def get_media_availability(
+    video_id: str | None = None,
+    version_id: str | None = None,
+    db: Session | None = None,
+) -> dict[str, Any]:
+    """Retrieve physical media availability, can_play, and can_export status."""
+    session = db or SessionLocal()
+    try:
+        from app.services.portable_service import resolve_media_availability
+        target_version_id = version_id
+        if not target_version_id and video_id:
+            vid = session.get(Video, video_id)
+            if vid:
+                if vid.version_id:
+                    target_version_id = vid.version_id
+                elif vid.file_hash:
+                    from app.models.entities import AssetVersion
+                    v_match = session.query(AssetVersion).filter_by(sha256=vid.file_hash).first()
+                    if v_match:
+                        target_version_id = v_match.id
+
+        if not target_version_id and video_id:
+            vid = session.get(Video, video_id)
+            if vid:
+                file_exists = bool(vid.file_path and Path(vid.file_path).is_file())
+                return {
+                    "version_id": None,
+                    "video_id": vid.id,
+                    "availability": "available" if file_exists else "missing",
+                    "can_play": file_exists,
+                    "can_export": file_exists,
+                    "file_path": sanitize_file_path_for_display(vid.file_path) if vid.file_path else None,
+                }
+            raise LookupError(f"Video {video_id} not found")
+
+        if not target_version_id:
+            raise ValueError("Either video_id or version_id must be provided")
+
+        avail = resolve_media_availability(db=session, version_id=target_version_id)
+        return {
+            "version_id": avail.version_id,
+            "video_id": avail.video_id,
+            "availability": avail.availability,
+            "can_play": avail.can_play,
+            "can_export": avail.can_export,
+            "file_path": sanitize_file_path_for_display(avail.file_path) if avail.file_path else None,
+        }
+    finally:
+        if db is None:
+            session.close()
+
+
+def find_duplicate_media(db: Session | None = None) -> list[dict[str, Any]]:
+    """Find media versions mapped across multiple physical file locations."""
+    session = db or SessionLocal()
+    try:
+        from app.models.entities import AssetLocation, AssetVersion
+        versions = session.query(AssetVersion).all()
+        duplicates = []
+        for v in versions:
+            locs = session.query(AssetLocation).filter_by(version_id=v.id).all()
+            if len(locs) > 1:
+                duplicates.append({
+                    "version_id": v.id,
+                    "sha256": v.sha256,
+                    "locations_count": len(locs),
+                    "locations": [
+                        {
+                            "rel_path": loc.rel_path,
+                            "availability": loc.availability,
+                        }
+                        for loc in locs
+                    ],
+                })
+        return duplicates
+    finally:
+        if db is None:
+            session.close()
+
+
+def get_evidence_citations(
+    query: str,
+    video_id: str | None = None,
+    top_k: int = 5,
+    db: Session | None = None,
+) -> list[dict[str, Any]]:
+    """Retrieve timestamped factual citations and evidence excerpts even when original video media is offline."""
+    session = db or SessionLocal()
+    try:
+        results = run_hybrid_search(
+            db=session,
+            query=query,
+            video_id_filter=video_id,
+            top_k=top_k,
+            use_reranker=True,
+        )
+        citations = []
+        for r in results.results:
+            vid = session.get(Video, r.video_id)
+            citations.append({
+                "video_id": r.video_id,
+                "version_id": vid.version_id if vid else None,
+                "start_time": r.start_time,
+                "end_time": r.end_time,
+                "citation_text": r.chunk_text,
+                "relevance_score": round(r.rerank_score or r.score, 3),
+            })
+        return citations
+    finally:
+        if db is None:
+            session.close()
+
+
+def get_capability_status(db: Session | None = None) -> dict[str, Any]:
+    """Inspect system execution profile, AI capability state, and offline status."""
+    from app.ai.providers.gateway import get_ai_gateway
+    from app.core.config import settings
+
+    gateway = get_ai_gateway()
+    has_remote_consent = bool(settings.AI_REMOTE_CONSENT)
+    cloud_status = "available" if has_remote_consent else "disabled_by_user"
+    cloud_reason = "consent_granted" if has_remote_consent else "privacy_policy_blocked"
+
+    return {
+        "execution_profile": "hybrid_ai" if has_remote_consent else "fully_offline_no_ai",
+        "capabilities": {
+            "transcription": {"status": "available", "provider": "faster-whisper"},
+            "hybrid_search": {"status": "available", "provider": "chromadb+fts5"},
+            "portable_memory": {"status": "available", "format_version": "1.0.0"},
+            "cloud_ai": {
+                "status": cloud_status,
+                "reason": cloud_reason,
+                "providers": [p["provider_id"] for p in gateway.list_providers() if p["provider_id"] != "local"],
+            },
+        },
+    }
+

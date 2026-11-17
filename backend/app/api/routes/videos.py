@@ -14,6 +14,7 @@ from app.models.entities import Transcript, Video, VideoScene
 from app.processing.clip_export import (
     _validate_clip_timestamps,
     export_subclip,
+    get_last_export_mode,
     measure_clip_duration,
 )
 from app.schemas.media import (
@@ -143,6 +144,22 @@ def get_video_scenes_endpoint(
         .all()
     )
     return [VideoSceneOut.model_validate(s) for s in scenes]
+
+
+@router.get("/{video_id}/scenes/{scene_index}/thumbnail")
+def get_scene_thumbnail_endpoint(
+    video_id: str,
+    scene_index: int,
+    db: Session = Depends(get_db),
+) -> FileResponse:
+    scene = (
+        db.query(VideoScene)
+        .filter_by(video_id=video_id, scene_index=scene_index)
+        .first()
+    )
+    if not scene or not scene.thumbnail_path or not Path(scene.thumbnail_path).is_file():
+        raise HTTPException(status_code=404, detail="Scene thumbnail not found")
+    return FileResponse(scene.thumbnail_path, media_type="image/jpeg")
 
 
 def _iter_file_range(file_path: Path, start: int, end: int, chunk_size: int = 64 * 1024) -> Iterator[bytes]:
@@ -299,6 +316,7 @@ def export_video_clip_endpoint(
             max_duration=video.duration,
         )
         actual_duration = measure_clip_duration(clip_path)
+        export_mode = get_last_export_mode(clip_path)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to export video clip: {exc}") from exc
 
@@ -307,7 +325,9 @@ def export_video_clip_endpoint(
         clip_filename=clip_path.name,
         start_time=start_time,
         end_time=end_time,
+        requested_duration=round(end_time - start_time, 3),
         duration=actual_duration,
+        export_mode=export_mode,
         file_size=clip_path.stat().st_size,
         download_url=f"/api/v1/videos/clips/{clip_path.name}",
     )

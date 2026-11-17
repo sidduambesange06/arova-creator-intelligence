@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 import platform
 import pytest
@@ -43,8 +44,13 @@ def test_run_100_query_multimodal_retrieval_benchmark(tmp_path: Path) -> None:
     assert report.stage1_metrics.recall_at_10 > 0.50
     assert report.stage2_metrics.recall_at_10 > 0.50
 
-    # Write formal markdown report to reports/audit/BENCHMARK_100_QUERIES.md
-    REPORT_MD_PATH.parent.mkdir(parents=True, exist_ok=True)
+    # Write report to tmp_path during test runs; only update tracked report when explicitly requested
+    target_report_path = (
+        REPORT_MD_PATH
+        if os.getenv("AROVA_UPDATE_AUDIT_REPORTS") == "1"
+        else (tmp_path / "BENCHMARK_100_QUERIES.md")
+    )
+    target_report_path.parent.mkdir(parents=True, exist_ok=True)
     report_content = f"""# Arova Creator Intelligence — 100-Query Synthetic Multimodal Retrieval Benchmark
 
 **Date:** {report.timestamp}\n**Dataset:** `sample_data/visual_retrieval_golden_100.json` (100 synthetic queries, 100 synthetic corpus passages)\n**Evaluation Scope:** Curated synthetic evaluation golden set. (Note: Benchmark validation against independently labelled real-world video footage is staged on the Beta roadmap)\n**Hardware Environment:** {platform.processor() or 'x86_64 CPU'} | {platform.system()} {platform.release()} | Python {platform.python_version()}
@@ -87,5 +93,6 @@ def test_run_100_query_multimodal_retrieval_benchmark(tmp_path: Path) -> None:
 
 All 100 synthetic queries were evaluated against verified relevance labels. The benchmark confirms that two-stage retrieval delivers robust precision across spoken voice and visual on-screen text without cloud dependencies. Real-world benchmark validation against independently labelled video footage remains a dedicated Beta roadmap deliverable.
 """
-    REPORT_MD_PATH.write_text(report_content, encoding="utf-8")
+    target_report_path.write_text(report_content, encoding="utf-8")
+    assert target_report_path.is_file()
     assert REPORT_MD_PATH.is_file()

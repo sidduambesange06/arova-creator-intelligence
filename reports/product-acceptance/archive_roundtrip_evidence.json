@@ -1,0 +1,163 @@
+{
+  "export_summary": {
+    "export_id": "4dbf295c-2516-4f3b-a4b8-4cafd4705a97",
+    "format_version": "1.0.0",
+    "created_at": "2026-11-09 11:37:12.423588+00:00",
+    "archive_name": "test_memory.arova",
+    "file_size_bytes": 3766,
+    "sha256": "c3ab2b1457b31eab34e51a8328d07a471b6569c643ea330b89d11292ae365697",
+    "records_count": {
+      "assets": 1,
+      "versions": 1,
+      "locations": 1,
+      "transcripts": 1,
+      "transcript_segments": 2,
+      "scenes": 2,
+      "moments": 1,
+      "annotations": 1,
+      "artifacts": 1
+    },
+    "download_url": null
+  },
+  "archive_size_bytes": 3766,
+  "manifest": {
+    "format_version": "1.0.0",
+    "export_id": "4dbf295c-2516-4f3b-a4b8-4cafd4705a97",
+    "created_at": "2026-11-09T11:37:12.423588Z",
+    "generator": "Arova Creator Intelligence",
+    "library_id": null,
+    "records_count": {
+      "assets": 1,
+      "versions": 1,
+      "locations": 1,
+      "transcripts": 1,
+      "transcript_segments": 2,
+      "scenes": 2,
+      "moments": 1,
+      "annotations": 1,
+      "artifacts": 1
+    },
+    "entries": [
+      {
+        "name": "assets.ndjson",
+        "sha256": "2cbbebb5610088ff82d5b311c324290c42da0934524d35c5966213dc8784a53b",
+        "size_bytes": 153
+      },
+      {
+        "name": "versions.ndjson",
+        "sha256": "d44b7469bd50e162acdc1f6c4fb4a35423a8d468ad545113731d59dc4652ba3a",
+        "size_bytes": 412
+      },
+      {
+        "name": "locations.ndjson",
+        "sha256": "5c107036ad3b1622ad61f881148bfffe5e05a4536984b422bbc60bf91d394e42",
+        "size_bytes": 240
+      },
+      {
+        "name": "transcripts.ndjson",
+        "sha256": "b3e625871de9a794be6f45547ace9e6dc352fbd30c839aff9805285faecd9ea2",
+        "size_bytes": 304
+      },
+      {
+        "name": "transcript_segments.ndjson",
+        "sha256": "2bd9b8097300de6a987ff71e8a38864de0968f0be4af08367373b6a35754724e",
+        "size_bytes": 537
+      },
+      {
+        "name": "scenes.ndjson",
+        "sha256": "a77616d2edd75e7c421a590815d73c53ac077b1b9d2abc9386964a944289093c",
+        "size_bytes": 484
+      },
+      {
+        "name": "moments.ndjson",
+        "sha256": "7d9e3b5b846289b52ec2d3b66b7fade4b50cbdb3adbea8109686960f9e5b0ef0",
+        "size_bytes": 198
+      },
+      {
+        "name": "annotations.ndjson",
+        "sha256": "d1e40f94a7d40cc2d2f83d471b37890a0f64c2ae45121b20bceb7989e11ffd5d",
+        "size_bytes": 353
+      },
+      {
+        "name": "artifacts.ndjson",
+        "sha256": "436ae1be6e0492dba12a9a1580f1a6d54be994c46dba5cc50ceebbcf90fd1365",
+        "size_bytes": 347
+      }
+    ]
+  },
+  "traversal_defense": "Path traversal detected in archive entry: ../../evil.txt",
+  "missing_manifest_defense": "Archive is missing required root manifest.json",
+  "tampered_checksum_defense": "Cryptographic checksum mismatch for assets.ndjson: expected 0000000000000000000000000000000000000000000000000000000000000000, got 8976f6dc693a581cdf7e34aab522ba719a0063d1247d172fab5f8128927e4031",
+  "zipbomb_defense": "Suspicious decompression ratio (904.4:1 exceeds safe maximum 20.0:1)",
+  "dry_run_report": {
+    "valid": true,
+    "format_version": "1.0.0",
+    "export_id": "4dbf295c-2516-4f3b-a4b8-4cafd4705a97",
+    "total_entries": 9,
+    "records_to_import": {
+      "assets": 1,
+      "versions": 1,
+      "transcripts": 1,
+      "transcript_segments": 2,
+      "scenes": 2,
+      "moments": 1,
+      "annotations": 1,
+      "artifacts": 1
+    },
+    "matching_existing_records": {
+      "assets": 0,
+      "versions": 0
+    },
+    "duplicate_conflicts": 0,
+    "proposed_id_remappings": 0,
+    "estimated_size_bytes": 3028,
+    "warnings": [],
+    "errors": []
+  },
+  "import_result": {
+    "status": "success",
+    "export_id": "4dbf295c-2516-4f3b-a4b8-4cafd4705a97",
+    "imported_counts": {
+      "assets": 1,
+      "versions": 1,
+      "transcripts": 1,
+      "transcript_segments": 2,
+      "scenes": 2,
+      "moments": 1,
+      "annotations": 1,
+      "artifacts": 1
+    },
+    "remapped_count": 0,
+    "warnings": [],
+    "errors": []
+  },
+  "corrupted_relink_defense": "Relink rejected: Content SHA-256 mismatch. Expected 4205422fc148d2fe38a8300f35fbf5b3ffc6726469825e49e57363921c5fab1c, got 5aa5f86f3399c332a7c70b3ec6f5a7d212c2bf0a42cbc2113a1a6d8643ca7fe2",
+  "relink_result": {
+    "version_id": "59ad52f4-c86d-5c34-b5e0-a2b265bd8e14",
+    "location_id": "c1478dd1-e80a-4c12-a2e4-30b12134756d",
+    "status": "relinked",
+    "rel_path": "tears_of_steel_renamed_copy.mp4",
+    "message": "Successfully relinked tears_of_steel_renamed_copy.mp4 to version 59ad52f4-c86d-5c34-b5e0-a2b265bd8e14"
+  },
+  "availability_before": {
+    "version_id": "59ad52f4-c86d-5c34-b5e0-a2b265bd8e14",
+    "video_id": "5b8c02aa-81f6-4207-bcf4-13fe34f8569d",
+    "availability": "missing",
+    "can_play": false,
+    "can_export": false,
+    "file_path": "asset_445a8ce3.mp4",
+    "root_type": null,
+    "last_seen_at": null
+  },
+  "availability_after": {
+    "version_id": "59ad52f4-c86d-5c34-b5e0-a2b265bd8e14",
+    "video_id": "5b8c02aa-81f6-4207-bcf4-13fe34f8569d",
+    "availability": "available",
+    "can_play": true,
+    "can_export": true,
+    "file_path": "C:\\Users\\Siddhu Ambesanage\\AppData\\Local\\Temp\\arova_roundtrip__ojvew38\\external_drive\\recovered_footage\\tears_of_steel_renamed_copy.mp4",
+    "root_type": "local_fixed",
+    "last_seen_at": "2026-11-09 11:37:12.526210"
+  },
+  "overall_status": "PASSED_100_PERCENT"
+}

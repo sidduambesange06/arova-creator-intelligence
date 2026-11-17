@@ -37,7 +37,12 @@ class Settings(BaseSettings):
 
     # External AI configuration — remote egress requires explicit user consent
     GEMINI_API_KEY: str | None = None
+    OPENAI_BASE_URL: str | None = None
+    ANTHROPIC_API_KEY: str | None = None
+    DEFAULT_LLM_PROVIDER: str = "local"
     AI_REMOTE_CONSENT: bool = False
+
+
 
     @property
     def vector_storage_path(self) -> str:

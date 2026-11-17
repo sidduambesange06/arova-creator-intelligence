@@ -112,5 +112,81 @@ describe("HybridSearchView", () => {
       expect(screen.getByText("0.8150")).toBeInTheDocument();
     });
   });
+
+  it("propagates selected retrieval channel to both semantic search and Grounded Q&A APIs", async () => {
+    const capturedBodies: Array<{ url: string; body: any }> = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const parsedBody = init?.body ? JSON.parse(String(init.body)) : {};
+      capturedBodies.push({ url, body: parsedBody });
+
+      if (url.includes("/api/v1/search/semantic") && init?.method === "POST") {
+        return new Response(
+          JSON.stringify({
+            ...SAMPLE_SEARCH_RESPONSE,
+            channel_filter: parsedBody.channel,
+            visual_evidence_count: 0,
+            results:
+              parsedBody.channel === "visual"
+                ? []
+                : SAMPLE_SEARCH_RESPONSE.results,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      if (url.includes("/api/v1/ai/ask") && init?.method === "POST") {
+        return new Response(
+          JSON.stringify({
+            query: parsedBody.query,
+            answer: "No on-screen visual OCR text has been extracted for the indexed media archive yet.",
+            citations: [],
+            model_name: "grounded-retrieval",
+            channel_filter: parsedBody.channel,
+            visual_evidence_count: 0,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      return new Response("{}", { status: 200 });
+    });
+
+    render(<HybridSearchView />);
+
+    // Select Visual OCR Only channel
+    const visualFilterBtn = screen.getByTestId("channel-filter-visual");
+    fireEvent.click(visualFilterBtn);
+
+    expect(screen.getByTestId("qa-active-channel-badge")).toHaveTextContent(
+      "Evidence Scope: Visual OCR Only"
+    );
+
+    // Run search
+    const input = screen.getByLabelText("Search query");
+    fireEvent.change(input, { target: { value: "on screen diagram" } });
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/No on-screen visual OCR text has been extracted/i)
+      ).toBeInTheDocument();
+    });
+
+    const searchCall = capturedBodies.find((c) =>
+      c.url.includes("/api/v1/search/semantic")
+    );
+    expect(searchCall?.body.channel).toBe("visual");
+
+    // Run Grounded Q&A and confirm it also sends channel: "visual"
+    const qaInput = screen.getByLabelText("Grounded Q&A question");
+    fireEvent.change(qaInput, { target: { value: "What code was shown?" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask AI" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Channel: visual")).toBeInTheDocument();
+    });
+
+    const askCall = capturedBodies.find((c) => c.url.includes("/api/v1/ai/ask"));
+    expect(askCall?.body.channel).toBe("visual");
+  });
 });
 

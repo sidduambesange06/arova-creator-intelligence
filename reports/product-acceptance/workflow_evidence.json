@@ -1,0 +1,25 @@
+{
+  "workflow_a": {
+    "hasCockpit": true,
+    "hasBanner": true
+  },
+  "workflow_b": {
+    "hasStudio": true,
+    "clickedCard": false
+  },
+  "workflow_c": {
+    "hasLocal": true,
+    "hasGemini": true,
+    "hasOpenAI": true,
+    "hasAnthropic": true
+  },
+  "workflow_d": {
+    "hasExport": true,
+    "hasImport": false
+  },
+  "workflow_e": {
+    "hasMcp": true,
+    "hasClaude": true,
+    "hasReadOnly": true
+  }
+}

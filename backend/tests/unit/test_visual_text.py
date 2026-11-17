@@ -95,5 +95,62 @@ def test_multimodal_search_match_channel_tagging(tmp_path: Path) -> None:
         top_result = resp.results[0]
         assert top_result.video_id == video.id
         assert top_result.match_channel == "visual"
+        assert resp.visual_evidence_count == 1
+
+        # Retrieval-layer channel filtering:
+        # 1. Searching in 'speech' channel for visual-only code ('postgresql') must return 0 results
+        resp_speech_only = run_hybrid_search(
+            db=db,
+            query="postgresql localhost 5432",
+            top_k=3,
+            channel_filter="speech",
+            storage_dir=str(tmp_path / "vectors"),
+        )
+        assert resp_speech_only.total_results == 0
+        assert resp_speech_only.channel_filter == "speech"
+
+        # 2. Searching in 'visual' channel for spoken-only words ('connection logic') must return 0 results
+        resp_visual_only_mismatch = run_hybrid_search(
+            db=db,
+            query="connection logic",
+            top_k=3,
+            channel_filter="visual",
+            storage_dir=str(tmp_path / "vectors"),
+        )
+        assert resp_visual_only_mismatch.total_results == 0
+
+        # 3. Searching in 'visual' channel for on-screen code ('postgresql') returns the visual chunk
+        resp_visual_hit = run_hybrid_search(
+            db=db,
+            query="postgresql 5432",
+            top_k=3,
+            channel_filter="visual",
+            storage_dir=str(tmp_path / "vectors"),
+        )
+        assert resp_visual_hit.total_results == 1
+        assert resp_visual_hit.results[0].match_channel == "visual"
+
+        # 4. Grounded Q&A (/api/v1/ai/ask / answer_video_question) obeys channel filter
+        from app.services.summary_service import answer_video_question
+
+        qa_speech_blocked = answer_video_question(
+            db=db,
+            query="postgresql 5432",
+            channel="speech",
+        )
+        assert qa_speech_blocked["citations"] == []
+        assert qa_speech_blocked["channel_filter"] == "speech"
+        assert "Spoken Dialogue channel" in qa_speech_blocked["answer"]
+
+        qa_visual_allowed = answer_video_question(
+            db=db,
+            query="postgresql 5432",
+            channel="visual",
+        )
+        assert len(qa_visual_allowed["citations"]) == 1
+        assert qa_visual_allowed["channel_filter"] == "visual"
+        assert "postgresql://postgres:secret@localhost:5432/production_db" in qa_visual_allowed["answer"]
+        # Ensure spoken text was stripped when answering strictly from visual channel
+        assert "connection logic" not in qa_visual_allowed["answer"]
 
     Base.metadata.drop_all(bind=test_engine)

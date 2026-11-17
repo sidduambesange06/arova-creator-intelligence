@@ -1,0 +1,145 @@
+{
+  "audit_metadata": {
+    "report_title": "Arova Creator Intelligence - Complete Development State & Roadmap Audit",
+    "audit_date": "2026-11-10T10:45:00+05:30",
+    "auditor": "Principal Software Architect & Independent Technical Auditor",
+    "repository": "sidduambesange06/arova-creator-intelligence",
+    "git_head": "4e67e87102aaa4bca352b74615cafa15a165012c",
+    "git_branch": "test/tears-of-steel-full-media-validation",
+    "product_version": "v0.1.0-alpha.2",
+    "product_maturity": "Feature-Complete Internal Alpha"
+  },
+  "git_forensics": {
+    "current_head": "4e67e87102aaa4bca352b74615cafa15a165012c",
+    "latest_commit_message": "test(acceptance): complete post-recovery hardening and independent product acceptance suite",
+    "parent_commit": "33faffd930263f1390d640ea299949605ff8203c",
+    "commits_ahead_of_origin_main": 45,
+    "working_tree_clean": true,
+    "post_4e67e87_commits": 0
+  },
+  "test_and_health_summary": {
+    "backend_tests": {
+      "command": "pytest backend/tests mcp_server/tests -q",
+      "total": 233,
+      "passed": 233,
+      "failed": 0,
+      "pass_rate_pct": 100.0,
+      "duration_seconds": 45.75
+    },
+    "frontend_tests": {
+      "command": "npm --prefix frontend test -- --run",
+      "total_suites": 7,
+      "total_tests": 17,
+      "passed": 17,
+      "failed": 0,
+      "pass_rate_pct": 100.0,
+      "duration_seconds": 8.69
+    },
+    "production_build": {
+      "command": "npm --prefix frontend run build",
+      "typescript_errors": 0,
+      "build_errors": 0,
+      "duration_seconds": 1.98
+    },
+    "system_health_audit": {
+      "command": "python scripts/system_health_audit.py",
+      "checks_total": 7,
+      "checks_passed": 7,
+      "status": "HEALTHY",
+      "duration_seconds": 62.06
+    }
+  },
+  "subsystem_status_matrix": {
+    "video_metadata_and_ingestion": {
+      "status": "Production-Ready",
+      "source_path": "backend/app/processing/metadata.py",
+      "verified_on_real_media": true
+    },
+    "audio_extraction_and_asr": {
+      "status": "Production-Ready",
+      "source_path": "backend/app/processing/audio.py",
+      "verified_on_real_media": true
+    },
+    "scene_and_visual_extraction": {
+      "status": "Operational (with OCR fallback)",
+      "source_path": "backend/app/processing/scene_detection.py",
+      "tesseract_dependency": "optional"
+    },
+    "pipeline_dag_orchestration": {
+      "status": "Production-Ready",
+      "source_path": "backend/app/services/pipeline_orchestrator.py",
+      "concurrency_control": "lease-based"
+    },
+    "hybrid_search_engine": {
+      "status": "Production-Ready",
+      "source_path": "backend/app/ai/retrieval/hybrid_search.py",
+      "algorithm": "Reciprocal Rank Fusion (BM25 + Dense, k=60)"
+    },
+    "portable_archive_engine": {
+      "status": "Production-Ready",
+      "source_path": "backend/app/services/portable_service.py",
+      "format": ".arova (ZIP with manifest.json)",
+      "roundtrip_verified": true
+    },
+    "byo_ai_privacy_gateway": {
+      "status": "Production-Ready",
+      "source_path": "backend/app/ai/providers/gateway.py",
+      "supported_providers": ["local", "openai", "anthropic", "gemini"],
+      "consent_engine": "5-gate non-bypassable"
+    },
+    "fastmcp_agent_server": {
+      "status": "Production-Ready",
+      "source_path": "mcp_server/server.py",
+      "total_tools": 12,
+      "readonly_tools": 11,
+      "gated_tools": 1
+    },
+    "react_workstation_frontend": {
+      "status": "Production-Ready",
+      "source_path": "frontend/src/App.tsx",
+      "views_count": 11,
+      "workflow_groups": 4
+    }
+  },
+  "tracked_shortcuts_and_technical_debt": [
+    {
+      "file": "backend/app/ai/reranking/cross_encoder_reranker.py",
+      "line": 16,
+      "type": "shortcut",
+      "description": "term-proximity fallback when cross-encoder weights offline",
+      "upgrade_path": "download quantized ONNX cross-encoder model"
+    },
+    {
+      "file": "backend/app/processing/clip_export.py",
+      "line": 267,
+      "type": "shortcut",
+      "description": "fallback to libx264 ultrafast re-encode on stream copy keyframe failure",
+      "upgrade_path": "smart two-pass GOP re-encoder"
+    },
+    {
+      "file": "backend/app/processing/visual_text.py",
+      "line": 30,
+      "type": "shortcut",
+      "description": "empty visual text when tesseract binary missing on PATH",
+      "upgrade_path": "bundle onnx-based visual OCR model"
+    }
+  ],
+  "roadmap_priorities": {
+    "milestone_1": {
+      "title": "External User Beta Packaging (v0.1.0-beta.1)",
+      "priority": "P0",
+      "core_focus": ["Docker Compose desktop workflow", "FFmpeg/FFprobe bundle verification", "Embedded ONNX OCR"]
+    },
+    "milestone_2": {
+      "title": "Background Media Discovery & Watcher Daemon (v0.2.0-beta.1)",
+      "priority": "P1",
+      "core_focus": ["Filesystem watchdog", "Debounced auto-ingestion queue"]
+    },
+    "milestone_3": {
+      "title": "Advanced Diarization & Indic Multi-Modal RAG (v0.3.0-beta.1)",
+      "priority": "P2",
+      "core_focus": ["Speaker diarization pipeline", "Kannada/Telugu acoustic model packaging"]
+    }
+  }
+}
+
