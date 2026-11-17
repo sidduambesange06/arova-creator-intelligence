@@ -60,8 +60,8 @@ def test_check_mcp_server_readiness() -> None:
     res = check_mcp_server_readiness()
     assert res["name"] == "Model Context Protocol (MCP)"
     assert res["status"] == "PASS"
-    assert res["tool_count"] == 8
-    assert "8 read-only tools verified" in res["details"]
+    assert res["tool_count"] == 12
+    assert "12 read-only tools verified" in res["details"]
 
 
 def test_run_doctor_checks_structure() -> None:

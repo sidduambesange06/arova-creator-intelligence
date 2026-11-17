@@ -92,6 +92,8 @@ def run_demo_workflow(
             existing_vid = session.query(Video).filter((Video.file_path == str(demo_mp4.resolve())) | (Video.file_hash == file_hash)).first()
             if not existing_vid:
                 raise RuntimeError("Failed to import synthetic video fixture into library")
+            existing_vid.file_path = str(demo_mp4.resolve())
+            session.commit()
             video_rec = media_service._to_video_out(existing_vid)
         timings["import_sec"] = round(time.perf_counter() - t0, 3)
 

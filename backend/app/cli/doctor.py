@@ -192,7 +192,7 @@ def check_mcp_server_readiness() -> dict[str, Any]:
         tools = asyncio.run(server.list_tools())
         tool_names = [t.name for t in tools]
 
-        expected_eight = [
+        expected_tools = [
             "list_videos",
             "get_video_metadata",
             "search_video_content",
@@ -201,12 +201,16 @@ def check_mcp_server_readiness() -> dict[str, Any]:
             "summarize_video",
             "get_video_chapters",
             "get_media_library_stats",
+            "get_media_availability",
+            "find_duplicate_media",
+            "get_evidence_citations",
+            "get_capability_status",
         ]
-        is_isolated = len(tools) == 8 and tool_names == expected_eight
+        is_isolated = len(tools) == 12 and tool_names == expected_tools
         return {
             "name": "Model Context Protocol (MCP)",
             "status": "PASS" if is_isolated else "FAIL",
-            "details": f"FastMCP server ready: 8 read-only tools verified ({', '.join(tool_names)})",
+            "details": f"FastMCP server ready: 12 read-only tools verified ({', '.join(tool_names)})",
             "tool_count": len(tools),
             "recommendation": None if is_isolated else f"Unexpected MCP toolset exposed: {tool_names}",
         }

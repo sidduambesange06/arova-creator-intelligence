@@ -4,6 +4,7 @@ from typing import Sequence
 
 from app.cli.demo import run_demo_cli
 from app.cli.doctor import run_doctor_cli
+from app.cli.scan import run_scan_cli
 
 try:
     from app.cli.models import run_models_cli
@@ -57,6 +58,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Automatically clean up synthetic test files and index after completion",
     )
 
+    # arova scan
+    scan_parser = subparsers.add_parser(
+        "scan",
+        help="Scan and index media folder into deterministic library memory",
+    )
+    scan_parser.add_argument(
+        "scan_args",
+        nargs=argparse.REMAINDER,
+        help="Arguments passed to scan command",
+    )
+
     # arova models
     models_parser = subparsers.add_parser(
         "models",
@@ -89,6 +101,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             as_json=args.json,
             keep_demo=not args.clean,
         )
+
+    if args.subcommand == "scan":
+        return run_scan_cli(argv=args.scan_args)
 
     if args.subcommand == "models":
         if run_models_cli is not None:
