@@ -16,7 +16,9 @@ Verifies:
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
+import subprocess
 import tempfile
 import uuid
 
@@ -31,20 +33,32 @@ from app.core.security import compute_sha256
 from app.database.session import Base
 from app.main import app
 from app.models.entities import (
+    Annotation,
+    Artifact,
     Asset,
     AssetLocation,
     AssetVersion,
+    EmbeddingRecord,
     Library,
     LibraryRoot,
+    Moment,
     ScanRun,
+    StageRun,
+    Transcript,
+    TranscriptSegment,
     Video,
+    VideoScene,
+    VideoSummary,
 )
 from app.models.enums import (
+    AuthorType,
     ExecutionProfile,
     IdentityState,
     LocationAvailability,
     RootPolicy,
     RootType,
+    StageStatus,
+    TrustLevel,
     compute_deterministic_version_id,
 )
 from app.services.discovery_service import (
@@ -495,3 +509,144 @@ def test_scan_cli_command(tmp_path: Path, capsys: pytest.CaptureFixture):
         assert data["counts"]["discovered_media"] == 1
     finally:
         settings.ALLOWED_MEDIA_ROOTS = orig_roots
+
+
+def test_root_registration_rejects_symlink_and_preserves_malformed_marker(test_db: Session, tmp_path: Path):
+    """Ensure .arova_root symlinks are rejected and invalid regular markers are never overwritten."""
+    lib = create_or_get_library(test_db, label="Symlink Marker Lib")
+    allowed_dir = tmp_path / "allowed"
+    outside_dir = tmp_path / "outside"
+    allowed_dir.mkdir()
+    outside_dir.mkdir()
+
+    # Case 1: Symlink .arova_root pointing to malformed JSON file outside the root
+    outside_target = outside_dir / "victim.json"
+    outside_target.write_text("{broken json", encoding="utf-8")
+    root_sym = allowed_dir / "root_symlink"
+    root_sym.mkdir()
+    try:
+        (root_sym / ".arova_root").symlink_to(outside_target)
+    except OSError as exc:
+        pytest.skip(f"Symlinks not supported in environment: {exc}")
+
+    with pytest.raises(ValueError, match="symbolic link"):
+        register_library_root(test_db, lib.id, root_sym, allowed_roots=[allowed_dir])
+    assert outside_target.read_text(encoding="utf-8") == "{broken json"
+
+    # Case 2: Dangling symlink .arova_root pointing outside root must not create target file
+    dangling_target = outside_dir / "created_if_vulnerable.json"
+    root_dangling = allowed_dir / "root_dangling"
+    root_dangling.mkdir()
+    (root_dangling / ".arova_root").symlink_to(dangling_target)
+
+    with pytest.raises(ValueError, match="symbolic link"):
+        register_library_root(test_db, lib.id, root_dangling, allowed_roots=[allowed_dir])
+    assert not dangling_target.exists()
+
+    # Case 3: Existing regular .arova_root containing malformed JSON must fail cleanly and remain untouched
+    root_bad_json = allowed_dir / "root_bad_json"
+    root_bad_json.mkdir()
+    bad_marker = root_bad_json / ".arova_root"
+    bad_marker.write_text("{not_valid_json", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Malformed JSON"):
+        register_library_root(test_db, lib.id, root_bad_json, allowed_roots=[allowed_dir])
+    assert bad_marker.read_text(encoding="utf-8") == "{not_valid_json"
+
+
+def test_in_place_modification_synchronizes_video_and_invalidates_stale_outputs(test_db: Session, tmp_path: Path):
+    """Modifying a file must update Video.version_id/hash, invalidate stale outputs, and preserve old version history."""
+    media_root = tmp_path / "media"
+    media_root.mkdir()
+    allowed = [tmp_path]
+
+    file_path = _create_sample_file(media_root / "evolving.mp4", b"EVOLVING_VIDEO_V1")
+    lib = create_or_get_library(test_db, label="Evolution Lib")
+    root = register_library_root(test_db, lib.id, media_root, allowed_roots=allowed)
+
+    run_root_media_scan(test_db, root.id, allowed_roots=allowed)
+    sha_v1 = compute_sha256(file_path)
+    v1 = test_db.query(AssetVersion).filter_by(sha256=sha_v1).first()
+    video = test_db.query(Video).filter_by(version_id=v1.id).first()
+    assert video is not None
+
+    # Populate processed v1 outputs and historical version evidence
+    video.processing_status = "completed"
+    video.duration = 42.0
+    video.codec = "h264"
+    t1 = Transcript(id=str(uuid.uuid4()), video_id=video.id, language="en", model_name="whisper-small", full_text="Old v1 speech")
+    test_db.add(t1)
+    test_db.flush()
+    test_db.add(TranscriptSegment(id=str(uuid.uuid4()), transcript_id=t1.id, video_id=video.id, start_time=0.0, end_time=2.0, text="Old v1 speech", confidence=0.95))
+    test_db.add(VideoScene(id=str(uuid.uuid4()), video_id=video.id, scene_index=0, start_time=0.0, end_time=10.0))
+    test_db.add(EmbeddingRecord(id=str(uuid.uuid4()), video_id=video.id, chunk_text="Old v1 speech", start_time=0.0, end_time=2.0, embedding_id="emb-v1", model_name="all-MiniLM-L6-v2"))
+    test_db.add(VideoSummary(id=str(uuid.uuid4()), video_id=video.id, summary_text="V1 summary", topics_json="[]", chapters_json="[]", model_name="local"))
+    test_db.add(StageRun(id=str(uuid.uuid4()), version_id=v1.id, stage="asr_transcription", fingerprint="fp-v1", status=StageStatus.SUCCEEDED.value, output_ref="ok"))
+    test_db.add(Artifact(id=str(uuid.uuid4()), version_id=v1.id, kind="transcript", producer_stage="asr_transcription", is_current=True, trust=TrustLevel.ASR.value))
+    test_db.add(Moment(id=str(uuid.uuid4()), version_id=v1.id, start_ms=0, end_ms=2000, kind="scene"))
+    test_db.commit()
+
+    # Overwrite file with new v2 content and re-scan
+    file_path.write_bytes(b"EVOLVING_VIDEO_V2_DIFFERENT_CONTENT")
+    scan2 = run_root_media_scan(test_db, root.id, allowed_roots=allowed)
+    assert scan2.status == "completed"
+
+    sha_v2 = compute_sha256(file_path)
+    v2 = test_db.query(AssetVersion).filter_by(sha256=sha_v2).first()
+    assert v2 is not None and v2.id != v1.id
+    test_db.refresh(video)
+
+    # Video must point to new version/hash and cleared stale processing state
+    assert video.version_id == v2.id
+    assert video.file_hash == sha_v2
+    assert video.processing_status == "discovered"
+    assert video.codec == "unknown"
+    assert video.duration == 0.0
+    assert test_db.query(Transcript).filter_by(video_id=video.id).count() == 0
+    assert test_db.query(TranscriptSegment).filter_by(video_id=video.id).count() == 0
+    assert test_db.query(VideoScene).filter_by(video_id=video.id).count() == 0
+    assert test_db.query(EmbeddingRecord).filter_by(video_id=video.id).count() == 0
+    assert test_db.query(VideoSummary).filter_by(video_id=video.id).count() == 0
+
+    # Historical evidence remains attached to v1 (superseded artifact marked is_current=False)
+    assert test_db.get(AssetVersion, v1.id) is not None
+    v1_artifacts = test_db.query(Artifact).filter_by(version_id=v1.id).all()
+    assert len(v1_artifacts) == 1 and v1_artifacts[0].is_current is False
+    assert test_db.query(StageRun).filter_by(version_id=v1.id, status=StageStatus.SUCCEEDED.value).count() == 1
+    assert test_db.query(Moment).filter_by(version_id=v1.id).count() == 1
+    v1_annotations = test_db.query(Annotation).filter_by(target_type="version", target_id=v1.id).all()
+    assert any("Old v1 speech" in an.body for an in v1_annotations)
+
+
+def test_case_sensitive_filenames_do_not_collide(test_db: Session, tmp_path: Path):
+    """Both Clip.mp4 and clip.mp4 on a case-sensitive directory must produce separate AssetLocations."""
+    media_root = tmp_path / "case_media"
+    media_root.mkdir()
+    if os.name == "nt":
+        proc = subprocess.run(
+            ["fsutil.exe", "file", "setCaseSensitiveInfo", str(media_root), "enable"],
+            capture_output=True,
+            text=True,
+        )
+        if proc.returncode != 0:
+            pytest.skip(f"Case-sensitive NTFS directory not supported here: {proc.stderr or proc.stdout}")
+
+    upper_clip = _create_sample_file(media_root / "Clip.mp4", b"UPPER_CASE_CLIP_DATA")
+    lower_clip = _create_sample_file(media_root / "clip.mp4", b"LOWER_CASE_CLIP_DATA")
+    if os.path.samefile(upper_clip, lower_clip):
+        pytest.skip("Underlying filesystem is case-insensitive")
+
+    lib = create_or_get_library(test_db, label="Case Sensitive Lib")
+    root = register_library_root(test_db, lib.id, media_root, allowed_roots=[tmp_path])
+
+    scan_run = run_root_media_scan(test_db, root.id, allowed_roots=[tmp_path])
+    assert scan_run.status == "completed"
+    counts = json.loads(scan_run.counts)
+    assert counts["discovered_media"] == 2
+    assert counts["new_locations"] == 2
+    assert counts["new_versions"] == 2
+
+    locations = test_db.query(AssetLocation).filter_by(root_id=root.id).all()
+    assert len(locations) == 2
+    assert {loc.rel_path_norm for loc in locations} == {"Clip.mp4", "clip.mp4"}
+

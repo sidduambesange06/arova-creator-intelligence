@@ -15,29 +15,43 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import stat
 from typing import Any
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import or_, select, text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.security import compute_sha256, get_allowed_roots, validate_media_path
 from app.models.entities import (
+    Annotation,
+    Artifact,
     Asset,
     AssetLocation,
     AssetVersion,
+    EmbeddingRecord,
     Library,
     LibraryRoot,
+    ProcessingJob,
     ScanRun,
+    StageRun,
+    Transcript,
+    TranscriptSegment,
     Video,
+    VideoScene,
+    VideoSummary,
 )
 from app.models.enums import (
+    AuthorType,
     ExecutionProfile,
     IdentityState,
     LocationAvailability,
     RootPolicy,
     RootType,
+    StageStatus,
+    TrustLevel,
     compute_deterministic_version_id,
 )
 
@@ -111,33 +125,60 @@ def create_or_get_library(
 
 
 def _resolve_marker_id(root_canonical_path: Path) -> str:
-    """Read or create root marker file to identify the storage volume reliably across mount point changes."""
-    marker_file = root_canonical_path / ROOT_MARKER_FILENAME
-    if marker_file.is_file():
-        try:
-            content = marker_file.read_text(encoding="utf-8").strip()
-            if content:
-                # If content is JSON or bare UUID
-                if content.startswith("{"):
-                    data = json.loads(content)
-                    return data.get("marker_id", str(uuid.uuid5(uuid.NAMESPACE_DNS, str(root_canonical_path))))
-                return content
-        except Exception:
-            pass
+    """Read or safely create root marker file without following symbolic links."""
+    root_resolved = root_canonical_path.resolve()
+    marker_file = root_resolved / ROOT_MARKER_FILENAME
 
-    # Try creating marker file if directory is writable
-    generated_id = str(uuid.uuid4())
     try:
-        marker_data = {
-            "marker_id": generated_id,
-            "created_at": _utcnow().isoformat(),
-            "generator": "arova-creator-intelligence",
-        }
-        marker_file.write_text(json.dumps(marker_data, indent=2), encoding="utf-8")
+        st = os.lstat(marker_file)
+    except FileNotFoundError:
+        st = None
+
+    if st is not None:
+        if stat.S_ISLNK(st.st_mode) or marker_file.is_symlink():
+            raise ValueError(f"Root marker file '{marker_file}' must not be a symbolic link.")
+        if not stat.S_ISREG(st.st_mode):
+            raise ValueError(f"Root marker path '{marker_file}' is not a regular file.")
+        if marker_file.resolve().parent != root_resolved:
+            raise ValueError(f"Root marker file '{marker_file}' escapes root directory containment.")
+
+        content = marker_file.read_text(encoding="utf-8").strip()
+        if not content:
+            raise ValueError(f"Root marker file '{marker_file}' is empty or invalid.")
+        if content.startswith("{"):
+            try:
+                data = json.loads(content)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"Malformed JSON in root marker file '{marker_file}': {exc}") from exc
+            if not isinstance(data, dict) or not isinstance(data.get("marker_id"), str) or not data["marker_id"].strip():
+                raise ValueError(f"Root marker file '{marker_file}' is missing a valid 'marker_id'.")
+            return data["marker_id"].strip()
+        try:
+            uuid.UUID(content)
+        except ValueError as exc:
+            raise ValueError(f"Malformed root marker content in '{marker_file}'.") from exc
+        return content
+
+    # Create marker exclusively without following links
+    generated_id = str(uuid.uuid4())
+    marker_data = {
+        "marker_id": generated_id,
+        "created_at": _utcnow().isoformat(),
+        "generator": "arova-creator-intelligence",
+    }
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(str(marker_file), flags, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(marker_data, indent=2))
         return generated_id
+    except FileExistsError as exc:
+        raise ValueError(f"Root marker file '{marker_file}' already exists or is a symbolic link.") from exc
     except (OSError, PermissionError):
-        # Fallback to deterministic UUID derived from canonical path string
-        return str(uuid.uuid5(uuid.NAMESPACE_DNS, str(root_canonical_path)))
+        # Fallback to deterministic UUID only if directory is read-only and no marker/symlink exists
+        if marker_file.is_symlink() or marker_file.exists():
+            raise ValueError(f"Unable to safely access root marker file '{marker_file}'.")
+        return str(uuid.uuid5(uuid.NAMESPACE_DNS, str(root_resolved)))
 
 
 def register_library_root(
@@ -286,8 +327,145 @@ def _scan_directory_files(
             continue
 
     # Deterministic alphabetical ordering by normalized relative path
-    discovered.sort(key=lambda p: str(p.relative_to(root_canonical_path)).replace("\\", "/").lower())
+    discovered.sort(
+        key=lambda p: (
+            str(p.relative_to(root_canonical_path)).replace("\\", "/").lower(),
+            str(p.relative_to(root_canonical_path)).replace("\\", "/"),
+        )
+    )
     return discovered, errors
+
+
+def _is_case_sensitive_path(file_path: Path, root_path: Path) -> bool:
+    """Detect whether the directory/volume containing file_path treats filenames case-sensitively."""
+    for candidate in (file_path, root_path):
+        swapped_name = candidate.name.swapcase()
+        if swapped_name and swapped_name != candidate.name:
+            swapped = candidate.with_name(swapped_name)
+            try:
+                return not (swapped.exists() and os.path.samefile(candidate, swapped))
+            except OSError:
+                return True
+    return os.path.normcase("A") == "A"
+
+
+def _normalize_rel_path(rel_path: str, file_path: Path, root_path: Path) -> str:
+    """Normalize slashes while preserving case on case-sensitive filesystems."""
+    cleaned = rel_path.replace("\\", "/").strip()
+    if _is_case_sensitive_path(file_path, root_path):
+        return cleaned
+    return cleaned.lower()
+
+
+def _synchronize_modified_version_state(
+    db: Session,
+    asset_id: str,
+    old_version_id: str | None,
+    new_version_id: str,
+    file_path: Path,
+    sha256: str,
+    file_size: int,
+) -> None:
+    """Sync Video processing record to new version and invalidate stale outputs while keeping version history."""
+    now = _utcnow()
+    if old_version_id:
+        prior_artifacts = (
+            db.query(Artifact)
+            .filter_by(version_id=old_version_id, is_current=True)
+            .all()
+        )
+        for art in prior_artifacts:
+            art.is_current = False
+
+        active_runs = (
+            db.query(StageRun)
+            .filter(
+                StageRun.version_id == old_version_id,
+                StageRun.status.in_([StageStatus.PENDING.value, StageStatus.RUNNING.value]),
+            )
+            .all()
+        )
+        for run in active_runs:
+            run.status = StageStatus.CANCELLED.value
+            run.error_code = "SUPERSEDED"
+            run.error_detail = f"Superseded by version {new_version_id}"
+            run.lease_until = None
+            run.finished_at = now
+
+    resolved_file_str = str(file_path.resolve())
+    conditions = [Video.asset_id == asset_id, Video.file_path == resolved_file_str]
+    if old_version_id:
+        conditions.append(Video.version_id == old_version_id)
+    videos = db.query(Video).filter(or_(*conditions)).all()
+
+    for video in videos:
+        # Preserve historical transcript text on the superseded version before clearing active Video outputs
+        if old_version_id:
+            existing_transcript = db.query(Transcript).filter_by(video_id=video.id).first()
+            if existing_transcript and existing_transcript.full_text.strip():
+                has_asr_note = (
+                    db.query(Annotation)
+                    .filter_by(
+                        target_type="version",
+                        target_id=old_version_id,
+                        author_type=AuthorType.ASR.value,
+                    )
+                    .first()
+                )
+                if not has_asr_note:
+                    db.add(
+                        Annotation(
+                            id=str(uuid.uuid4()),
+                            target_type="version",
+                            target_id=old_version_id,
+                            author_type=AuthorType.ASR.value,
+                            display_name="Historical Transcript",
+                            trust=TrustLevel.ASR.value,
+                            body=existing_transcript.full_text,
+                            created_at=now,
+                        )
+                    )
+
+        db.query(TranscriptSegment).filter_by(video_id=video.id).delete()
+        db.query(Transcript).filter_by(video_id=video.id).delete()
+        db.query(VideoScene).filter_by(video_id=video.id).delete()
+        db.query(EmbeddingRecord).filter_by(video_id=video.id).delete()
+        db.query(VideoSummary).filter_by(video_id=video.id).delete()
+        try:
+            db.execute(
+                text("DELETE FROM transcript_chunks_fts WHERE video_id = :vid"),
+                {"vid": video.id},
+            )
+        except OperationalError:
+            pass
+
+        active_jobs = (
+            db.query(ProcessingJob)
+            .filter(
+                ProcessingJob.video_id == video.id,
+                ProcessingJob.status.in_(["pending", "processing"]),
+            )
+            .all()
+        )
+        for job in active_jobs:
+            job.status = "cancelled"
+            job.error_message = f"Source media modified in-place; superseded by version {new_version_id}"
+            job.completed_at = now
+
+        video.asset_id = asset_id
+        video.version_id = new_version_id
+        video.file_hash = sha256
+        video.file_size = file_size
+        video.filename = file_path.name
+        video.file_path = resolved_file_str
+        video.format = file_path.suffix.lstrip(".").lower() or video.format
+        video.duration = 0.0
+        video.width = 0
+        video.height = 0
+        video.fps = 0.0
+        video.codec = "unknown"
+        video.thumbnail_path = None
+        video.processing_status = "discovered"
 
 
 def run_root_media_scan(
@@ -366,7 +544,7 @@ def run_root_media_scan(
             try:
                 # 1. Compute normalized paths
                 rel_path = str(file_path.relative_to(canonical_root))
-                rel_path_norm = rel_path.replace("\\", "/").strip().lower()
+                rel_path_norm = _normalize_rel_path(rel_path, file_path, canonical_root)
 
                 # 2. File stat key
                 st = file_path.stat()
@@ -418,13 +596,24 @@ def run_root_media_scan(
                             db.flush()
                             counts["new_versions"] += 1
 
-                        # Update asset current version
+                        # Update asset current version and synchronize Video/stale outputs
                         asset = db.get(Asset, asset_id)
                         if asset:
                             asset.current_version_id = version_id
 
+                        _synchronize_modified_version_state(
+                            db=db,
+                            asset_id=asset_id,
+                            old_version_id=old_version.id if old_version else location.version_id,
+                            new_version_id=version_id,
+                            file_path=file_path,
+                            sha256=sha256,
+                            file_size=file_size,
+                        )
+
                         # Re-point location to new version
                         location.version_id = version_id
+                        location.rel_path = rel_path
                         location.stat_key = stat_key
                         location.last_seen_at = _utcnow()
                         location.availability = LocationAvailability.AVAILABLE.value
