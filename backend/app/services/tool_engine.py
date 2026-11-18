@@ -197,6 +197,13 @@ def _register_standard_tools(engine: ToolExecutionEngine) -> None:
                     "query": {"type": "string", "description": "Natural language search query"},
                     "top_k": {"type": "integer", "description": "Number of top results to return", "default": 5},
                     "use_reranker": {"type": "boolean", "description": "Enable cross-encoder re-ranking", "default": True},
+                    "video_id": {"type": "string", "description": "Optional video UUID filter"},
+                    "channel": {
+                        "type": "string",
+                        "enum": ["all", "speech", "visual", "multimodal"],
+                        "default": "all",
+                        "description": "Evidence channel filter: all, speech, visual, multimodal",
+                    },
                 },
                 "required": ["query"],
             },
@@ -295,9 +302,9 @@ def _register_standard_tools(engine: ToolExecutionEngine) -> None:
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "asset_id": {"type": "string", "description": "Asset or video UUID to check"},
+                    "video_id": {"type": "string", "description": "Optional legacy video UUID to check"},
+                    "version_id": {"type": "string", "description": "Optional canonical MediaVersion UUID to check"},
                 },
-                "required": ["asset_id"],
             },
             handler=video_tools.get_media_availability,
             is_read_only=True,
@@ -326,6 +333,12 @@ def _register_standard_tools(engine: ToolExecutionEngine) -> None:
                     "query": {"type": "string", "description": "Question or assertion query"},
                     "video_id": {"type": "string", "description": "Optional video UUID filter"},
                     "top_k": {"type": "integer", "description": "Number of citations to retrieve", "default": 5},
+                    "channel": {
+                        "type": "string",
+                        "enum": ["all", "speech", "visual", "multimodal"],
+                        "default": "all",
+                        "description": "Evidence channel filter: all, speech, visual, multimodal",
+                    },
                 },
                 "required": ["query"],
             },

@@ -104,3 +104,45 @@ def test_client_error_handling() -> None:
             client.health()
         assert exc_info.value.status_code == 503
         assert "Connection failed" in exc_info.value.detail
+
+
+def test_m1_client_search_and_ask_channel_parity() -> None:
+    client = ArovaClient(base_url="http://127.0.0.1:8000")
+
+    for ch in ("all", "speech", "visual", "multimodal"):
+        with patch("urllib.request.urlopen", return_value=_mock_http_response({"results": [], "channel_filter": ch})) as mock_open:
+            client.search(query="privacy boundaries", top_k=4, use_reranker=False, video_id="vid-42", channel=ch)
+            payload = json.loads(mock_open.call_args[0][0].data.decode("utf-8"))
+            assert payload == {
+                "query": "privacy boundaries",
+                "top_k": 4,
+                "use_reranker": False,
+                "video_id": "vid-42",
+                "channel": ch,
+            }
+
+        with patch("urllib.request.urlopen", return_value=_mock_http_response({"answer": "ok", "channel_filter": ch})) as mock_open:
+            client.ask(question="what happened?", video_id="vid-42", channel=ch)
+            payload = json.loads(mock_open.call_args[0][0].data.decode("utf-8"))
+            assert payload["query"] == "what happened?"
+            assert payload["video_id"] == "vid-42"
+            assert payload["channel"] == ch
+
+    # Default search/ask must set channel='all' cleanly
+    with patch("urllib.request.urlopen", return_value=_mock_http_response({"results": []})) as mock_open:
+        client.search(query="default test")
+        payload = json.loads(mock_open.call_args[0][0].data.decode("utf-8"))
+        assert payload["channel"] == "all"
+        assert "video_id" not in payload
+
+    # Invalid / legacy drifted channels must raise ValueError before sending HTTP requests
+    for bad_channel in ("invalid", "spoken", "visual_ocr", "summary", ""):
+        with patch("urllib.request.urlopen") as mock_open:
+            with pytest.raises(ValueError, match="Invalid channel"):
+                client.search(query="bad test", channel=bad_channel)
+            mock_open.assert_not_called()
+
+            with pytest.raises(ValueError, match="Invalid channel"):
+                client.ask(question="bad ask", video_id="vid-1", channel=bad_channel)
+            mock_open.assert_not_called()
+

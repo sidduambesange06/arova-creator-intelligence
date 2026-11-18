@@ -446,3 +446,56 @@ def test_mcp_non_persistent_summary_and_path_safety(db_session: Session) -> None
     assert len(chapters) >= 1
     assert db_session.query(VideoSummary).count() == summary_count_before
 
+
+@pytest.mark.anyio
+async def test_m1_mcp_search_channel_and_video_id_parity(db_session: Session) -> None:
+    """Verify M1 MCP search_video_content & get_evidence_citations expose channel & video_id parity."""
+    import inspect
+    from mcp_server.server import create_mcp_server
+
+    server = create_mcp_server()
+    tools = await server.list_tools()
+    by_name = {t.name: t for t in tools}
+    assert len(tools) == 12
+    assert "export_video_clip" not in by_name
+
+    # Check tool input schemas expose channel & video_id
+    search_props = by_name["search_video_content"].input_schema.get("properties", {})
+    assert "video_id" in search_props
+    assert "channel" in search_props
+
+    cite_props = by_name["get_evidence_citations"].input_schema.get("properties", {})
+    assert "channel" in cite_props
+
+    # Direct function checks with valid channels & video_id
+    vid = video_tools.list_videos(db=db_session)[0]["id"]
+    speech_hits = video_tools.search_video_content(
+        query="Model Context Protocol",
+        video_id=vid,
+        channel="speech",
+        db=db_session,
+    )
+    assert len(speech_hits) >= 1
+    assert all(h["video_id"] == vid for h in speech_hits)
+
+    # No-op filter for visual channel on speech-only transcript still succeeds with empty list
+    visual_hits = video_tools.search_video_content(
+        query="Model Context Protocol",
+        video_id=vid,
+        channel="visual",
+        db=db_session,
+    )
+    assert isinstance(visual_hits, list)
+
+    # Invalid / legacy drifted channels must raise ValueError clearly
+    for bad in ("invalid_channel", "spoken", "visual_ocr", "summary", ""):
+        with pytest.raises(ValueError, match="Invalid channel"):
+            video_tools.search_video_content(query="Model Context Protocol", channel=bad, db=db_session)
+        with pytest.raises(ValueError, match="Invalid channel"):
+            video_tools.get_evidence_citations(query="Model Context Protocol", channel=bad, db=db_session)
+
+    # Verify offline citation contract preserved
+    cites = video_tools.get_evidence_citations(query="Model Context Protocol", channel="speech", db=db_session)
+    assert len(cites) >= 1
+
+

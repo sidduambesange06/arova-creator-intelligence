@@ -1,0 +1,145 @@
+{
+  "audit_id": "M1_FINAL_CLOSURE_AUDIT",
+  "issue_id": "ISS-019",
+  "date": "2026-11-15",
+  "milestone": "M1",
+  "milestone_title": "API, SDK, MCP Parity & Contract Freeze",
+  "v12_programme_phase": "V12 Phase 0: Foundation & Contract Freeze (M0-M1)",
+  "next_v12_phase": "V12 Phase 1: Indic Creator Bench (starting at M2)",
+  "authoritative_loop": "V11.0",
+  "verdict": "PASS",
+  "recommendation": "READY FOR FOUNDER APPROVAL",
+  "git_state": {
+    "branch": "test/tears-of-steel-full-media-validation",
+    "head_sha": "fce662f1460d262664530f36dde260e7e0a8b815",
+    "ahead_of_origin_main": 15,
+    "ahead_of_origin_feat_task4": 10,
+    "staged_changes": 0,
+    "dependency_manifests_modified": false,
+    "forbidden_git_ops_executed": 0
+  },
+  "acceptance_gates": {
+    "total": 8,
+    "passed": 8,
+    "gates": {
+      "G1": { "name": "Baseline Reproducibility & PR #11 Reconciliation", "status": "PASS" },
+      "G2": { "name": "5-Gate Consent, Policy, Scope & consent_source Enforcement", "status": "PASS" },
+      "G3": { "name": "Python SDK (ArovaClient) Filter & Fail-Closed Parity", "status": "PASS" },
+      "G4": { "name": "FastMCP & ToolExecutionEngine Parity", "status": "PASS" },
+      "G5": { "name": "Frozen Channel Contract & OpenAPI Schema Parity", "status": "PASS" },
+      "G6": { "name": "Documentation, Obsidian Vault & .arova-loop/ Sync", "status": "PASS" },
+      "G7": { "name": "Full Test Suites & 7/7 System Health Audit", "status": "PASS" },
+      "G8": { "name": "Git Safety, Security, Zero New Deps & Apache 2.0 IP Boundary", "status": "PASS" }
+    }
+  },
+  "defects_remediated": [
+    {
+      "id": "DEF-M1-01",
+      "gate": "G2",
+      "files": [
+        "backend/app/ai/providers/gateway.py",
+        "backend/app/services/summary_service.py"
+      ],
+      "summary": "Added data_categories forwarding in generate_llm_response and generate_structured_json, transcript alias matching in evaluate_consent, and case/whitespace provider_id normalization."
+    },
+    {
+      "id": "DEF-M1-02",
+      "gate": "G2",
+      "files": ["backend/app/services/summary_service.py"],
+      "summary": "Enforced most-restrictive ExecutionProfile/RootPolicy precedence across all candidate videos/AssetLocations, intersected per-video consent scopes on multi-video /ai/ask, and returned local-loopback answers cleanly."
+    },
+    {
+      "id": "DEF-M1-03",
+      "gate": "G4",
+      "files": ["backend/app/services/tool_engine.py"],
+      "summary": "Fixed ToolExecutionEngine get_media_availability parameters_schema from asset_id to optional video_id and version_id matching FastMCP."
+    },
+    {
+      "id": "DEF-M1-04",
+      "gate": "G2/G4",
+      "files": [
+        "backend/tests/unit/test_byo_ai_gateway.py",
+        "backend/tests/unit/test_smart_loop.py"
+      ],
+      "summary": "Added 3 closure regression tests covering all 6 scopes, zero budget, disallowed data_categories, multi-video LOCAL_ONLY/cross-scope blocking, loopback /ai/ask, get_media_availability execution, and get_evidence_citations invalid channel rejection."
+    },
+    {
+      "id": "DEF-M1-05",
+      "gate": "G6",
+      "files": [
+        "reports/product-acceptance/M1_API_SDK_MCP_PARITY_REPORT.md",
+        "reports/product-acceptance/CURRENT_DEVELOPMENT_STATE_AUDIT.md",
+        "reports/product-acceptance/CURRENT_DEVELOPMENT_STATE_AUDIT.json",
+        ".arova-loop/CURRENT_STATE.md",
+        ".arova-loop/REQUIREMENT_STATUS.md",
+        ".arova-loop/BACKLOG.md",
+        ".arova-loop/RUN_LOG.md",
+        ".arova-loop/ISSUES.md",
+        ".arova-loop/DECISION_LOG.md",
+        "docs/PROJECT_STATUS.md",
+        "docs/DEVELOPMENT_LOG.md",
+        "docs/TECHNICAL_DECISIONS.md",
+        "docs/FEATURE_STATUS.md"
+      ],
+      "summary": "Separated V12 Phase 0 (M0-M1) from V12 Phase 1: Indic Creator Bench (M2-M6), aligned ADR-008, closed ISS-019, and removed pre-verification status strings."
+    }
+  ],
+  "section_5_compatibility_investigation": {
+    "origin_commit": "384368420fe0ec8ecd53f5df3e4b6efe53d9e3a4",
+    "original_code_contract": ["all", "speech", "visual", "multimodal"],
+    "legacy_prose_typos": ["spoken", "visual_ocr", "summary"],
+    "decision": "Enforce strict validation against ('all', 'speech', 'visual', 'multimodal') without legacy alias shims; spoken/summary never existed in shipped code/UI/API."
+  },
+  "verification_results": {
+    "pytest": {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest backend/tests mcp_server/tests -q",
+      "passed": 242,
+      "failed": 0,
+      "skipped": 0,
+      "duration_seconds": 41.76
+    },
+    "vitest": {
+      "command": "npm --prefix frontend test -- --run",
+      "test_files": 7,
+      "passed": 18,
+      "failed": 0,
+      "duration_seconds": 8.73
+    },
+    "vite_build": {
+      "command": "npm --prefix frontend run build",
+      "typescript_errors": 0,
+      "modules_transformed": 45,
+      "duration_seconds": 1.86
+    },
+    "system_health_audit": {
+      "command": ".\\.venv\\Scripts\\python.exe scripts/system_health_audit.py",
+      "checks_total": 7,
+      "checks_passed": 7,
+      "status": "HEALTHY",
+      "duration_seconds": 58.04,
+      "timestamp_utc": "2026-11-14T18:54:24.209053+00:00",
+      "report_path": "reports/LATEST_HEALTH_REPORT.md"
+    }
+  },
+  "contract_summary": {
+    "openapi_paths": 65,
+    "search_channel_enum": ["all", "speech", "visual", "multimodal"],
+    "sdk_methods": ["health", "list_videos", "get_video", "search", "ask"],
+    "mcp_default_readonly_tools": 12,
+    "mcp_gated_export_tools": 1,
+    "tool_engine_tools": 13
+  },
+  "security_and_ip_checks": {
+    "source_media_immutability": "PASS",
+    "deny_by_default_roots": "PASS",
+    "loopback_default": "PASS",
+    "readonly_mcp_default": "PASS",
+    "zero_new_dependencies": "PASS",
+    "apache_2_ip_boundary": "PASS"
+  },
+  "m2_readiness": {
+    "ready": true,
+    "next_milestone": "M2 — V12 Phase 1: Indic Creator Bench (Dataset Schema, Manifest Loader, 10-Clip Smoke Corpus & Batch/ASR Provenance Prep)",
+    "blocked_on": "Founder approval and atomic git commit of M1 working tree"
+  }
+}

@@ -9,9 +9,10 @@ from sqlalchemy.orm import Session
 
 from app.ai.providers.base import AICapability
 from app.ai.providers.gateway import get_ai_gateway
-from app.ai.retrieval.hybrid_search import _text_for_channel, run_hybrid_search
+from app.ai.retrieval.hybrid_search import _text_for_channel, run_hybrid_search, validate_search_channel
 from app.core.config import settings
-from app.models.entities import Transcript, Video, VideoSummary
+from app.models.entities import AssetLocation, Library, LibraryRoot, Transcript, Video, VideoSummary
+from app.models.enums import ExecutionProfile, RootPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +131,97 @@ def find_video_clips(
     return clips
 
 
+def _resolve_video_policy_context(
+    db: Session,
+    video_id: str | None = None,
+    extra_video_ids: list[str] | None = None,
+    execution_profile: ExecutionProfile | str | None = None,
+    root_policy: RootPolicy | str | None = None,
+    scope_id: str | set[str] | list[str] | tuple[str, ...] | None = None,
+) -> tuple[ExecutionProfile | str | None, RootPolicy | str | None, set[str] | None]:
+    """Resolve effective ExecutionProfile, RootPolicy, and allowed consent scope IDs for target video(s)."""
+    explicit_scopes: set[str] = set()
+    if isinstance(scope_id, str):
+        if scope_id:
+            explicit_scopes.add(scope_id)
+    elif scope_id is not None:
+        explicit_scopes.update(str(s) for s in scope_id if s)
+
+    resolved_profile = execution_profile
+    resolved_root_policy = root_policy
+    candidate_ids: list[str] = []
+    if video_id:
+        candidate_ids.append(video_id)
+    elif extra_video_ids:
+        for vid in extra_video_ids:
+            if vid and vid not in candidate_ids:
+                candidate_ids.append(vid)
+
+    def _profile_rank(val: ExecutionProfile | str | None) -> int:
+        if val is None:
+            return 0
+        raw = val.value if isinstance(val, ExecutionProfile) else str(val)
+        if raw == ExecutionProfile.FULLY_OFFLINE_NO_AI.value:
+            return 3
+        if raw == ExecutionProfile.LOCAL_AI.value:
+            return 2
+        return 1
+
+    def _root_policy_rank(val: RootPolicy | str | None) -> int:
+        if val is None:
+            return 0
+        raw = val.value if isinstance(val, RootPolicy) else str(val)
+        if raw == RootPolicy.LOCAL_ONLY.value:
+            return 2
+        return 1
+
+    per_video_scopes: list[set[str]] = []
+    for vid_id in candidate_ids:
+        vid_scopes: set[str] = {str(vid_id)}
+        video = db.query(Video).filter(Video.id == vid_id).first()
+        if video:
+            if video.asset_id:
+                vid_scopes.add(str(video.asset_id))
+            if video.version_id:
+                vid_scopes.add(str(video.version_id))
+                locs = db.query(AssetLocation).filter(AssetLocation.version_id == video.version_id).all()
+                for loc in locs:
+                    vid_scopes.add(str(loc.root_id))
+                    root = db.query(LibraryRoot).filter(LibraryRoot.id == loc.root_id).first()
+                    if root:
+                        vid_scopes.add(str(root.library_id))
+                        lib = db.query(Library).filter(Library.id == root.library_id).first()
+                        is_synthetic_default = root.label == "Default Root" and (lib is None or lib.label == "Default Library")
+                        if not is_synthetic_default:
+                            if root_policy is None and root.policy and _root_policy_rank(root.policy) > _root_policy_rank(resolved_root_policy):
+                                resolved_root_policy = root.policy
+                            if execution_profile is None and lib and lib.execution_profile and _profile_rank(lib.execution_profile) > _profile_rank(resolved_profile):
+                                resolved_profile = lib.execution_profile
+        per_video_scopes.append(vid_scopes)
+
+    if per_video_scopes:
+        resolved_scopes = set.intersection(*per_video_scopes)
+        resolved_scopes.update(explicit_scopes)
+        return resolved_profile, resolved_root_policy, resolved_scopes
+
+    return resolved_profile, resolved_root_policy, (explicit_scopes or None)
+
+
+def _attach_summary_provenance(
+    record: VideoSummary,
+    remote_egress: bool,
+    provider: str,
+    consent_source: str | None,
+    data_categories: list[str] | None = None,
+) -> VideoSummary:
+    """Attach request-level AI execution provenance onto a VideoSummary instance without mutating persisted columns."""
+    record._remote_egress = bool(remote_egress)  # type: ignore[attr-defined]
+    record._provider = provider if remote_egress else "local"  # type: ignore[attr-defined]
+    record._consent_source = consent_source if remote_egress else None  # type: ignore[attr-defined]
+    record._egress_data_categories = list(data_categories or []) if remote_egress else []  # type: ignore[attr-defined]
+    return record
+
+
 def answer_video_question(
     db: Session,
     query: str,
@@ -140,10 +232,11 @@ def answer_video_question(
     provider: str | None = None,
     model: str | None = None,
     base_url: str | None = None,
+    execution_profile: ExecutionProfile | str | None = None,
+    root_policy: RootPolicy | str | None = None,
+    scope_id: str | set[str] | None = None,
 ) -> dict[str, Any]:
-    norm_channel = (channel or "all").strip().lower()
-    if norm_channel not in ("all", "speech", "visual", "multimodal"):
-        norm_channel = "all"
+    norm_channel = validate_search_channel(channel)
 
     search_resp = run_hybrid_search(
         db=db,
@@ -197,12 +290,25 @@ def answer_video_question(
         evidence_blocks.append(f"[{item.filename} @ {time_str}] {sanitized_chunk}")
 
     gateway = get_ai_gateway()
-    target_prov = provider or ("google-gemini" if (api_key or settings.GEMINI_API_KEY) else "local")
+    target_prov = (provider or ("google-gemini" if (api_key or settings.GEMINI_API_KEY) else "local")).strip().lower()
+    ask_categories = ["query", "video_transcript_snippets"]
+    eff_profile, eff_root_policy, eff_scopes = _resolve_video_policy_context(
+        db=db,
+        video_id=video_id,
+        extra_video_ids=[item.video_id for item in search_resp.results],
+        execution_profile=execution_profile,
+        root_policy=root_policy,
+        scope_id=scope_id,
+    )
     is_permitted, _, _ = gateway.evaluate_consent(
         db=db,
         capability=AICapability.LLM_QA,
         provider_id=target_prov,
         consent_remote_ai=consent_remote_ai,
+        execution_profile=eff_profile,
+        root_policy=eff_root_policy,
+        scope_id=eff_scopes,
+        data_categories=ask_categories,
     )
     if is_permitted and target_prov != "local":
         try:
@@ -222,10 +328,15 @@ def answer_video_question(
                 api_key=api_key,
                 base_url=base_url,
                 consent_remote_ai=consent_remote_ai,
+                execution_profile=eff_profile,
+                root_policy=eff_root_policy,
+                scope_id=eff_scopes,
+                data_categories=ask_categories,
                 db=db,
                 input_refs=[f"video:{video_id}"] if video_id else [],
             )
-            if response.remote_egress and response.text:
+            if response.provider != "local" and response.text:
+                is_remote = bool(response.remote_egress)
                 return {
                     "query": query,
                     "answer": response.text.strip(),
@@ -233,10 +344,10 @@ def answer_video_question(
                     "model_name": response.model_name,
                     "channel_filter": norm_channel,
                     "visual_evidence_count": search_resp.visual_evidence_count,
-                    "remote_egress": True,
-                    "provider": response.provider,
-                    "egress_data_categories": response.data_categories_egressed,
-                    "consent_source": consent_src or ("request" if consent_remote_ai else "admin_setting"),
+                    "remote_egress": is_remote,
+                    "provider": response.provider if is_remote else "local",
+                    "egress_data_categories": list(response.data_categories_egressed) if is_remote else [],
+                    "consent_source": consent_src if is_remote else None,
                 }
         except Exception as exc:
             logger.warning("Remote AI generation failed (%s); falling back to extractive local", exc)
@@ -278,6 +389,9 @@ def generate_video_summary(
     provider: str | None = None,
     model: str | None = None,
     base_url: str | None = None,
+    execution_profile: ExecutionProfile | str | None = None,
+    root_policy: RootPolicy | str | None = None,
+    scope_id: str | set[str] | None = None,
 ) -> VideoSummary:
     video = db.query(Video).filter_by(id=video_id).first()
     if not video:
@@ -287,23 +401,43 @@ def generate_video_summary(
     if not transcript or not transcript.segments:
         raise ValueError(f"No transcript found for video {video_id}. Process video ASR first.")
 
-    # Check for existing summary
     existing = db.query(VideoSummary).filter_by(video_id=video_id).first()
-    if existing:
-        return existing
-
-    segments = sorted(transcript.segments, key=lambda s: s.start_time)
-    raw_text = transcript.full_text or " ".join(s.text for s in segments)
-    full_text = sanitize_untrusted_media_text(raw_text)
-
     gateway = get_ai_gateway()
-    target_prov = provider or ("google-gemini" if (api_key or settings.GEMINI_API_KEY) else "local")
+    clean_key = (api_key or "").strip() or None
+    target_prov = (provider or ("google-gemini" if (clean_key or settings.GEMINI_API_KEY) else "local")).strip().lower()
+    summary_categories = ["transcript"]
+    eff_profile, eff_root_policy, eff_scopes = _resolve_video_policy_context(
+        db=db,
+        video_id=video_id,
+        execution_profile=execution_profile,
+        root_policy=root_policy,
+        scope_id=scope_id,
+    )
     is_permitted, _, _ = gateway.evaluate_consent(
         db=db,
         capability=AICapability.SUMMARIZATION,
         provider_id=target_prov,
         consent_remote_ai=consent_remote_ai,
+        execution_profile=eff_profile,
+        root_policy=eff_root_policy,
+        scope_id=eff_scopes,
+        data_categories=summary_categories,
     )
+
+    # Return cached summary with zero remote egress whenever remote execution is not requested/permitted
+    # or a non-extractive summary is already cached.
+    if existing and (target_prov == "local" or not is_permitted or not existing.model_name.startswith("extractive")):
+        return _attach_summary_provenance(existing, remote_egress=False, provider="local", consent_source=None)
+
+    segments = sorted(transcript.segments, key=lambda s: s.start_time)
+    raw_text = transcript.full_text or " ".join(s.text for s in segments)
+    full_text = sanitize_untrusted_media_text(raw_text)
+
+    remote_egress = False
+    actual_provider = "local"
+    actual_consent_source: str | None = None
+    actual_categories: list[str] = []
+
     if is_permitted and target_prov != "local":
         try:
             prompt = (
@@ -313,7 +447,7 @@ def generate_video_summary(
                 f"<untrusted_transcript>\n{full_text[:6000]}\n</untrusted_transcript>\n\n"
                 "Output valid JSON with keys 'summary', 'topics' (list of strings), and 'chapters' (list of {'start_time': float, 'title': str})."
             )
-            parsed, ai_resp, _ = gateway.generate_structured_json(
+            parsed, ai_resp, actual_consent_source = gateway.generate_structured_json(
                 prompt=prompt,
                 capability=AICapability.SUMMARIZATION,
                 preferred_provider=target_prov,
@@ -321,6 +455,10 @@ def generate_video_summary(
                 api_key=api_key,
                 base_url=base_url,
                 consent_remote_ai=consent_remote_ai,
+                execution_profile=eff_profile,
+                root_policy=eff_root_policy,
+                scope_id=eff_scopes,
+                data_categories=summary_categories,
                 db=db,
                 input_refs=[f"video:{video_id}"],
             )
@@ -328,29 +466,42 @@ def generate_video_summary(
             topics = parsed.get("topics", ["Video Overview"])
             chapters = parsed.get("chapters", [{"start_time": 0.0, "title": "Introduction"}])
             model_name = ai_resp.model_name
+            remote_egress = bool(ai_resp.remote_egress)
+            actual_provider = ai_resp.provider if remote_egress else "local"
+            actual_consent_source = actual_consent_source if remote_egress else None
+            actual_categories = list(ai_resp.data_categories_egressed) if remote_egress else []
         except Exception as exc:
             logger.warning("Remote summary generation failed (%s); falling back to extractive local", exc)
             summary_text, topics, chapters, model_name = _extractive_summary(segments, full_text)
     else:
         summary_text, topics, chapters, model_name = _extractive_summary(segments, full_text)
 
-    summary_record = VideoSummary(
-        id=str(uuid4()),
-        video_id=video.id,
-        summary_text=summary_text,
-        topics_json=json.dumps(topics),
-        chapters_json=json.dumps(chapters),
-        model_name=model_name,
-    )
-    db.add(summary_record)
-    db.commit()
-    db.refresh(summary_record)
-    return summary_record
+    if existing:
+        existing.summary_text = summary_text
+        existing.topics_json = json.dumps(topics)
+        existing.chapters_json = json.dumps(chapters)
+        existing.model_name = model_name
+        summary_record = existing
+    else:
+        summary_record = VideoSummary(
+            id=str(uuid4()),
+            video_id=video.id,
+            summary_text=summary_text,
+            topics_json=json.dumps(topics),
+            chapters_json=json.dumps(chapters),
+            model_name=model_name,
+        )
+        db.add(summary_record)
 
-    db.add(summary_record)
     db.commit()
     db.refresh(summary_record)
-    return summary_record
+    return _attach_summary_provenance(
+        summary_record,
+        remote_egress=remote_egress,
+        provider=actual_provider,
+        consent_source=actual_consent_source,
+        data_categories=actual_categories,
+    )
 
 
 def _extractive_summary(segments: list, full_text: str) -> tuple[str, list[str], list[dict], str]:

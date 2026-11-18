@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 import sys
-from typing import Any
+from typing import Any, Literal
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 BACKEND_DIR = ROOT_DIR / "backend"
@@ -17,7 +17,7 @@ from mcp_server.tools import video_tools
 def create_mcp_server(enable_exports: bool | None = None) -> MCPServer:
     """Create and configure FastMCP server instance.
     
-    By default, only the 8 official read-only retrieval tools are exposed to AI agents.
+    By default, the 12 official read-only retrieval tools are exposed to AI agents.
     export_video_clip is state-mutating and requires explicit developer opt-in via
     AROVA_ENABLE_MCP_EXPORTS=1 environment variable or --enable-exports CLI argument.
     """
@@ -53,8 +53,16 @@ def create_mcp_server(enable_exports: bool | None = None) -> MCPServer:
         query: str,
         top_k: int = 5,
         use_reranker: bool = True,
+        video_id: str | None = None,
+        channel: Literal["all", "speech", "visual", "multimodal"] = "all",
     ) -> list[dict[str, Any]]:
-        return video_tools.search_video_content(query=query, top_k=top_k, use_reranker=use_reranker)
+        return video_tools.search_video_content(
+            query=query,
+            top_k=top_k,
+            use_reranker=use_reranker,
+            video_id=video_id,
+            channel=channel,
+        )
 
     @server.tool(description="Search exact lexical spoken words across all video transcripts")
     def search_transcripts(
@@ -99,8 +107,14 @@ def create_mcp_server(enable_exports: bool | None = None) -> MCPServer:
         query: str,
         video_id: str | None = None,
         top_k: int = 5,
+        channel: Literal["all", "speech", "visual", "multimodal"] = "all",
     ) -> list[dict[str, Any]]:
-        return video_tools.get_evidence_citations(query=query, video_id=video_id, top_k=top_k)
+        return video_tools.get_evidence_citations(
+            query=query,
+            video_id=video_id,
+            top_k=top_k,
+            channel=channel,
+        )
 
     @server.tool(description="Inspect system execution profile, AI capability state, and offline status")
     def get_capability_status() -> dict[str, Any]:

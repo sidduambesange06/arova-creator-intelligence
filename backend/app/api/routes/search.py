@@ -1,14 +1,16 @@
 from typing import Any
 import json
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.ai.retrieval.hybrid_search import (
+    VALID_SEARCH_CHANNELS,
     HybridSearchResponse,
     SearchResultItem,
     run_hybrid_search,
+    validate_search_channel,
 )
 from app.core.config import settings
 from app.database.session import get_db
@@ -27,7 +29,16 @@ class SemanticSearchRequest(BaseModel):
     top_k: int = Field(default=10, ge=1, le=50)
     use_reranker: bool = Field(default=True, description="Enable Stage-2 Cross-Encoder ML re-ranking")
     video_id: str | None = Field(default=None, description="Optional video ID filter")
-    channel: str = Field(default="all", description="Evidence channel filter: all, speech, visual, multimodal")
+    channel: str = Field(
+        default="all",
+        description="Evidence channel filter: all, speech, visual, multimodal",
+        json_schema_extra={"enum": list(VALID_SEARCH_CHANNELS)},
+    )
+
+    @field_validator("channel")
+    @classmethod
+    def _check_channel(cls, value: str) -> str:
+        return validate_search_channel(value)
 
 
 class TranscriptSearchRequest(BaseModel):
@@ -162,10 +173,14 @@ def summarize_video(
             model=payload.model,
             base_url=payload.base_url,
         )
-        is_remote = not summary_obj.model_name.startswith("extractive")
-        has_consent = payload.consent_remote_ai or settings.AI_REMOTE_CONSENT
-        consent_source = "request" if payload.consent_remote_ai else ("admin_setting" if settings.AI_REMOTE_CONSENT else None)
-        provider_name = payload.provider or ("google-gemini" if summary_obj.model_name.startswith("gemini") else ("openai" if "gpt" in summary_obj.model_name else "local"))
+        is_remote = bool(getattr(summary_obj, "_remote_egress", False))
+        provider_name = getattr(summary_obj, "_provider", "local") if is_remote else "local"
+        consent_source = getattr(summary_obj, "_consent_source", None) if is_remote else None
+        egress_categories = (
+            list(getattr(summary_obj, "_egress_data_categories", ["transcript", "video_metadata"]))
+            if is_remote
+            else []
+        )
         return SummarizeResponse(
             video_id=summary_obj.video_id,
             summary=summary_obj.summary_text,
@@ -173,9 +188,9 @@ def summarize_video(
             chapters=json.loads(summary_obj.chapters_json),
             model_name=summary_obj.model_name,
             remote_egress=is_remote,
-            provider=provider_name if is_remote else "local",
-            egress_data_categories=["video_full_transcript"] if is_remote else [],
-            consent_source=consent_source if is_remote else None,
+            provider=provider_name,
+            egress_data_categories=egress_categories,
+            consent_source=consent_source,
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -186,12 +201,21 @@ def summarize_video(
 class AskQuestionRequest(BaseModel):
     query: str = Field(..., min_length=1, description="Question about video content")
     video_id: str | None = Field(default=None, description="Optional video ID filter")
-    channel: str = Field(default="all", description="Evidence channel filter: all, speech, visual, multimodal")
+    channel: str = Field(
+        default="all",
+        description="Evidence channel filter: all, speech, visual, multimodal",
+        json_schema_extra={"enum": list(VALID_SEARCH_CHANNELS)},
+    )
     api_key: str | None = None
     consent_remote_ai: bool = False
     provider: str | None = Field(default=None, description="Target AI provider: local, google-gemini, openai, anthropic")
     model: str | None = Field(default=None, description="Optional model identifier")
     base_url: str | None = Field(default=None, description="Custom endpoint URL (e.g. for local Ollama / vLLM)")
+
+    @field_validator("channel")
+    @classmethod
+    def _check_channel(cls, value: str) -> str:
+        return validate_search_channel(value)
 
 
 @router.post("/ai/ask")
@@ -199,17 +223,20 @@ def ask_video_ai(
     payload: AskQuestionRequest,
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    return answer_video_question(
-        db=db,
-        query=payload.query,
-        video_id=payload.video_id,
-        channel=payload.channel,
-        api_key=payload.api_key,
-        consent_remote_ai=payload.consent_remote_ai,
-        provider=payload.provider,
-        model=payload.model,
-        base_url=payload.base_url,
-    )
+    try:
+        return answer_video_question(
+            db=db,
+            query=payload.query,
+            video_id=payload.video_id,
+            channel=payload.channel,
+            api_key=payload.api_key,
+            consent_remote_ai=payload.consent_remote_ai,
+            provider=payload.provider,
+            model=payload.model,
+            base_url=payload.base_url,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 

@@ -1,0 +1,47 @@
+{
+  "dataset_schema_version": "1.0.0",
+  "dataset_id": "indic_creator_bench_m2_smoke",
+  "dataset_name": "Arova Indic Creator Bench — M2 10-Clip Smoke Corpus",
+  "dataset_version": "1.0.0",
+  "split": "smoke",
+  "created_at_utc": "2026-11-15T00:00:00Z",
+  "description": "Verified 10-clip local speech smoke corpus sourced losslessly from pinned google/fleurs test parquets across Hindi (hi_in), Kannada (kn_in), Tamil (ta_in), Telugu (te_in), and English control (en_us). Hinglish is explicitly excluded pending verified references.",
+  "sample_count": 10,
+  "manifest_relpath": "manifest.jsonl",
+  "manifest_sha256": "6fd397de981ab35e0ac884b9e37873630f5920ce0f0b886e3c33ac93a46b93a4",
+  "languages": [
+    "hi_in",
+    "kn_in",
+    "ta_in",
+    "te_in",
+    "en_us"
+  ],
+  "scripts": [
+    "Deva",
+    "Knda",
+    "Taml",
+    "Telu",
+    "Latn"
+  ],
+  "source_datasets": [
+    {
+      "source_dataset": "google/fleurs",
+      "source_dataset_version": "168de341b3db6859a9bac1c50a2ef5e3b47647e0",
+      "license_spdx_or_name": "CC-BY-4.0",
+      "source_url_or_origin": "https://huggingface.co/datasets/google/fleurs",
+      "attribution_text": "FLEURS: Few-shot Learning Evaluation of Universal Representations of Speech (Conneau et al., 2022), licensed under CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/)."
+    }
+  ],
+  "license_summary": "CC-BY-4.0 (FLEURS, Conneau et al., 2022)",
+  "attribution_required": true,
+  "redistribution_policy": "source_license_attribution_required",
+  "normalization_policy_version": "v2_indic_unicode_safe_nfc",
+  "excluded_slices": [
+    {
+      "slice_id": "hinglish_en_hi_codeswitch",
+      "status": "NO_VERIFIED_REFERENCE",
+      "reason": "Excluded from verified gold benchmark claims because reports/asr_eval/hinglish_template.json contains zero verified samples.",
+      "evidence_path": "reports/asr_eval/hinglish_template.json"
+    }
+  ]
+}

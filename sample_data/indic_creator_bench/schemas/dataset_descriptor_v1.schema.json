@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arova.ai/schemas/indic_creator_bench/dataset_descriptor_v1.schema.json",
+  "title": "Arova Indic Creator Bench Dataset Descriptor v1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "dataset_schema_version",
+    "dataset_id",
+    "dataset_name",
+    "dataset_version",
+    "split",
+    "created_at_utc",
+    "description",
+    "sample_count",
+    "manifest_relpath",
+    "manifest_sha256",
+    "languages",
+    "scripts",
+    "source_datasets",
+    "license_summary",
+    "attribution_required",
+    "redistribution_policy",
+    "normalization_policy_version"
+  ],
+  "properties": {
+    "dataset_schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "dataset_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "split": {
+      "type": "string",
+      "enum": ["smoke", "dev", "test", "train", "eval"]
+    },
+    "created_at_utc": {
+      "type": "string",
+      "format": "date-time",
+      "minLength": 10
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "manifest_relpath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "manifest_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "languages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 2
+      }
+    },
+    "scripts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 2
+      }
+    },
+    "source_datasets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_dataset",
+          "source_dataset_version",
+          "license_spdx_or_name",
+          "source_url_or_origin",
+          "attribution_text"
+        ],
+        "properties": {
+          "source_dataset": { "type": "string", "minLength": 1 },
+          "source_dataset_version": { "type": "string", "minLength": 1 },
+          "license_spdx_or_name": { "type": "string", "minLength": 1 },
+          "source_url_or_origin": { "type": "string", "minLength": 1 },
+          "attribution_text": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "license_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attribution_required": {
+      "type": "boolean"
+    },
+    "redistribution_policy": {
+      "type": "string",
+      "enum": [
+        "source_license_attribution_required",
+        "local_eval_only",
+        "restricted"
+      ]
+    },
+    "normalization_policy_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "excluded_slices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slice_id", "status", "reason"],
+        "properties": {
+          "slice_id": { "type": "string", "minLength": 1 },
+          "status": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1 },
+          "evidence_path": { "type": "string" }
+        }
+      }
+    }
+  }
+}

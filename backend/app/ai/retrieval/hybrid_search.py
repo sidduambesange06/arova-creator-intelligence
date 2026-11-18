@@ -50,6 +50,25 @@ def _split_chunk_channels(chunk_text: str) -> tuple[str, str]:
     return chunk_text.strip(), ""
 
 
+VALID_SEARCH_CHANNELS: tuple[str, ...] = ("all", "speech", "visual", "multimodal")
+
+
+def validate_search_channel(channel: str | None) -> str:
+    """Validate and normalize a retrieval channel filter."""
+    if channel is None:
+        return "all"
+    if not isinstance(channel, str):
+        raise ValueError(
+            f"Invalid channel '{channel}'. Supported channels: {', '.join(VALID_SEARCH_CHANNELS)}"
+        )
+    norm = channel.strip().lower()
+    if norm not in VALID_SEARCH_CHANNELS:
+        raise ValueError(
+            f"Invalid channel '{channel}'. Supported channels: {', '.join(VALID_SEARCH_CHANNELS)}"
+        )
+    return norm
+
+
 def _text_for_channel(chunk_text: str, channel: str) -> str:
     """Return channel-isolated text for retrieval/scoring, or empty string if ineligible."""
     speech_part, vis_part = _split_chunk_channels(chunk_text)
@@ -85,9 +104,7 @@ def run_hybrid_search(
 ) -> HybridSearchResponse:
     t_start = time.perf_counter()
     q_clean = query.strip()
-    norm_channel = (channel_filter or "all").strip().lower()
-    if norm_channel not in ("all", "speech", "visual", "multimodal"):
-        norm_channel = "all"
+    norm_channel = validate_search_channel(channel_filter)
 
     # Count indexed chunks containing visual OCR evidence for transparent channel diagnostics
     try:

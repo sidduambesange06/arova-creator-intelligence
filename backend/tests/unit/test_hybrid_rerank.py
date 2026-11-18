@@ -113,3 +113,54 @@ def test_hybrid_search_rrf_and_api(tmp_path: Path) -> None:
     app.dependency_overrides.clear()
     Base.metadata.drop_all(bind=test_engine)
 
+
+def test_m1_channel_validation_and_openapi_contract() -> None:
+    import pytest
+
+    test_engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    init_db(test_engine)
+    TestingSession = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+    def _override_get_db():
+        db = TestingSession()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = _override_get_db
+
+    try:
+        # 1. Direct service call rejects invalid channel
+        with TestingSession() as db:
+            for bad in ("invalid", "spoken", "visual_ocr", "summary", ""):
+                with pytest.raises(ValueError, match="Invalid channel"):
+                    run_hybrid_search(db=db, query="test", channel_filter=bad)
+
+        # 2. FastAPI REST routes reject invalid channels clearly instead of silent fallback
+        with TestClient(app) as client:
+            for bad in ("invalid", "spoken", ""):
+                sem_bad = client.post("/api/v1/search/semantic", json={"query": "test", "channel": bad})
+                assert sem_bad.status_code in (400, 422)
+
+                ask_bad = client.post("/api/v1/ai/ask", json={"query": "test", "channel": bad})
+                assert ask_bad.status_code in (400, 422)
+
+            # 3. OpenAPI schema parity check
+            schema = client.get("/openapi.json").json()
+            sem_schema = schema["components"]["schemas"]["SemanticSearchRequest"]["properties"]
+            ask_schema = schema["components"]["schemas"]["AskQuestionRequest"]["properties"]
+            sum_schema = schema["components"]["schemas"]["SummarizeResponse"]["properties"]
+
+            assert set(sem_schema.keys()) >= {"query", "top_k", "use_reranker", "video_id", "channel"}
+            assert set(ask_schema.keys()) >= {"query", "video_id", "channel", "provider", "consent_remote_ai"}
+            assert {"remote_egress", "provider", "egress_data_categories", "consent_source"} <= set(sum_schema.keys())
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(bind=test_engine)
+
+

@@ -96,13 +96,21 @@ class AIProviderGateway:
         consent_remote_ai: bool = False,
         execution_profile: ExecutionProfile | str | None = None,
         root_policy: RootPolicy | str | None = None,
-        scope_id: str | None = None,
+        scope_id: str | set[str] | list[str] | tuple[str, ...] | None = None,
+        data_categories: list[str] | None = None,
     ) -> tuple[bool, str | None, AIConsent | None]:
-        """Evaluate whether remote execution is permitted according to the 5-gate precedence rule.
-        
+        """Evaluate whether execution is permitted according to the 5-gate precedence rule.
+
         Returns: (is_permitted, consent_source_or_rejection_reason, matched_consent_record_or_none)
         """
-        # Rule 1: Local provider is always permitted (zero remote egress)
+        provider_id = (provider_id or "").strip().lower()
+        prov = self._providers.get(provider_id)
+        if prov is None:
+            return False, f"Provider '{provider_id}' is not registered", None
+        if capability not in getattr(prov, "supported_capabilities", set()):
+            return False, f"Provider '{provider_id}' does not support capability '{capability.value}'", None
+
+        # Gate 1 / Rule 1: Local provider is always permitted (zero remote egress)
         if provider_id == "local":
             return True, "local_execution", None
 
@@ -133,21 +141,43 @@ class AIProviderGateway:
                 AIConsent.provider == provider_id,
                 AIConsent.revoked_at.is_(None),
             )
-            if scope_id:
-                query = query.filter(AIConsent.scope_id == scope_id)
+            allowed_scopes: set[str] | None = None
+            if isinstance(scope_id, str):
+                allowed_scopes = {scope_id, "*", "global"}
+            elif scope_id is not None:
+                allowed_scopes = {str(s) for s in scope_id if s} | {"*", "global"}
 
-            for record in query.all():
+            for record in query.order_by(AIConsent.granted_at.desc()).all():
                 if record.expires_at:
                     exp = record.expires_at if record.expires_at.tzinfo else record.expires_at.replace(tzinfo=timezone.utc)
-                    if exp < now:
+                    if exp <= now:
                         continue  # Expired
+                if allowed_scopes is not None and record.scope_type != "global" and record.scope_id not in allowed_scopes:
+                    continue
+                if record.budget_limit is not None and record.budget_limit <= 0:
+                    continue
 
                 try:
                     caps = json.loads(record.capabilities)
-                    if capability.value in caps or "*" in caps:
-                        return True, "db_consent", record
                 except Exception:
                     continue
+                if capability.value not in caps and "*" not in caps:
+                    continue
+
+                if data_categories:
+                    try:
+                        rec_cats = set(json.loads(record.data_categories or "[]"))
+                    except Exception:
+                        continue
+                    if not rec_cats:
+                        continue
+                    transcript_aliases = {"transcript", "video_transcript_snippets", "transcript_snippets"}
+                    if rec_cats & transcript_aliases:
+                        rec_cats = rec_cats | transcript_aliases
+                    if "*" not in rec_cats and not all(c in rec_cats for c in data_categories):
+                        continue
+
+                return True, "db_consent", record
 
         return False, "No active consent granted for remote AI egress", None
 
@@ -196,17 +226,19 @@ class AIProviderGateway:
         consent_remote_ai: bool = False,
         execution_profile: ExecutionProfile | str | None = None,
         root_policy: RootPolicy | str | None = None,
+        scope_id: str | set[str] | list[str] | tuple[str, ...] | None = None,
+        data_categories: list[str] | None = None,
         db: Session | None = None,
         input_refs: list[str] | None = None,
         temperature: float = 0.2,
         **kwargs: Any,
     ) -> tuple[AIResponse, str | None]:
         """Execute an LLM generation with consent evaluation, fallback routing, and audit logging.
-        
+
         Returns: (AIResponse, consent_source)
         """
         # Determine candidate provider
-        target_provider_id = (preferred_provider or getattr(settings, "DEFAULT_LLM_PROVIDER", "local") or "local").lower()
+        target_provider_id = (preferred_provider or getattr(settings, "DEFAULT_LLM_PROVIDER", "local") or "local").strip().lower()
         if target_provider_id not in self._providers:
             target_provider_id = "local"
 
@@ -217,6 +249,8 @@ class AIProviderGateway:
             consent_remote_ai=consent_remote_ai,
             execution_profile=execution_profile,
             root_policy=root_policy,
+            scope_id=scope_id,
+            data_categories=data_categories,
         )
 
         # If remote was explicitly requested with key but lacks consent, raise or fallback
@@ -262,8 +296,11 @@ class AIProviderGateway:
             else:
                 raise
 
+        if not response.remote_egress:
+            consent_source = None
+
         # Record audit run
-        consent_id = consent_rec.id if consent_rec else None
+        consent_id = consent_rec.id if (consent_rec and response.remote_egress) else None
         self.record_run(
             db=db,
             provider_id=response.provider,
@@ -289,13 +326,15 @@ class AIProviderGateway:
         consent_remote_ai: bool = False,
         execution_profile: ExecutionProfile | str | None = None,
         root_policy: RootPolicy | str | None = None,
+        scope_id: str | set[str] | list[str] | tuple[str, ...] | None = None,
+        data_categories: list[str] | None = None,
         db: Session | None = None,
         input_refs: list[str] | None = None,
         temperature: float = 0.1,
         **kwargs: Any,
     ) -> tuple[dict[str, Any], AIResponse, str | None]:
         """Execute a structured JSON generation with fallback routing and audit logging."""
-        target_provider_id = (preferred_provider or getattr(settings, "DEFAULT_LLM_PROVIDER", "local") or "local").lower()
+        target_provider_id = (preferred_provider or getattr(settings, "DEFAULT_LLM_PROVIDER", "local") or "local").strip().lower()
         if target_provider_id not in self._providers:
             target_provider_id = "local"
 
@@ -306,6 +345,8 @@ class AIProviderGateway:
             consent_remote_ai=consent_remote_ai,
             execution_profile=execution_profile,
             root_policy=root_policy,
+            scope_id=scope_id,
+            data_categories=data_categories,
         )
 
         if not is_permitted:
@@ -346,8 +387,11 @@ class AIProviderGateway:
             else:
                 raise
 
+        if not response.remote_egress:
+            consent_source = None
+
         # Record audit run
-        consent_id = consent_rec.id if consent_rec else None
+        consent_id = consent_rec.id if (consent_rec and response.remote_egress) else None
         self.record_run(
             db=db,
             provider_id=response.provider,

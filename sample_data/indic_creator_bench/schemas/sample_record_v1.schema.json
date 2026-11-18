@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arova.ai/schemas/indic_creator_bench/sample_record_v1.schema.json",
+  "title": "Arova Indic Creator Bench Sample Record v1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sample_schema_version",
+    "dataset_id",
+    "dataset_version",
+    "split",
+    "utterance_id",
+    "audio_relpath",
+    "audio_sha256",
+    "audio_format",
+    "duration_sec",
+    "sample_rate_hz",
+    "channels",
+    "language_code",
+    "language_name",
+    "script_code",
+    "script_name",
+    "domain",
+    "source_dataset",
+    "source_dataset_version",
+    "source_sample_id",
+    "source_url_or_origin",
+    "license_spdx_or_name",
+    "attribution_text",
+    "redistribution_status",
+    "reference_transcript",
+    "raw_transcription",
+    "reference_status",
+    "reference_normalizer_notes",
+    "code_switch_tags",
+    "speaker_id",
+    "metadata"
+  ],
+  "properties": {
+    "sample_schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "split": {
+      "type": "string",
+      "enum": ["smoke", "dev", "test", "train", "eval"]
+    },
+    "utterance_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "audio_relpath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "audio_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "audio_format": {
+      "type": "string",
+      "enum": ["wav", "flac", "ogg"]
+    },
+    "duration_sec": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "sample_rate_hz": {
+      "type": "integer",
+      "minimum": 8000
+    },
+    "channels": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "language_code": {
+      "type": "string",
+      "minLength": 2
+    },
+    "language_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "script_code": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 4
+    },
+    "script_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "domain": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_dataset": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_dataset_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_sample_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_url_or_origin": {
+      "type": "string",
+      "minLength": 1
+    },
+    "license_spdx_or_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attribution_text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "redistribution_status": {
+      "type": "string",
+      "enum": ["redistributable", "local_eval_only", "restricted"]
+    },
+    "reference_transcript": {
+      "type": "string"
+    },
+    "raw_transcription": {
+      "type": "string"
+    },
+    "reference_status": {
+      "type": "string",
+      "enum": ["verified", "unverified", "missing", "invalid"]
+    },
+    "reference_normalizer_notes": {
+      "type": "string"
+    },
+    "code_switch_tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "speaker_id": {
+      "type": ["string", "null"]
+    },
+    "metadata": {
+      "type": "object"
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "report_id": "M2_INDIC_CREATOR_BENCH_REPORT",
+  "milestone": "M2",
+  "programme_phase": "V12 Phase 1: Indic Creator Bench",
+  "date_utc": "2026-11-15T03:58:30Z",
+  "git_branch": "test/tears-of-steel-full-media-validation",
+  "git_head_sha": "fce662f1460d262664530f36dde260e7e0a8b815",
+  "overall_status": "PASS",
+  "asr_inference_status": "NOT_RUN",
+  "dataset": {
+    "dataset_schema_version": "1.0.0",
+    "sample_schema_version": "1.0.0",
+    "dataset_id": "indic_creator_bench_m2_smoke",
+    "dataset_version": "1.0.0",
+    "split": "smoke",
+    "manifest_sha256": "6fd397de981ab35e0ac884b9e37873630f5920ce0f0b886e3c33ac93a46b93a4",
+    "normalization_policy_version": "v2_indic_unicode_safe_nfc",
+    "source_dataset": "google/fleurs",
+    "source_commit": "168de341b3db6859a9bac1c50a2ef5e3b47647e0",
+    "license": "CC-BY-4.0",
+    "total_samples": 10,
+    "valid_samples": 10,
+    "invalid_samples": 0,
+    "languages": {
+      "en_us": 2,
+      "hi_in": 2,
+      "kn_in": 2,
+      "ta_in": 2,
+      "te_in": 2
+    },
+    "scripts": {
+      "Deva": 2,
+      "Knda": 2,
+      "Latn": 2,
+      "Taml": 2,
+      "Telu": 2
+    },
+    "hinglish_status": "NO_VERIFIED_REFERENCE"
+  },
+  "provenance_fingerprints": {
+    "asr_run_config_fingerprint_sha256": "b0129a49e425b8db3c160daee2191d45a647941b07d71eba2445dd497ddd24a8",
+    "batch_run_config_fingerprint_sha256": "e15a276ce786d05503724ef9147736cc104d6f48e8c1fc65fd844fa65ac64041"
+  },
+  "acceptance_gates": {
+    "G1_m1_transition_and_git_safety": "PASS",
+    "G2_versioned_dataset_and_sample_schemas": "PASS",
+    "G3_manifest_loader_integrity_and_security": "PASS",
+    "G4_10clip_real_smoke_corpus_and_rights": "PASS",
+    "G5_indic_unicode_and_metric_safety": "PASS",
+    "G6_batch_asr_provenance_and_secret_safety": "PASS",
+    "G7_regression_suites_and_health_audit": "PASS",
+    "G8_loop_and_obsidian_sync": "PASS"
+  },
+  "verification_runs": {
+    "m2_targeted_pytest": {
+      "command": ".venv\\Scripts\\python.exe -m pytest backend/tests/unit/test_indic_creator_bench_m2.py -v",
+      "passed": 14,
+      "failed": 0,
+      "duration_sec": 1.71
+    },
+    "full_backend_and_mcp_pytest": {
+      "command": ".venv\\Scripts\\python.exe -m pytest backend/tests mcp_server/tests -q",
+      "passed": 256,
+      "failed": 0,
+      "duration_sec": 41.95
+    },
+    "local_validation_cli": {
+      "command": ".venv\\Scripts\\python.exe scripts/validate_indic_bench.py --json-out data/indic_creator_bench/m2_smoke_10clip/validation_latest.json",
+      "exit_code": 0,
+      "status": "VALID"
+    }
+  }
+}
