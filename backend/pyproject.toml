@@ -50,6 +50,7 @@ packages = ["app"]
 dev = [
     "pytest>=8.3.0",
     "httpx>=0.28.0",
+    "psutil>=6.0.0",
 ]
 
 [tool.pytest.ini_options]

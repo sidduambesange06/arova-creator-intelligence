@@ -34,16 +34,18 @@ def _git_head() -> str:
         return "UNKNOWN"
 
 
-def _render_markdown(report: dict, git_sha: str, dataset_root: Path) -> str:
+def _render_markdown(report: dict, git_sha: str, dataset_root: Path, title: str | None = None) -> str:
     ds = report["dataset"]
     prov = report["asr_provenance"]
     batch = report["batch_provenance"]
     timing = report["timing"]
     res = report["resources"]
     cm = report["corpus_metrics"]
+    dec = prov.get("decoding_params", {})
+    heading = title or "M3.1 Faster-Whisper Baseline Execution Report — Indic Creator Bench"
 
     lines = [
-        "# M3.1 Faster-Whisper Baseline Execution Report — Indic Creator Bench",
+        f"# {heading}",
         "",
         f"- **Generated UTC:** {datetime.now(timezone.utc).isoformat()}",
         f"- **Git HEAD:** `{git_sha}`",
@@ -51,11 +53,11 @@ def _render_markdown(report: dict, git_sha: str, dataset_root: Path) -> str:
         f"- **Dataset:** `{ds['dataset_id']}@{ds['dataset_version']}` (`split={ds['split']}`, `license={ds['license_summary']}`)",
         f"- **Manifest SHA-256:** `{ds['manifest_sha256']}`",
         f"- **Model:** `{prov['model_id']}` (revision `{prov['model_revision']}`, device `{prov['device']}`, compute_type `{prov['compute_type']}`)",
-        f"- **Language Mode:** `{prov['language_mode']}` | **Normalization:** `{prov['normalization_policy_version']}`",
+        f"- **Language Mode:** `{prov['language_mode']}` | **Word Timestamps:** `{dec.get('word_timestamps')}` | **Normalization:** `{prov['normalization_policy_version']}`",
         f"- **Config Fingerprint:** `{prov['config_fingerprint_sha256']}`",
-        f"- **Sample Coverage:** `{batch['succeeded_items']}/{batch['total_items']}` succeeded, `{batch['failed_items']}` failed, `{batch['skipped_items']}` skipped",
+        f"- **Sample Coverage:** `{batch['succeeded_items']}/{batch['total_items']}` succeeded, `{batch['failed_items']}` failed, `{batch['skipped_items']}` skipped (`coverage_complete={cm.get('coverage_complete')}`)",
         "",
-        "> **Scope Disclaimer:** This 10-clip FLEURS smoke corpus validates genuine local ASR execution, timing, and per-language baseline behavior. It does **not** establish population-level accuracy claims. Hinglish remains excluded (`NO_VERIFIED_REFERENCE`).",
+        f"> **Scope Disclaimer:** {ds.get('note', 'Local benchmark partition; does not establish population-level accuracy claims.')} Hinglish remains excluded (`NO_VERIFIED_REFERENCE`).",
         "",
         "## Timing & Resource Measurements",
         "",
@@ -67,7 +69,9 @@ def _render_markdown(report: dict, git_sha: str, dataset_root: Path) -> str:
         f"| Corpus RTF (`inference / audio`) | `{timing['corpus_rtf']}` |",
         f"| RSS Before (MB) | `{res['rss_before_mb']}` |",
         f"| RSS After Init (MB) | `{res['rss_after_init_mb']}` |",
-        f"| RSS Peak (MB) | `{res['rss_peak_mb']}` |",
+        f"| RSS Sampled Max (MB, `{res.get('rss_sampling_interval_ms', 'N/A')}ms` x `{res.get('rss_sample_count', 0)}`) | `{res.get('rss_sampled_max_mb')}` |",
+        f"| OS Peak Working Set (MB) | `{res.get('os_peak_wset_mb')}` |",
+        f"| RSS Peak Combined (MB, `{res.get('memory_measurement_scope', 'single_process')}`) | `{res['rss_peak_mb']}` |",
         f"| VRAM (MB) | `{res['vram_mb']}` |",
         f"| Energy (Joules) | `{res['energy_joules']}` |",
         "",
@@ -75,34 +79,38 @@ def _render_markdown(report: dict, git_sha: str, dataset_root: Path) -> str:
         "",
         f"Aggregation method: {cm['aggregation_method']}.",
         "",
-        "| Language | Succeeded / Total | Failed | Audio (s) | Infer (s) | RTF | Micro WER | Micro CER | Macro WER | Macro CER |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Language | Succeeded / Total | Failed | Empty Hyp | Audio (s) | Infer (s) | RTF | Micro WER (S/D/I) | Micro CER | Macro WER | Macro CER |",
+        "|---|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|",
     ]
     for lang, stats in report["per_language"].items():
         micro = stats["micro"]
+        sdi = f"{micro.get('total_word_substitutions', 0)}/{micro.get('total_word_deletions', 0)}/{micro.get('total_word_insertions', 0)}"
         lines.append(
             f"| `{lang}` | {stats['succeeded_count']}/{stats['total_count']} | {stats['failed_count']} | "
+            f"{micro.get('empty_hypothesis_count', 0)} | "
             f"{stats['audio_sec']:.2f} | {stats['inference_sec']:.2f} | {stats['rtf']} | "
-            f"{micro['corpus_wer']} | {micro['corpus_cer']} | {stats['macro_wer']} | {stats['macro_cer']} |"
+            f"`{micro['corpus_wer']}` ({sdi}) | {micro['corpus_cer']} | {stats['macro_wer']} | {stats['macro_cer']} |"
         )
     lines.extend(
         [
             "",
-            f"**Corpus Micro WER / CER:** `{cm['micro']['corpus_wer']}` / `{cm['micro']['corpus_cer']}`  ",
-            f"**Corpus Macro WER / CER:** `{cm['macro_wer']}` / `{cm['macro_cer']}`",
+            f"**Corpus Micro WER / CER:** `{cm['micro']['corpus_wer']}` / `{cm['micro']['corpus_cer']}` "
+            f"(Word S/D/I: `{cm['micro'].get('total_word_substitutions', 0)}/{cm['micro'].get('total_word_deletions', 0)}/{cm['micro'].get('total_word_insertions', 0)}` over `{cm['micro'].get('total_ref_words', 0)}` ref words)  ",
+            f"**Corpus Macro WER / CER:** `{cm['macro_wer']}` / `{cm['macro_cer']}` | **Empty Hypotheses:** `{cm['micro'].get('empty_hypothesis_count', 0)}` (`{cm['micro'].get('empty_hypothesis_rate')}`)",
             "",
             "## Per-Utterance Evidence",
             "",
-            "| Utterance ID | Lang | Status | Audio (s) | Infer (s) | RTF | WER | CER | Words |",
-            "|---|---|---|---:|---:|---:|---:|---:|---:|",
+            "| Utterance ID | Lang | Status | Audio (s) | Infer (s) | RTF | WER (S/D/I) | CER | Words |",
+            "|---|---|---|---:|---:|---:|---|---:|---:|",
         ]
     )
     for u in report["utterances"]:
         m = u.get("metrics") or {}
+        u_sdi = f"{m.get('word_substitutions', '-')}/{m.get('word_deletions', '-')}/{m.get('word_insertions', '-')}"
         lines.append(
             f"| `{u['utterance_id']}` | `{u['language_code']}` | `{u['status']}` | "
             f"{u['duration_sec']:.2f} | {u['inference_sec']:.2f} | {u['rtf']} | "
-            f"{m.get('wer')} | {m.get('cer')} | {u.get('word_count', 0)} |"
+            f"`{m.get('wer')}` ({u_sdi}) | {m.get('cer')} | {u.get('word_count', 0)} |"
         )
     lines.append("")
     return "\n".join(lines)
@@ -123,6 +131,9 @@ def main() -> int:
     parser.add_argument("--language-mode", type=str, choices=("forced", "auto"), default="forced")
     parser.add_argument("--beam-size", type=int, default=5)
     parser.add_argument("--vad-filter", action="store_true")
+    parser.add_argument("--no-word-timestamps", action="store_true", help="Disable word timestamps for pure ASR latency.")
+    parser.add_argument("--supported-languages", type=str, default=None, help="Comma-separated supported language codes (e.g. 'kn').")
+    parser.add_argument("--report-title", type=str, default=None)
     parser.add_argument("--checkpoint", type=Path, default=None)
     parser.add_argument(
         "--json-out",
@@ -136,12 +147,21 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    supported_langs = (
+        frozenset(x.strip().lower() for x in args.supported_languages.split(",") if x.strip())
+        if args.supported_languages
+        else None
+    )
+    use_word_ts = not args.no_word_timestamps
+
     provider = FasterWhisperProvider(
         model_size_or_path=args.model_size_or_path,
         compute_type=args.compute_type,
         device=args.device,
         model_id=args.model_id,
         model_revision=args.model_revision,
+        supported_languages=supported_langs,
+        supports_word_timestamps=use_word_ts,
     )
 
     report = run_indic_asr_baseline(
@@ -154,7 +174,7 @@ def main() -> int:
         language_mode=args.language_mode,
         beam_size=args.beam_size,
         vad_filter=args.vad_filter,
-        word_timestamps=True,
+        word_timestamps=use_word_ts,
         checkpoint_path=args.checkpoint,
     )
 
@@ -162,7 +182,7 @@ def main() -> int:
     report["git_head"] = git_sha
     args.json_out.parent.mkdir(parents=True, exist_ok=True)
     args.json_out.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
-    args.md_out.write_text(_render_markdown(report, git_sha, args.dataset_root), encoding="utf-8", newline="\n")
+    args.md_out.write_text(_render_markdown(report, git_sha, args.dataset_root, title=args.report_title), encoding="utf-8", newline="\n")
 
     print(f"Execution Status   : {report['execution_status']}")
     print(f"Model              : {args.model_id} ({args.device}/{args.compute_type})")

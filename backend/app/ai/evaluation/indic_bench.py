@@ -773,19 +773,35 @@ def normalize_indic_reference(
     return " ".join(norm.split()).strip()
 
 
-def _levenshtein_distance(seq_a: list[str] | str, seq_b: list[str] | str) -> int:
-    if len(seq_a) < len(seq_b):
-        seq_a, seq_b = seq_b, seq_a
-    if not seq_b:
-        return len(seq_a)
-    prev = list(range(len(seq_b) + 1))
-    for i, item_a in enumerate(seq_a, start=1):
-        curr = [i]
-        for j, item_b in enumerate(seq_b, start=1):
-            cost = 0 if item_a == item_b else 1
-            curr.append(min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost))
+def _levenshtein_sdi(ref: list[str] | str, hyp: list[str] | str) -> tuple[int, int, int, int]:
+    """Return (edits, substitutions, deletions, insertions) from ref -> hyp."""
+    m, n = len(ref), len(hyp)
+    if m == 0:
+        return (n, 0, 0, n)
+    if n == 0:
+        return (m, 0, m, 0)
+    prev: list[tuple[int, int, int, int]] = [(j, 0, 0, j) for j in range(n + 1)]
+    for i, item_r in enumerate(ref, start=1):
+        curr: list[tuple[int, int, int, int]] = [(i, 0, i, 0)]
+        for j, item_h in enumerate(hyp, start=1):
+            sub_cost = 0 if item_r == item_h else 1
+            p_diag = prev[j - 1]
+            p_up = prev[j]
+            c_left = curr[j - 1]
+            best = (p_diag[0] + sub_cost, p_diag[1] + sub_cost, p_diag[2], p_diag[3])
+            cand_del = (p_up[0] + 1, p_up[1], p_up[2] + 1, p_up[3])
+            if cand_del[0] < best[0]:
+                best = cand_del
+            cand_ins = (c_left[0] + 1, c_left[1], c_left[2], c_left[3] + 1)
+            if cand_ins[0] < best[0]:
+                best = cand_ins
+            curr.append(best)
         prev = curr
     return prev[-1]
+
+
+def _levenshtein_distance(seq_a: list[str] | str, seq_b: list[str] | str) -> int:
+    return _levenshtein_sdi(seq_a, seq_b)[0]
 
 
 def compute_safe_utterance_metrics(
@@ -794,14 +810,14 @@ def compute_safe_utterance_metrics(
     language_code: str,
     policy_version: str = NORMALIZATION_POLICY_VERSION,
 ) -> dict[str, Any]:
-    """Compute WER/CER metrics while keeping raw_reference untouched and handling empty refs."""
+    """Compute WER/CER and S/D/I edit metrics while keeping raw_reference untouched."""
     norm_ref = normalize_indic_reference(raw_reference, language_code, policy_version)
     norm_hyp = normalize_indic_reference(raw_hypothesis, language_code, policy_version)
 
     ref_words = norm_ref.split()
     hyp_words = norm_hyp.split()
-    word_edits = _levenshtein_distance(ref_words, hyp_words)
-    char_edits = _levenshtein_distance(norm_ref, norm_hyp)
+    word_edits, word_subs, word_dels, word_ins = _levenshtein_sdi(ref_words, hyp_words)
+    char_edits, char_subs, char_dels, char_ins = _levenshtein_sdi(norm_ref, norm_hyp)
 
     ref_word_count = len(ref_words)
     ref_char_count = len(norm_ref)
@@ -823,33 +839,56 @@ def compute_safe_utterance_metrics(
         "normalized_hypothesis": norm_hyp,
         "normalization_policy_version": policy_version,
         "word_edits": word_edits,
+        "word_substitutions": word_subs,
+        "word_deletions": word_dels,
+        "word_insertions": word_ins,
         "ref_words": ref_word_count,
         "wer": wer,
         "char_edits": char_edits,
+        "char_substitutions": char_subs,
+        "char_deletions": char_dels,
+        "char_insertions": char_ins,
         "ref_chars": ref_char_count,
         "cer": cer,
         "empty_reference": ref_word_count == 0,
+        "empty_hypothesis": len(hyp_words) == 0,
     }
 
 
 def compute_safe_corpus_metrics(utterance_metrics: list[dict[str, Any]]) -> dict[str, Any]:
-    """Compute micro-aggregated corpus WER/CER with safe zero-denominator handling."""
+    """Compute micro-aggregated corpus WER/CER and S/D/I counts with safe zero-denominator handling."""
     total_word_edits = sum(int(m["word_edits"]) for m in utterance_metrics)
+    total_word_subs = sum(int(m.get("word_substitutions", 0)) for m in utterance_metrics)
+    total_word_dels = sum(int(m.get("word_deletions", 0)) for m in utterance_metrics)
+    total_word_ins = sum(int(m.get("word_insertions", 0)) for m in utterance_metrics)
     total_ref_words = sum(int(m["ref_words"]) for m in utterance_metrics)
     total_char_edits = sum(int(m["char_edits"]) for m in utterance_metrics)
+    total_char_subs = sum(int(m.get("char_substitutions", 0)) for m in utterance_metrics)
+    total_char_dels = sum(int(m.get("char_deletions", 0)) for m in utterance_metrics)
+    total_char_ins = sum(int(m.get("char_insertions", 0)) for m in utterance_metrics)
     total_ref_chars = sum(int(m["ref_chars"]) for m in utterance_metrics)
+    empty_hyp_count = sum(1 for m in utterance_metrics if bool(m.get("empty_hypothesis", False)))
 
     corpus_wer = round(total_word_edits / float(total_ref_words), 6) if total_ref_words > 0 else None
     corpus_cer = round(total_char_edits / float(total_ref_chars), 6) if total_ref_chars > 0 else None
+    empty_hyp_rate = round(empty_hyp_count / float(len(utterance_metrics)), 6) if utterance_metrics else None
 
     return {
         "utterance_count": len(utterance_metrics),
         "total_word_edits": total_word_edits,
+        "total_word_substitutions": total_word_subs,
+        "total_word_deletions": total_word_dels,
+        "total_word_insertions": total_word_ins,
         "total_ref_words": total_ref_words,
         "corpus_wer": corpus_wer,
         "total_char_edits": total_char_edits,
+        "total_char_substitutions": total_char_subs,
+        "total_char_deletions": total_char_dels,
+        "total_char_insertions": total_char_ins,
         "total_ref_chars": total_ref_chars,
         "corpus_cer": corpus_cer,
+        "empty_hypothesis_count": empty_hyp_count,
+        "empty_hypothesis_rate": empty_hyp_rate,
     }
 
 

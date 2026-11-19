@@ -15,6 +15,7 @@ import json
 from pathlib import Path
 import platform
 import sys
+import threading
 import time
 from typing import Any
 import uuid
@@ -47,6 +48,62 @@ def _get_rss_mb() -> float | None:
         return None
 
 
+def _get_os_peak_wset_mb() -> float | None:
+    """Read OS process peak working set (Windows peak_wset or POSIX ru_maxrss)."""
+    try:
+        import psutil
+
+        mi = psutil.Process().memory_info()
+        peak_wset = getattr(mi, "peak_wset", None)
+        if peak_wset is not None:
+            return round(peak_wset / (1024.0 * 1024.0), 2)
+    except Exception:
+        pass
+    try:
+        import resource
+
+        usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        divisor = 1024.0 * 1024.0 if sys.platform == "darwin" else 1024.0
+        return round(usage / divisor, 2)
+    except Exception:
+        return None
+
+
+class _MemorySampler:
+    """Background daemon sampler for single-process RSS high-water mark."""
+
+    def __init__(self, interval_ms: int = 50) -> None:
+        self.interval_ms = interval_ms
+        self.sampled_max_rss_mb: float | None = None
+        self.sample_count = 0
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+
+    def _poll(self) -> None:
+        rss = _get_rss_mb()
+        if rss is not None:
+            self.sample_count += 1
+            if self.sampled_max_rss_mb is None or rss > self.sampled_max_rss_mb:
+                self.sampled_max_rss_mb = rss
+
+    def _run(self) -> None:
+        interval_sec = self.interval_ms / 1000.0
+        while not self._stop.is_set():
+            self._poll()
+            self._stop.wait(interval_sec)
+
+    def start(self) -> None:
+        self._poll()
+        self._thread = threading.Thread(target=self._run, name="asr-rss-sampler", daemon=True)
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=1.0)
+        self._poll()
+
+
 def _get_dependency_versions() -> dict[str, str]:
     versions: dict[str, str] = {
         "python": platform.python_version(),
@@ -62,6 +119,8 @@ def _get_dependency_versions() -> dict[str, str]:
 
 def _classify_error(exc: Exception) -> str:
     msg = str(exc).lower()
+    if "unsupported_language" in msg:
+        return "UNSUPPORTED_LANGUAGE"
     if isinstance(exc, MemoryError) or "memory" in msg or "oom" in msg:
         return "INSUFFICIENT_MEMORY"
     if isinstance(exc, TimeoutError) or "timeout" in msg or "timed out" in msg:
@@ -244,15 +303,8 @@ def run_indic_asr_baseline(
 
     rss_before = _get_rss_mb()
     rss_peak = rss_before
-
-    # Measure cold model initialization separately from per-clip inference
-    cold_init_start = time.perf_counter()
-    if hasattr(provider, "_get_or_load_model"):
-        provider._get_or_load_model()  # type: ignore[attr-defined]
-    cold_init_sec = round(time.perf_counter() - cold_init_start, 4)
-    rss_after_init = _get_rss_mb()
-    if rss_after_init is not None and (rss_peak is None or rss_after_init > rss_peak):
-        rss_peak = rss_after_init
+    sampler = _MemorySampler(interval_ms=50)
+    sampler.start()
 
     utterances: list[dict[str, Any]] = []
     succeeded_metrics: list[dict[str, Any]] = []
@@ -267,125 +319,147 @@ def run_indic_asr_baseline(
     failed_count = 0
     resumed_count = 0
 
-    for sample in samples:
-        uid = str(sample["utterance_id"])
-        lang_code = str(sample["language_code"])
-        duration_sec = float(sample["duration_sec"])
-        raw_ref = str(sample["reference_transcript"])
-        audio_path = (root / str(sample["audio_relpath"])).resolve()
+    try:
+        # Measure cold model initialization separately from per-clip inference
+        cold_init_start = time.perf_counter()
+        if hasattr(provider, "_get_or_load_model"):
+            provider._get_or_load_model()  # type: ignore[attr-defined]
+        cold_init_sec = round(time.perf_counter() - cold_init_start, 4)
+        rss_after_init = _get_rss_mb()
+        if rss_after_init is not None and (rss_peak is None or rss_after_init > rss_peak):
+            rss_peak = rss_after_init
 
-        per_lang_counts[lang_code]["total"] += 1
-        total_audio_sec += duration_sec
+        for sample in samples:
+            uid = str(sample["utterance_id"])
+            lang_code = str(sample["language_code"])
+            duration_sec = float(sample["duration_sec"])
+            raw_ref = str(sample["reference_transcript"])
+            audio_path = (root / str(sample["audio_relpath"])).resolve()
 
-        if uid in cached_records:
-            rec = dict(cached_records[uid])
-            rec["resumed_from_checkpoint"] = True
+            per_lang_counts[lang_code]["total"] += 1
+            total_audio_sec += duration_sec
+
+            if uid in cached_records:
+                rec = dict(cached_records[uid])
+                rec["resumed_from_checkpoint"] = True
+                utterances.append(rec)
+                succeeded_count += 1
+                resumed_count += 1
+                per_lang_counts[lang_code]["succeeded"] += 1
+                per_lang_audio_sec[lang_code] += duration_sec
+                per_lang_infer_sec[lang_code] += float(rec.get("inference_sec", 0.0))
+                total_inference_sec += float(rec.get("inference_sec", 0.0))
+                m = rec["metrics"]
+                succeeded_metrics.append(m)
+                per_lang_metrics[lang_code].append(m)
+                continue
+
+            forced_lang = WHISPER_LANG_MAP.get(lang_code) if language_mode == "forced" else None
+            last_exc: Exception | None = None
+            tx_result = None
+            infer_sec = 0.0
+            attempts = 0
+
+            for attempt in range(max_retries + 1):
+                attempts = attempt + 1
+                t0 = time.perf_counter()
+                try:
+                    tx_result = provider.transcribe(
+                        audio_path,
+                        language=forced_lang,
+                        vad_filter=vad_filter,
+                        word_timestamps=word_timestamps,
+                        beam_size=beam_size,
+                        condition_on_previous_text=condition_on_previous_text,
+                    )
+                    infer_sec = round(time.perf_counter() - t0, 4)
+                    last_exc = None
+                    break
+                except Exception as exc:
+                    infer_sec = round(time.perf_counter() - t0, 4)
+                    last_exc = exc
+                    if _classify_error(exc) in (
+                        "UNSUPPORTED_LANGUAGE",
+                        "INSUFFICIENT_MEMORY",
+                        "MODEL_NOT_INSTALLED",
+                        "UNSUPPORTED_DEVICE",
+                        "MISSING_ASSET",
+                    ):
+                        break
+
+            cur_rss = _get_rss_mb()
+            if cur_rss is not None and (rss_peak is None or cur_rss > rss_peak):
+                rss_peak = cur_rss
+
+            if last_exc is not None or tx_result is None:
+                failed_count += 1
+                per_lang_counts[lang_code]["failed"] += 1
+                utterances.append(
+                    {
+                        "utterance_id": uid,
+                        "language_code": lang_code,
+                        "script_code": sample["script_code"],
+                        "audio_relpath": sample["audio_relpath"],
+                        "audio_sha256": sample["audio_sha256"],
+                        "duration_sec": duration_sec,
+                        "status": "FAILED",
+                        "error_code": _classify_error(last_exc) if last_exc else "INFERENCE_ERROR",
+                        "error_message": str(last_exc) if last_exc else "Unknown inference error",
+                        "attempts": attempts,
+                        "inference_sec": infer_sec,
+                        "rtf": None,
+                        "raw_reference": raw_ref,
+                        "raw_hypothesis": None,
+                        "metrics": None,
+                    }
+                )
+                continue
+
+            raw_hyp = tx_result.full_text
+            utt_metrics = compute_safe_utterance_metrics(
+                raw_reference=raw_ref,
+                raw_hypothesis=raw_hyp,
+                language_code=lang_code,
+                policy_version=NORMALIZATION_POLICY_VERSION,
+            )
+            rtf = round(infer_sec / duration_sec, 4) if duration_sec > 0 else None
+
+            rec = {
+                "utterance_id": uid,
+                "language_code": lang_code,
+                "script_code": sample["script_code"],
+                "audio_relpath": sample["audio_relpath"],
+                "audio_sha256": sample["audio_sha256"],
+                "duration_sec": duration_sec,
+                "status": "COMPLETED",
+                "attempts": attempts,
+                "forced_language": forced_lang,
+                "detected_language": tx_result.language,
+                "segment_count": len(tx_result.segments),
+                "word_count": sum(len(s.words or []) for s in tx_result.segments),
+                "inference_sec": infer_sec,
+                "rtf": rtf,
+                "raw_reference": raw_ref,
+                "raw_hypothesis": raw_hyp,
+                "metrics": utt_metrics,
+                "config_fingerprint_sha256": cfg_fp,
+            }
+            _append_checkpoint(checkpoint_path, rec)
             utterances.append(rec)
+
             succeeded_count += 1
-            resumed_count += 1
             per_lang_counts[lang_code]["succeeded"] += 1
             per_lang_audio_sec[lang_code] += duration_sec
-            per_lang_infer_sec[lang_code] += float(rec.get("inference_sec", 0.0))
-            total_inference_sec += float(rec.get("inference_sec", 0.0))
-            m = rec["metrics"]
-            succeeded_metrics.append(m)
-            per_lang_metrics[lang_code].append(m)
-            continue
+            per_lang_infer_sec[lang_code] += infer_sec
+            total_inference_sec += infer_sec
+            succeeded_metrics.append(utt_metrics)
+            per_lang_metrics[lang_code].append(utt_metrics)
+    finally:
+        sampler.stop()
 
-        forced_lang = WHISPER_LANG_MAP.get(lang_code) if language_mode == "forced" else None
-        last_exc: Exception | None = None
-        tx_result = None
-        infer_sec = 0.0
-        attempts = 0
-
-        for attempt in range(max_retries + 1):
-            attempts = attempt + 1
-            t0 = time.perf_counter()
-            try:
-                tx_result = provider.transcribe(
-                    audio_path,
-                    language=forced_lang,
-                    vad_filter=vad_filter,
-                    word_timestamps=word_timestamps,
-                    beam_size=beam_size,
-                    condition_on_previous_text=condition_on_previous_text,
-                )
-                infer_sec = round(time.perf_counter() - t0, 4)
-                last_exc = None
-                break
-            except Exception as exc:
-                infer_sec = round(time.perf_counter() - t0, 4)
-                last_exc = exc
-                if _classify_error(exc) in ("INSUFFICIENT_MEMORY", "MODEL_NOT_INSTALLED", "UNSUPPORTED_DEVICE", "MISSING_ASSET"):
-                    break
-
-        cur_rss = _get_rss_mb()
-        if cur_rss is not None and (rss_peak is None or cur_rss > rss_peak):
-            rss_peak = cur_rss
-
-        if last_exc is not None or tx_result is None:
-            failed_count += 1
-            per_lang_counts[lang_code]["failed"] += 1
-            utterances.append(
-                {
-                    "utterance_id": uid,
-                    "language_code": lang_code,
-                    "script_code": sample["script_code"],
-                    "audio_relpath": sample["audio_relpath"],
-                    "audio_sha256": sample["audio_sha256"],
-                    "duration_sec": duration_sec,
-                    "status": "FAILED",
-                    "error_code": _classify_error(last_exc) if last_exc else "INFERENCE_ERROR",
-                    "error_message": str(last_exc) if last_exc else "Unknown inference error",
-                    "attempts": attempts,
-                    "inference_sec": infer_sec,
-                    "rtf": None,
-                    "raw_reference": raw_ref,
-                    "raw_hypothesis": None,
-                    "metrics": None,
-                }
-            )
-            continue
-
-        raw_hyp = tx_result.full_text
-        utt_metrics = compute_safe_utterance_metrics(
-            raw_reference=raw_ref,
-            raw_hypothesis=raw_hyp,
-            language_code=lang_code,
-            policy_version=NORMALIZATION_POLICY_VERSION,
-        )
-        rtf = round(infer_sec / duration_sec, 4) if duration_sec > 0 else None
-
-        rec = {
-            "utterance_id": uid,
-            "language_code": lang_code,
-            "script_code": sample["script_code"],
-            "audio_relpath": sample["audio_relpath"],
-            "audio_sha256": sample["audio_sha256"],
-            "duration_sec": duration_sec,
-            "status": "COMPLETED",
-            "attempts": attempts,
-            "forced_language": forced_lang,
-            "detected_language": tx_result.language,
-            "segment_count": len(tx_result.segments),
-            "word_count": sum(len(s.words or []) for s in tx_result.segments),
-            "inference_sec": infer_sec,
-            "rtf": rtf,
-            "raw_reference": raw_ref,
-            "raw_hypothesis": raw_hyp,
-            "metrics": utt_metrics,
-            "config_fingerprint_sha256": cfg_fp,
-        }
-        _append_checkpoint(checkpoint_path, rec)
-        utterances.append(rec)
-
-        succeeded_count += 1
-        per_lang_counts[lang_code]["succeeded"] += 1
-        per_lang_audio_sec[lang_code] += duration_sec
-        per_lang_infer_sec[lang_code] += infer_sec
-        total_inference_sec += infer_sec
-        succeeded_metrics.append(utt_metrics)
-        per_lang_metrics[lang_code].append(utt_metrics)
+    if sampler.sampled_max_rss_mb is not None and (rss_peak is None or sampler.sampled_max_rss_mb > rss_peak):
+        rss_peak = sampler.sampled_max_rss_mb
+    os_peak_wset_mb = _get_os_peak_wset_mb()
 
     if succeeded_count == len(samples):
         exec_status = "COMPLETED"
@@ -464,7 +538,7 @@ def run_indic_asr_baseline(
             "manifest_sha256": manifest_sha256,
             "license_summary": license_summary,
             "total_samples": len(samples),
-            "note": "10-clip smoke corpus validates pipeline & baseline behavior; does not establish population-level quality.",
+            "note": f"{len(samples)}-clip {split} partition ({dataset_id}); does not establish population-level quality.",
         },
         "asr_provenance": asr_prov,
         "batch_provenance": batch_prov,
@@ -479,11 +553,18 @@ def run_indic_asr_baseline(
             "rss_before_mb": rss_before,
             "rss_after_init_mb": rss_after_init,
             "rss_peak_mb": rss_peak,
+            "rss_sampled_max_mb": sampler.sampled_max_rss_mb,
+            "os_peak_wset_mb": os_peak_wset_mb,
+            "rss_sample_count": sampler.sample_count,
+            "rss_sampling_interval_ms": sampler.interval_ms,
+            "memory_measurement_scope": "single_process_no_children",
             "vram_mb": "NOT_MEASURED",
             "energy_joules": "NOT_MEASURED",
         },
         "corpus_metrics": {
             "aggregation_method": "micro (total edits / total ref tokens) and macro (unweighted mean of utterance rates)",
+            "coverage_complete": failed_count == 0,
+            "failed_items": failed_count,
             "micro": corpus_micro,
             "macro_wer": round(sum(valid_all_wers) / len(valid_all_wers), 6) if valid_all_wers else None,
             "macro_cer": round(sum(valid_all_cers) / len(valid_all_cers), 6) if valid_all_cers else None,

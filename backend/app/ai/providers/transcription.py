@@ -86,12 +86,20 @@ class FasterWhisperProvider:
         device: str = "cpu",
         model_id: str | None = None,
         model_revision: str | None = None,
+        supported_languages: frozenset[str] | set[str] | tuple[str, ...] | None = None,
+        supports_word_timestamps: bool = True,
     ) -> None:
         self.model_target = model_size_or_path or model_id or settings.WHISPER_MODEL_SIZE or "small"
         self.compute_type = compute_type or settings.WHISPER_COMPUTE_TYPE or "int8"
         self.device = device
         self.model_id = model_id or f"faster-whisper-{self.model_target}"
         self.model_revision = model_revision or "local_pinned"
+        self.supported_languages: frozenset[str] | None = (
+            frozenset(lang.strip().lower() for lang in supported_languages if lang.strip())
+            if supported_languages is not None
+            else None
+        )
+        self.supports_word_timestamps = bool(supports_word_timestamps)
 
     def _get_cache_key(self) -> str:
         return f"{self.model_target}:{self.device}:{self.compute_type}"
@@ -190,6 +198,16 @@ class FasterWhisperProvider:
         if not path.is_file():
             raise FileNotFoundError(f"Audio file not found: {path}")
 
+        if self.supported_languages is not None:
+            normalized_lang = language.strip().lower() if isinstance(language, str) and language.strip() else None
+            if normalized_lang is None or normalized_lang not in self.supported_languages:
+                raise ValueError(
+                    f"UNSUPPORTED_LANGUAGE: model '{self.model_id}' only supports "
+                    f"{sorted(self.supported_languages)}, got '{language}'."
+                )
+
+        effective_word_timestamps = bool(word_timestamps and self.supports_word_timestamps)
+
         # Compute deterministic parameter hash
         param_dict = {
             "model_target": str(self.model_target),
@@ -197,7 +215,7 @@ class FasterWhisperProvider:
             "compute_type": self.compute_type,
             "language": language,
             "vad_filter": vad_filter,
-            "word_timestamps": word_timestamps,
+            "word_timestamps": effective_word_timestamps,
             "beam_size": beam_size,
             "min_silence_duration_ms": min_silence_duration_ms,
             "condition_on_previous_text": condition_on_previous_text,
@@ -215,7 +233,7 @@ class FasterWhisperProvider:
                     beam_size=beam_size,
                     vad_filter=vad_filter,
                     vad_parameters=vad_params,
-                    word_timestamps=word_timestamps,
+                    word_timestamps=effective_word_timestamps,
                     condition_on_previous_text=condition_on_previous_text,
                 )
 
@@ -226,9 +244,9 @@ class FasterWhisperProvider:
                 for s in segments_raw:
                     t_text = (s.text or "").strip()
                     if t_text and s.end > s.start:
-                        # Extract word timestamps if present
+                        # Extract word timestamps only when genuinely supported and requested
                         words_data = None
-                        if getattr(s, "words", None):
+                        if effective_word_timestamps and getattr(s, "words", None):
                             words_data = [
                                 {
                                     "word": w.word,
