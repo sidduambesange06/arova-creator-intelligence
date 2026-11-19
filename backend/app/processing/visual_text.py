@@ -15,12 +15,17 @@ import importlib.util
 from pathlib import Path
 import re
 import shutil
+import threading
 from typing import Any, Sequence
 import unicodedata
 
 DEFAULT_MAX_OCR_FRAMES = 60
 DEFAULT_MIN_OCR_INTERVAL_SEC = 2.0
 DEFAULT_MAX_IMAGE_PIXELS = 4_000_000
+
+_OCR_LOCK = threading.Lock()
+_RAPIDOCR_INSTANCE: Any = None
+_MODEL_HASH_CACHE: dict[tuple[str, str], str] = {}
 
 
 @dataclass(frozen=True)
@@ -54,14 +59,35 @@ def detect_ocr_engine() -> tuple[str | None, str | None]:
         and shutil.which("tesseract") is not None
     ):
         try:
-            import pytesseract  # type: ignore
-
-            ver = str(pytesseract.get_tesseract_version())
-        except Exception:
+            ver = importlib.metadata.version("pytesseract")
+        except importlib.metadata.PackageNotFoundError:
             ver = "installed"
         return ("tesseract", ver)
 
     return (None, None)
+
+
+def _compute_rapidocr_weights_hash(engine_version: str) -> str:
+    cache_key = ("rapidocr_onnxruntime", engine_version)
+    if cache_key in _MODEL_HASH_CACHE:
+        return _MODEL_HASH_CACHE[cache_key]
+
+    spec = importlib.util.find_spec("rapidocr_onnxruntime")
+    search_locs = list(spec.submodule_search_locations) if (spec and spec.submodule_search_locations) else []
+    if not search_locs:
+        return "unknown"
+
+    pkg_root = Path(search_locs[0]).resolve()
+    h = hashlib.sha256()
+    for onnx_file in sorted(pkg_root.rglob("*.onnx")):
+        h.update(str(onnx_file.relative_to(pkg_root)).replace("\\", "/").encode("utf-8"))
+        h.update(str(onnx_file.stat().st_size).encode("utf-8"))
+        with onnx_file.open("rb") as fh:
+            for chunk in iter(lambda: fh.read(65536), b""):
+                h.update(chunk)
+    digest = h.hexdigest()[:24]
+    _MODEL_HASH_CACHE[cache_key] = digest
+    return digest
 
 
 def get_ocr_fingerprint_config(
@@ -70,22 +96,15 @@ def get_ocr_fingerprint_config(
     min_interval_sec: float = DEFAULT_MIN_OCR_INTERVAL_SEC,
     max_image_pixels: int = DEFAULT_MAX_IMAGE_PIXELS,
 ) -> dict[str, Any]:
-    """Return deterministic OCR engine, weight, and preprocessing metadata for stage fingerprinting."""
+    """Return deterministic OCR engine, weight, and preprocessing metadata for stage fingerprinting.
+
+    Avoids importing heavy ONNX/OpenCV runtimes and caches weight hashes per (engine, version).
+    """
     engine_name, engine_version = detect_ocr_engine()
     model_hash = "none"
     if engine_name == "rapidocr_onnxruntime":
         try:
-            import rapidocr_onnxruntime  # type: ignore
-
-            pkg_root = Path(rapidocr_onnxruntime.__file__).resolve().parent
-            h = hashlib.sha256()
-            for onnx_file in sorted(pkg_root.rglob("*.onnx")):
-                h.update(str(onnx_file.relative_to(pkg_root)).replace("\\", "/").encode("utf-8"))
-                h.update(str(onnx_file.stat().st_size).encode("utf-8"))
-                with onnx_file.open("rb") as fh:
-                    for chunk in iter(lambda: fh.read(65536), b""):
-                        h.update(chunk)
-            model_hash = h.hexdigest()[:24]
+            model_hash = _compute_rapidocr_weights_hash(engine_version or "installed")
         except Exception:
             model_hash = "unknown"
 
@@ -99,13 +118,22 @@ def get_ocr_fingerprint_config(
     }
 
 
+def _get_rapidocr_instance() -> Any:
+    global _RAPIDOCR_INSTANCE
+    with _OCR_LOCK:
+        if _RAPIDOCR_INSTANCE is None:
+            from rapidocr_onnxruntime import RapidOCR  # type: ignore
+
+            _RAPIDOCR_INSTANCE = RapidOCR()
+        return _RAPIDOCR_INSTANCE
+
+
 def _run_optical_ocr(path: Path, engine: str, max_image_pixels: int) -> str:
     """Execute genuine pixel-level OCR via the detected optional local engine."""
     if engine == "rapidocr_onnxruntime":
-        from rapidocr_onnxruntime import RapidOCR  # type: ignore
-
-        ocr = RapidOCR()
-        result, _ = ocr(str(path))
+        ocr = _get_rapidocr_instance()
+        with _OCR_LOCK:
+            result, _ = ocr(str(path))
         if not result:
             return ""
         return " ".join(str(item[1]) for item in result if len(item) >= 2 and item[1])

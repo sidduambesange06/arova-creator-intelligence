@@ -516,15 +516,24 @@ def test_schema_offline_isolation_no_ai_imports() -> None:
     # Ensure heavy AI packages are not imported by the schema/migration system in a fresh interpreter
     import subprocess
 
-    code = (
-        "import sys; "
-        "import app.models.entities, app.database.migrator; "
-        "forbidden = ['torch', 'faster_whisper', 'sentence_transformers', 'nemo', 'onnxruntime']; "
-        "loaded = [pkg for pkg in forbidden if pkg in sys.modules]; "
-        "assert not loaded, f'Schema module illegally imported AI packages: {loaded}'"
-    )
-    proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=False)
+    def _run_check(extra_import: str = "") -> subprocess.CompletedProcess[str]:
+        code = (
+            f"import sys; {extra_import}"
+            "import app.models.entities, app.database.migrator; "
+            "forbidden = ['torch', 'faster_whisper', 'sentence_transformers', 'nemo', 'onnxruntime']; "
+            "loaded = [pkg for pkg in forbidden if pkg in sys.modules]; "
+            "assert not loaded, f'Schema module illegally imported AI packages: {loaded}'"
+        )
+        return subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=False)
+
+    # Positive check: clean schema/migration import must not load any AI package
+    proc = _run_check()
     assert proc.returncode == 0, proc.stderr or proc.stdout
+
+    # Negative check: verify the harness genuinely catches a forbidden AI import (using synthetic sys.modules entry)
+    neg = _run_check("import types; sys.modules['onnxruntime'] = types.ModuleType('onnxruntime'); ")
+    assert neg.returncode != 0
+    assert "illegally imported AI packages" in (neg.stderr or neg.stdout)
 
 
 def test_migration_partially_initialized_legacy_db_raises_diagnostic(tmp_path: Path) -> None:

@@ -17,7 +17,7 @@
     "M3.3_optional_optical_ocr_latin": "VERIFIED",
     "M3.3_indic_ocr_coverage": "NOT_RUN",
     "M3.4_workstation_automated": "VERIFIED",
-    "M3.4_live_browser_visual_capture": "NOT_RUN"
+    "M3.4_live_browser_visual_capture": "VERIFIED"
   },
   "m3_1_provenance_addendum": {
     "upstream_hf_revision": "536b0662742c02347bc0e980a01041f333bce120",
