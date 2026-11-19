@@ -23,10 +23,11 @@
 - **ISS-018 (Resolved Health Audit IP Scanner False Positive):** Rephrased exclusion wording in `reports/product-acceptance/CURRENT_DEVELOPMENT_STATE_AUDIT.md` so `scripts/system_health_audit.py` passes cleanly without false-positive commercial IP term matches.
 - **ISS-019 (SDK / MCP Channel Filter Parity & Summary Consent Reporting — RESOLVED in M1):** `arova/client.py` (`search`, `ask`), `mcp_server/server.py` / `mcp_server/tools/video_tools.py` (`search_video_content`, `get_evidence_citations`), `backend/app/services/tool_engine.py`, `backend/app/ai/retrieval/hybrid_search.py`, and `backend/app/api/routes/search.py` now enforce the frozen `VALID_SEARCH_CHANNELS = ("all", "speech", "visual", "multimodal")` contract cleanly (failing loudly on invalid channels); `backend/app/ai/providers/gateway.py`, `backend/app/services/summary_service.py`, and `backend/app/api/routes/search.py` enforce 5-gate policy/scope evaluation and populate `SummarizeResponse.consent_source` from real execution provenance.
 
+- **ISS-020 (Optional Optical OCR Engine Not Installed on Reference Workstation):** `backend/app/processing/visual_text.py` now checks for genuine local optical OCR engines (`rapidocr_onnxruntime` or `pytesseract` + `PIL` + `tesseract` binary) and reports an explicit `unavailable` (`DEPENDENCY_MISSING`) state with zero invented text when absent. Installing an optional OCR engine enables real frame-pixel OCR and unblocks the M3.3 annotated-frame OCR accuracy benchmark.
+
 ## Tracked Shortcuts (`shortcut:`)
 
 - `cross_encoder_reranker.py:16` — `shortcut: falls back to deterministic term-proximity cross-attention scorer when PyTorch cross-encoder weights are offline`
 - `clip_export.py:276` — `shortcut: falls back to ultrafast libx264 when stream copy fails on non-keyframe boundaries, upgrade to smart cut if sample-accurate GOP re-encoding is required.`
-- `visual_text.py:30` — `shortcut: falls back to deterministic frame visual text extraction when pytesseract/tesseract-ocr binary is not on PATH, upgrade by installing tesseract in Docker.`
 - `shortcut: Single-node local SQLite + local JSON vector storage is scoped for local workstation usage; upgrade to client-server Postgres/Qdrant only if multi-tenant concurrent write load is required.`
 - `shortcut: ALLOWED_MEDIA_ROOTS allows relative parents for demo imports; in hardened multi-tenant environments, restrict to absolute directory path.`

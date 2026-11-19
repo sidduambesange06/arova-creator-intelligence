@@ -569,6 +569,8 @@ class PipelineOrchestrator:
                                     end_time=seg.end_time,
                                     text=seg.text,
                                     confidence=seg.confidence,
+                                    words_json=seg.words_json,
+                                    timing_source=seg.timing_source,
                                 )
                             )
                         self.db.commit()
@@ -752,26 +754,42 @@ class PipelineOrchestrator:
         return len(scenes)
 
     def _exec_ocr_detection(self, video: Video, version: AssetVersion, stage_run: StageRun) -> int:
-        from app.processing.visual_text import extract_visual_text_from_frame
+        from app.processing.visual_text import (
+            detect_ocr_engine,
+            extract_visual_text_with_provenance,
+            select_bounded_ocr_scenes,
+        )
+
+        engine, engine_version = detect_ocr_engine()
+        if engine is None:
+            # Explicit unavailable/skipped state — never invent synthetic OCR text
+            stage_run.skip_reason = "ocr_engine_unavailable:DEPENDENCY_MISSING"
+            self.db.flush()
+            return 0
+
         scenes = self.db.query(VideoScene).filter_by(video_id=video.id).all()
+        sampled_scenes = select_bounded_ocr_scenes(scenes)
         ocr_count = 0
 
-        for s in scenes:
+        for s in sampled_scenes:
             if s.thumbnail_path:
-                vis_text = extract_visual_text_from_frame(s.thumbnail_path)
-                if vis_text:
-                    s.description = vis_text
+                res = extract_visual_text_with_provenance(
+                    s.thumbnail_path,
+                    timestamp_sec=s.start_time,
+                )
+                if res.status == "extracted" and res.text:
+                    s.description = res.text
                     ocr_count += 1
-                    # Record visual annotation
+                    # Record visual annotation with frame timestamp & engine provenance
                     self.db.add(
                         Annotation(
                             id=str(uuid4()),
                             target_type="version",
                             target_id=version.id,
                             author_type=AuthorType.AI.value,
-                            display_name="On-Screen Visual Text",
+                            display_name=f"On-Screen Visual Text [t={s.start_time:.2f}s | {engine}@{engine_version}]",
                             trust=TrustLevel.AI_GENERATED.value,
-                            body=vis_text,
+                            body=res.text,
                             created_at=_utcnow(),
                         )
                     )
