@@ -1,0 +1,46 @@
+{
+  "audit_date": "2026-11-19",
+  "branch": "feat/m3-baseline-execution",
+  "base_commit": "8ca9fc25e502abad1a81785a9b94abfbd19dc062",
+  "slice_commits": {
+    "m3_1_asr_baseline": "3816d04",
+    "m3_2_word_timings_subtitles": "fcb11fd",
+    "m3_3_ocr_contract": "cbe5998",
+    "m3_4_workstation_integration": "f4f9b75",
+    "m3_3_real_pixel_ocr": "fcaf08b"
+  },
+  "overall_status": "VERIFIED_WITH_LIMITATIONS",
+  "gates": {
+    "M3.0_reconciliation": "VERIFIED",
+    "M3.1_asr_baseline": "VERIFIED",
+    "M3.2_word_timings_and_subtitles": "VERIFIED",
+    "M3.3_optional_optical_ocr_latin": "VERIFIED",
+    "M3.3_indic_ocr_coverage": "NOT_RUN",
+    "M3.4_workstation_automated": "VERIFIED",
+    "M3.4_live_browser_visual_capture": "NOT_RUN"
+  },
+  "m3_1_provenance_addendum": {
+    "upstream_hf_revision": "536b0662742c02347bc0e980a01041f333bce120",
+    "model_content_hashes": {
+      "model.bin": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671",
+      "config.json": "b55496ac7940a7ae47d2c01eab40edfd8701feec1229d9cce3b40014383fb828",
+      "tokenizer.json": "fb7b63191e9bb045082c79fd742a3106a12c99513ab30df4a0d47fa6cb6fd0ab",
+      "vocabulary.txt": "34ce3fe1c5041027b3f8d642912270993f986dbc4bb34cf27f951e34a1e453913"
+    },
+    "runtime_environment": {
+      "interpreter": "backend/.venv/Scripts/python.exe",
+      "python": "3.11.9",
+      "platform": "Windows-10-10.0.26300-SP0",
+      "faster_whisper": "1.2.1",
+      "ctranslate2": "4.8.5",
+      "psutil": "7.2.2"
+    },
+    "generator_fully_consumed_during_timing": true,
+    "rss_measurement_method": "max_of_discrete_psutil_observations",
+    "wer_clamped_to_100_percent": false,
+    "recomputed_micro_wer": 0.599138,
+    "recomputed_micro_cer": 0.428752,
+    "empty_hypothesis_utterances": ["fleurs_kn_in_1970"]
+  },
+  "next_milestone": "M4 — Specialist Indic ASR comparison & expanded held-out evaluation"
+}

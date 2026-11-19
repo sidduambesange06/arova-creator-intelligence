@@ -513,10 +513,18 @@ def test_remote_processing_permission_precedence() -> None:
 
 
 def test_schema_offline_isolation_no_ai_imports() -> None:
-    # Ensure heavy AI packages are not imported by the schema/migration system
-    forbidden = ["torch", "faster_whisper", "sentence_transformers", "nemo", "onnxruntime"]
-    loaded = [pkg for pkg in forbidden if pkg in sys.modules]
-    assert len(loaded) == 0, f"Schema module illegally imported AI packages: {loaded}"
+    # Ensure heavy AI packages are not imported by the schema/migration system in a fresh interpreter
+    import subprocess
+
+    code = (
+        "import sys; "
+        "import app.models.entities, app.database.migrator; "
+        "forbidden = ['torch', 'faster_whisper', 'sentence_transformers', 'nemo', 'onnxruntime']; "
+        "loaded = [pkg for pkg in forbidden if pkg in sys.modules]; "
+        "assert not loaded, f'Schema module illegally imported AI packages: {loaded}'"
+    )
+    proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=False)
+    assert proc.returncode == 0, proc.stderr or proc.stdout
 
 
 def test_migration_partially_initialized_legacy_db_raises_diagnostic(tmp_path: Path) -> None:
