@@ -4,17 +4,25 @@ import time
 from typing import Any
 
 
+_CROSS_ENCODER_CACHE: dict[str, Any] = {}
+_DEFAULT_RERANKER_CACHE: dict[str, "CrossEncoderReranker"] = {}
+
+
 class CrossEncoderReranker:
     def __init__(self, model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2") -> None:
         self.model_name = model_name
+        if model_name in _CROSS_ENCODER_CACHE:
+            self._model = _CROSS_ENCODER_CACHE[model_name]
+            return
         self._model = None
         try:
             from sentence_transformers import CrossEncoder  # type: ignore
 
-            self._model = CrossEncoder(model_name)
+            self._model = CrossEncoder(model_name, local_files_only=True)
         except Exception:
             # shortcut: falls back to deterministic term-proximity cross-attention scorer when PyTorch cross-encoder weights are offline
             self._model = None
+        _CROSS_ENCODER_CACHE[model_name] = self._model
 
     @property
     def is_neural(self) -> bool:
@@ -97,3 +105,13 @@ class CrossEncoderReranker:
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
         return reranked[:top_k], round(elapsed_ms, 2)
 
+
+
+def get_default_reranker(
+    model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2",
+) -> CrossEncoderReranker:
+    reranker = _DEFAULT_RERANKER_CACHE.get(model_name)
+    if reranker is None:
+        reranker = CrossEncoderReranker(model_name=model_name)
+        _DEFAULT_RERANKER_CACHE[model_name] = reranker
+    return reranker

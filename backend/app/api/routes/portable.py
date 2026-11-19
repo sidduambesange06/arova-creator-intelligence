@@ -278,34 +278,41 @@ def relink_version_endpoint(
 def list_duplicate_media_endpoint(
     db: Session = Depends(get_db),
 ) -> list[DuplicateGroupOut]:
-    """Find media versions mapped across multiple physical file locations."""
-    # Group locations by version_id
-    versions = db.query(AssetVersion).all()
+    """Find media versions mapped across multiple physical file locations (single-pass query)."""
+    from collections import defaultdict
+
+    all_locs = db.query(AssetLocation).all()
+    locs_by_version: dict[str, list[AssetLocation]] = defaultdict(list)
+    for loc in all_locs:
+        locs_by_version[loc.version_id].append(loc)
+
+    dup_version_ids = [vid for vid, locs in locs_by_version.items() if len(locs) > 1]
+    if not dup_version_ids:
+        return []
+
+    versions = db.query(AssetVersion).filter(AssetVersion.id.in_(dup_version_ids)).all()
     duplicates = []
-
     for v in versions:
-        locs = db.query(AssetLocation).filter_by(version_id=v.id).all()
-        if len(locs) > 1:
-            loc_items = [
-                DuplicateLocationItem(
-                    location_id=loc.id,
-                    root_id=loc.root_id,
-                    rel_path=loc.rel_path,
-                    availability=loc.availability,
-                    last_seen_at=loc.last_seen_at,
-                )
-                for loc in locs
-            ]
-            duplicates.append(
-                DuplicateGroupOut(
-                    sha256=v.sha256 or "unknown",
-                    version_id=v.id,
-                    size_bytes=v.size_bytes or 0,
-                    locations_count=len(locs),
-                    locations=loc_items,
-                )
+        locs = locs_by_version[v.id]
+        loc_items = [
+            DuplicateLocationItem(
+                location_id=loc.id,
+                root_id=loc.root_id,
+                rel_path=loc.rel_path,
+                availability=loc.availability,
+                last_seen_at=loc.last_seen_at,
             )
-
+            for loc in locs
+        ]
+        duplicates.append(
+            DuplicateGroupOut(
+                sha256=v.sha256 or "unknown",
+                version_id=v.id,
+                size_bytes=v.size_bytes or 0,
+                locations_count=len(locs),
+                locations=loc_items,
+            )
+        )
     return duplicates
 
 

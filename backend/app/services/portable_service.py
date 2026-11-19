@@ -121,10 +121,17 @@ def export_portable_archive(
     created_at = _utcnow()
     req = request or ExportRequest()
 
-    # Query entities to export
+    # Query entities to export (accept both Asset.id and Video.id transparently)
     assets_query = db.query(Asset)
     if req.asset_ids:
-        assets_query = assets_query.filter(Asset.id.in_(req.asset_ids))
+        requested_ids = set(req.asset_ids)
+        mapped_video_assets = {
+            row[0]
+            for row in db.query(Video.asset_id)
+            .filter(Video.id.in_(requested_ids), Video.asset_id.isnot(None))
+            .all()
+        }
+        assets_query = assets_query.filter(Asset.id.in_(requested_ids | mapped_video_assets))
     assets = assets_query.all()
     asset_ids = {a.id for a in assets}
 
@@ -834,11 +841,22 @@ def import_portable_archive(
 # MEDIA AVAILABILITY & CROSS-MACHINE RELINKING
 # -----------------------------------------------------------------------------
 
+def _resolve_version_by_id_or_video(db: Session, version_or_video_id: str) -> AssetVersion | None:
+    version = db.get(AssetVersion, version_or_video_id)
+    if version:
+        return version
+    video = db.get(Video, version_or_video_id)
+    if video and video.version_id:
+        return db.get(AssetVersion, video.version_id)
+    return None
+
+
 def resolve_media_availability(db: Session, version_id: str) -> MediaAvailabilityOut:
     """Resolve physical media availability, can_play, and can_export flags."""
-    version = db.get(AssetVersion, version_id)
+    version = _resolve_version_by_id_or_video(db, version_id)
     if not version:
         raise LookupError(f"AssetVersion {version_id} not found")
+    version_id = version.id
 
     # Find associated video row if present
     video = db.query(Video).filter_by(version_id=version_id).first()
@@ -896,9 +914,10 @@ def relink_asset_media(
     allowed_roots: list[Path] | None = None,
 ) -> RelinkResponse:
     """Relink an asset version to a relocated media file on a new drive or directory."""
-    version = db.get(AssetVersion, version_id)
+    version = _resolve_version_by_id_or_video(db, version_id)
     if not version:
         raise LookupError(f"AssetVersion {version_id} not found")
+    version_id = version.id
 
     try:
         new_path = validate_media_path(new_file_path, allowed_roots=allowed_roots)

@@ -25,6 +25,8 @@ class VideoOut(BaseModel):
     processing_status: str
     created_at: datetime
     collection_ids: list[str] = Field(default_factory=list)
+    asset_id: str | None = None
+    version_id: str | None = None
 
 
 class VideoImportResponse(BaseModel):

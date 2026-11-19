@@ -18,23 +18,33 @@ class EmbeddingProvider(Protocol):
     def embed_batch(self, texts: list[str]) -> list[list[float]]: ...
 
 
+_EMBEDDING_MODEL_CACHE: dict[str, object | None] = {}
+_DEFAULT_EMBEDDER_CACHE: dict[str, "LocalMiniLMEmbeddingProvider"] = {}
+_VECTOR_DISK_CACHE: dict[str, tuple[int, int, dict[str, list[float]]]] = {}
+
+
 class LocalMiniLMEmbeddingProvider:
     """Embedding provider using sentence-transformers all-MiniLM-L6-v2.
 
-    Enforces genuine embedding inference. When offline or uninstalled, reports
-    unavailable rather than fabricating synthetic hash projections.
+    Enforces genuine offline embedding inference with process-level caching.
+    When offline weights or package are absent, reports unavailable rather than
+    fabricating synthetic hash projections.
     """
 
     def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2") -> None:
         self.model_name = model_name
         self.dim = 384
+        if model_name in _EMBEDDING_MODEL_CACHE:
+            self._model = _EMBEDDING_MODEL_CACHE[model_name]
+            return
         self._model = None
         try:
             from sentence_transformers import SentenceTransformer  # type: ignore
 
-            self._model = SentenceTransformer(model_name)
+            self._model = SentenceTransformer(model_name, local_files_only=True)
         except Exception:
             self._model = None
+        _EMBEDDING_MODEL_CACHE[model_name] = self._model
 
     def is_available(self) -> bool:
         return self._model is not None
@@ -53,6 +63,16 @@ class LocalMiniLMEmbeddingProvider:
             except Exception:
                 pass
         return []
+
+
+def get_default_embedding_provider(
+    model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
+) -> LocalMiniLMEmbeddingProvider:
+    provider = _DEFAULT_EMBEDDER_CACHE.get(model_name)
+    if provider is None:
+        provider = LocalMiniLMEmbeddingProvider(model_name=model_name)
+        _DEFAULT_EMBEDDER_CACHE[model_name] = provider
+    return provider
 
 
 def get_indic_tokenchars() -> str:
@@ -104,14 +124,24 @@ def save_vectors_to_disk(vectors_dict: dict[str, list[float]], storage_dir: str 
             existing = {}
     existing.update(vectors_dict)
     target.write_text(json.dumps(existing), encoding="utf-8")
+    _VECTOR_DISK_CACHE.pop(str(target), None)
 
 
 def load_vectors_from_disk(storage_dir: str | Path | None = None) -> dict[str, list[float]]:
     target = _get_vector_storage_path(storage_dir)
     if not target.is_file():
         return {}
+    key = str(target)
     try:
-        return json.loads(target.read_text(encoding="utf-8"))
+        st = target.stat()
+        cached = _VECTOR_DISK_CACHE.get(key)
+        if cached is not None and cached[0] == st.st_mtime_ns and cached[1] == st.st_size:
+            return cached[2]
+        data = json.loads(target.read_text(encoding="utf-8"))
+        if len(_VECTOR_DISK_CACHE) >= 8:
+            _VECTOR_DISK_CACHE.clear()
+        _VECTOR_DISK_CACHE[key] = (st.st_mtime_ns, st.st_size, data)
+        return data
     except Exception:
         return {}
 
