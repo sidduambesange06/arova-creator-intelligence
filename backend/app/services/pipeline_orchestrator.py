@@ -413,12 +413,20 @@ class PipelineOrchestrator:
                 job=job,
             )
 
-            # Stage 3: OCR Detection
+            # Stage 3: OCR Detection (include engine identity in fingerprint so installing/upgrading OCR invalidates stale runs)
             self._check_cancellation(job.id)
+            from app.processing.visual_text import detect_ocr_engine
+
+            ocr_engine, ocr_engine_version = detect_ocr_engine()
+            ocr_cfg = {
+                **(self.config.get(STAGE_OCR_DETECTION) or {}),
+                "ocr_engine": ocr_engine or "unavailable",
+                "ocr_engine_version": ocr_engine_version or "none",
+            }
             fp_ocr = compute_stage_fingerprint(
                 version_id,
                 STAGE_OCR_DETECTION,
-                self.config.get(STAGE_OCR_DETECTION),
+                ocr_cfg,
                 [stage_fingerprints[STAGE_SCENE_DETECTION]],
             )
             stage_fingerprints[STAGE_OCR_DETECTION] = fp_ocr

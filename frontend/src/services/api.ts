@@ -37,13 +37,54 @@ export interface CollectionItem {
   video_count: number;
 }
 
+export interface WordTimingItem {
+  word: string;
+  start: number;
+  end: number;
+  probability?: number | null;
+}
+
 export interface TranscriptSegmentItem {
   id: string;
   start_time: number;
   end_time: number;
   text: string;
   confidence: number;
+  words?: WordTimingItem[] | null;
+  timing_source?: string | null;
 }
+
+export interface OcrFrameEvidenceItem {
+  scene_index: number;
+  timestamp_sec: number;
+  text: string;
+  thumbnail_path: string | null;
+}
+
+export type VideoOcrState =
+  | "engine_unavailable"
+  | "not_processed"
+  | "running"
+  | "completed_no_text"
+  | "completed_with_text"
+  | "failed";
+
+export interface VideoOcrStatusItem {
+  video_id: string;
+  version_id: string | null;
+  status: VideoOcrState;
+  engine_available: boolean;
+  engine_name: string | null;
+  engine_version: string | null;
+  stage_status: string | null;
+  skip_reason: string | null;
+  error_message: string | null;
+  extracted_count: number;
+  frames: OcrFrameEvidenceItem[];
+  remediation_hint: string | null;
+}
+
+export type SubtitleExportFormat = "srt" | "vtt" | "ass";
 
 export interface TranscriptItem {
   id: string;
@@ -180,6 +221,40 @@ export async function fetchVideoScenes(videoId: string): Promise<VideoSceneItem[
     throw new Error(`Failed to load scenes (HTTP ${res.status})`);
   }
   return res.json() as Promise<VideoSceneItem[]>;
+}
+
+export async function fetchVideoOcrStatus(videoId: string): Promise<VideoOcrStatusItem | null> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/videos/${encodeURIComponent(videoId)}/ocr/status`
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`Failed to load OCR status (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<VideoOcrStatusItem>;
+}
+
+export async function exportVideoSubtitles(
+  videoId: string,
+  format: SubtitleExportFormat,
+  karaoke: boolean = false
+): Promise<{ content: string; mimeType: string }> {
+  const params = new URLSearchParams({ format });
+  if (format === "ass" && karaoke) {
+    params.set("karaoke", "true");
+  }
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/videos/${encodeURIComponent(videoId)}/subtitles/export?${params.toString()}`
+  );
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Subtitle export failed (HTTP ${res.status})`);
+  }
+  const content = await res.text();
+  const mimeType =
+    res.headers.get("content-type") ??
+    (format === "vtt" ? "text/vtt; charset=utf-8" : "text/plain; charset=utf-8");
+  return { content, mimeType };
 }
 
 export type EvidenceChannel = "all" | "speech" | "visual" | "multimodal";

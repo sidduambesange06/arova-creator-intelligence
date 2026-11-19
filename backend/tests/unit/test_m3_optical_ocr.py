@@ -75,3 +75,123 @@ def test_select_bounded_ocr_scenes_enforces_interval_and_max_frames():
     # Verify minimum interval respected
     for prev, curr in zip(selected, selected[1:]):
         assert (curr.start_time - prev.start_time) >= 2.0
+
+
+
+def test_ocr_status_endpoint_distinguishes_all_six_states_and_fingerprint_invalidation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from uuid import uuid4
+    from fastapi.testclient import TestClient
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from app.database.session import get_db
+    from app.main import app
+    from app.models.entities import Asset, AssetVersion, Base, Library, StageRun, Video, VideoScene
+    from app.services.pipeline_orchestrator import compute_stage_fingerprint
+
+    # 1. Verify OCR fingerprint changes when OCR engine changes (cache invalidation)
+    fp_unavail = compute_stage_fingerprint(
+        "ver-1", "ocr_detection", {"ocr_engine": "unavailable", "ocr_engine_version": "none"}, ["scene-fp"]
+    )
+    fp_rapid = compute_stage_fingerprint(
+        "ver-1", "ocr_detection", {"ocr_engine": "rapidocr_onnxruntime", "ocr_engine_version": "1.4.0"}, ["scene-fp"]
+    )
+    assert fp_unavail != fp_rapid
+
+    db_path = tmp_path / "ocr_status.db"
+    engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
+    Base.metadata.create_all(bind=engine)
+    SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    def _override_db():
+        s = SessionLocal()
+        try:
+            yield s
+        finally:
+            s.close()
+
+    app.dependency_overrides[get_db] = _override_db
+    try:
+        db = SessionLocal()
+        asset = Asset(id="asset-1")
+        ver = AssetVersion(id="ver-1", asset_id="asset-1", sha256="b" * 64)
+        db.add_all([asset, ver])
+        db.flush()
+        vid = Video(
+            id=str(uuid4()),
+            asset_id="asset-1",
+            version_id="ver-1",
+            filename="demo.mp4",
+            file_path=str(tmp_path / "demo.mp4"),
+            file_hash="b" * 64,
+            duration=10.0,
+        )
+        db.add(vid)
+        db.commit()
+        client = TestClient(app)
+
+        # State 1: engine_unavailable
+        monkeypatch.setattr("app.api.routes.videos.detect_ocr_engine", lambda: (None, None))
+        r1 = client.get(f"/api/v1/videos/{vid.id}/ocr/status")
+        assert r1.status_code == 200
+        d1 = r1.json()
+        assert d1["status"] == "engine_unavailable"
+        assert d1["engine_available"] is False
+        assert d1["remediation_hint"]
+
+        # State 2: not_processed (engine available, no StageRun)
+        monkeypatch.setattr("app.api.routes.videos.detect_ocr_engine", lambda: ("rapidocr_onnxruntime", "1.4.0"))
+        r2 = client.get(f"/api/v1/videos/{vid.id}/ocr/status")
+        assert r2.json()["status"] == "not_processed"
+        assert r2.json()["engine_available"] is True
+
+        # State 3: running
+        sr = StageRun(
+            id=str(uuid4()),
+            version_id="ver-1",
+            stage="ocr_detection",
+            fingerprint=fp_rapid,
+            status="running",
+            attempt=1,
+        )
+        db.add(sr)
+        db.commit()
+        assert client.get(f"/api/v1/videos/{vid.id}/ocr/status").json()["status"] == "running"
+
+        # State 4: failed
+        sr.status = "failed"
+        sr.error_detail = "Corrupt image frame"
+        db.commit()
+        d4 = client.get(f"/api/v1/videos/{vid.id}/ocr/status").json()
+        assert d4["status"] == "failed"
+        assert d4["error_message"] == "Corrupt image frame"
+
+        # State 5: completed_no_text
+        sr.status = "succeeded"
+        sr.error_detail = None
+        db.commit()
+        assert client.get(f"/api/v1/videos/{vid.id}/ocr/status").json()["status"] == "completed_no_text"
+
+        # State 6: completed_with_text (with frame timestamp & version provenance)
+        sc = VideoScene(
+            id=str(uuid4()),
+            video_id=vid.id,
+            scene_index=0,
+            start_time=4.25,
+            end_time=8.0,
+            description="Slide Title: Arova Engine",
+        )
+        db.add(sc)
+        db.commit()
+        d6 = client.get(f"/api/v1/videos/{vid.id}/ocr/status").json()
+        assert d6["status"] == "completed_with_text"
+        assert d6["version_id"] == "ver-1"
+        assert d6["extracted_count"] == 1
+        assert d6["frames"][0]["timestamp_sec"] == 4.25
+        assert d6["frames"][0]["text"] == "Slide Title: Arova Engine"
+        db.close()
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        engine.dispose()
