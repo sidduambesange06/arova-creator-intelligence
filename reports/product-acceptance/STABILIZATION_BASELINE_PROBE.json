@@ -1,0 +1,1396 @@
+{
+  "backend_startup_ms": 2323.55,
+  "backend_ready_ms": 2317.36,
+  "api_benchmarks": {
+    "health": {
+      "status": 200,
+      "cold_ms": 2.2,
+      "warm_n": 10,
+      "warm_median_ms": 2.27,
+      "warm_mean_ms": 9.91,
+      "warm_max_ms": 27.79
+    },
+    "videos_list": {
+      "status": 200,
+      "cold_ms": 6.59,
+      "warm_n": 10,
+      "warm_median_ms": 15.0,
+      "warm_mean_ms": 12.31,
+      "warm_max_ms": 27.97
+    },
+    "videos_stats": {
+      "status": 200,
+      "cold_ms": 5.66,
+      "warm_n": 10,
+      "warm_median_ms": 15.63,
+      "warm_mean_ms": 14.58,
+      "warm_max_ms": 17.62
+    },
+    "jobs_list": {
+      "status": 200,
+      "cold_ms": 29.81,
+      "warm_n": 10,
+      "warm_median_ms": 2.31,
+      "warm_mean_ms": 5.36,
+      "warm_max_ms": 19.77
+    },
+    "jobs_telemetry": {
+      "status": 200,
+      "cold_ms": 19.75,
+      "warm_n": 10,
+      "warm_median_ms": 2.12,
+      "warm_mean_ms": 7.62,
+      "warm_max_ms": 25.62
+    },
+    "system_telemetry_legacy": {
+      "status": 200,
+      "cold_ms": 22.82,
+      "warm_n": 10,
+      "warm_median_ms": 2.04,
+      "warm_mean_ms": 6.25,
+      "warm_max_ms": 22.44
+    },
+    "search_semantic": {
+      "status": 200,
+      "cold_ms": 15.19,
+      "warm_n": 10,
+      "warm_median_ms": 11.7,
+      "warm_mean_ms": 15.93,
+      "warm_max_ms": 37.38
+    },
+    "db_overview": {
+      "status": 200,
+      "cold_ms": 24.75,
+      "warm_n": 10,
+      "warm_median_ms": 14.58,
+      "warm_mean_ms": 16.27,
+      "warm_max_ms": 31.15
+    },
+    "db_tables": {
+      "status": 200,
+      "cold_ms": 21.86,
+      "warm_n": 10,
+      "warm_median_ms": 17.74,
+      "warm_mean_ms": 26.66,
+      "warm_max_ms": 46.83
+    },
+    "db_relationships": {
+      "status": 200,
+      "cold_ms": 46.06,
+      "warm_n": 10,
+      "warm_median_ms": 20.41,
+      "warm_mean_ms": 34.54,
+      "warm_max_ms": 87.78
+    },
+    "db_rows_videos": {
+      "status": 200,
+      "cold_ms": 15.21,
+      "warm_n": 10,
+      "warm_median_ms": 23.44,
+      "warm_mean_ms": 21.54,
+      "warm_max_ms": 37.84
+    },
+    "db_rows_fts": {
+      "status": 200,
+      "cold_ms": 6.61,
+      "warm_n": 10,
+      "warm_median_ms": 6.96,
+      "warm_mean_ms": 11.21,
+      "warm_max_ms": 31.04
+    }
+  },
+  "vite_ready_ms": 1363.75,
+  "views_audit": {
+    "Mission Overview": {
+      "clicked": true,
+      "settle_ms": 1012.5,
+      "api_calls": [],
+      "failed_api_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 1477,
+        "mojibake_hits": [
+          "\u00e2\u2020",
+          "\u00e2\u2020",
+          "\u00e2\u20ac",
+          "\u00e2\u20ac",
+          "\u00e2\u20ac"
+        ],
+        "svg_count": 1,
+        "overflow_px": 0
+      }
+    },
+    "Studio Media Library": {
+      "clicked": true,
+      "settle_ms": 1025.3,
+      "api_calls": [
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/collections",
+          "status": 200,
+          "ms": 8.1
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos",
+          "status": 200,
+          "ms": 8.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/collections",
+          "status": 200,
+          "ms": 14.7
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos",
+          "status": 200,
+          "ms": 14.8
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/thumbnail",
+          "status": 200,
+          "ms": 36.3
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes",
+          "status": 200,
+          "ms": 36.4
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/transcript",
+          "status": 200,
+          "ms": 36.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/transcript",
+          "status": 200,
+          "ms": 40.0
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes",
+          "status": 200,
+          "ms": 40.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/stream",
+          "status": 206,
+          "ms": 86.7
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/stream",
+          "status": "FAILED:net::ERR_ABORTED",
+          "ms": 90.7
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/stream",
+          "status": 206,
+          "ms": 5.7
+        }
+      ],
+      "failed_api_calls": [
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/stream",
+          "status": "FAILED:net::ERR_ABORTED",
+          "ms": 90.7
+        }
+      ],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 9183,
+        "mojibake_hits": [],
+        "svg_count": 0,
+        "overflow_px": 0
+      }
+    },
+    "Precision Workstation": {
+      "clicked": true,
+      "settle_ms": 1023.3,
+      "api_calls": [
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos",
+          "status": 200,
+          "ms": 4.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos",
+          "status": 200,
+          "ms": 8.1
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/annotations?video_id=99989b1a-5119-45b8-a39d-9abeaf34c6cb",
+          "status": 200,
+          "ms": 15.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes",
+          "status": 200,
+          "ms": 23.7
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/transcript",
+          "status": 200,
+          "ms": 23.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/ocr/status",
+          "status": 200,
+          "ms": 30.8
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/5/thumbnail",
+          "status": 200,
+          "ms": 39.4
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/1/thumbnail",
+          "status": 200,
+          "ms": 39.7
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/0/thumbnail",
+          "status": 200,
+          "ms": 39.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/2/thumbnail",
+          "status": 200,
+          "ms": 40.1
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/4/thumbnail",
+          "status": 200,
+          "ms": 40.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/3/thumbnail",
+          "status": 200,
+          "ms": 40.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/6/thumbnail",
+          "status": 200,
+          "ms": 69.7
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/11/thumbnail",
+          "status": 200,
+          "ms": 70.0
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/8/thumbnail",
+          "status": 200,
+          "ms": 70.1
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/7/thumbnail",
+          "status": 200,
+          "ms": 70.3
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/9/thumbnail",
+          "status": 200,
+          "ms": 70.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/10/thumbnail",
+          "status": 200,
+          "ms": 70.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/12/thumbnail",
+          "status": 200,
+          "ms": 115.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/13/thumbnail",
+          "status": 200,
+          "ms": 116.1
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/17/thumbnail",
+          "status": 200,
+          "ms": 116.0
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/14/thumbnail",
+          "status": 200,
+          "ms": 116.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/15/thumbnail",
+          "status": 200,
+          "ms": 116.4
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/16/thumbnail",
+          "status": 200,
+          "ms": 116.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/21/thumbnail",
+          "status": 200,
+          "ms": 127.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/18/thumbnail",
+          "status": 200,
+          "ms": 128.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/22/thumbnail",
+          "status": 200,
+          "ms": 131.3
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/20/thumbnail",
+          "status": 200,
+          "ms": 131.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/23/thumbnail",
+          "status": 200,
+          "ms": 131.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/19/thumbnail",
+          "status": 200,
+          "ms": 132.1
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/24/thumbnail",
+          "status": 200,
+          "ms": 149.7
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/27/thumbnail",
+          "status": 200,
+          "ms": 151.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/25/thumbnail",
+          "status": 200,
+          "ms": 151.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/26/thumbnail",
+          "status": 200,
+          "ms": 152.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/28/thumbnail",
+          "status": 200,
+          "ms": 153.3
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/29/thumbnail",
+          "status": 200,
+          "ms": 153.3
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/30/thumbnail",
+          "status": 200,
+          "ms": 170.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/34/thumbnail",
+          "status": 200,
+          "ms": 171.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/32/thumbnail",
+          "status": 200,
+          "ms": 172.7
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/31/thumbnail",
+          "status": 200,
+          "ms": 172.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/33/thumbnail",
+          "status": 200,
+          "ms": 173.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/35/thumbnail",
+          "status": 200,
+          "ms": 174.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/36/thumbnail",
+          "status": 200,
+          "ms": 195.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/37/thumbnail",
+          "status": 200,
+          "ms": 195.4
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/39/thumbnail",
+          "status": 200,
+          "ms": 198.3
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/41/thumbnail",
+          "status": 200,
+          "ms": 198.4
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/38/thumbnail",
+          "status": 200,
+          "ms": 198.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/40/thumbnail",
+          "status": 200,
+          "ms": 198.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/42/thumbnail",
+          "status": 200,
+          "ms": 218.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/43/thumbnail",
+          "status": 200,
+          "ms": 219.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/44/thumbnail",
+          "status": 200,
+          "ms": 221.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/47/thumbnail",
+          "status": 200,
+          "ms": 222.7
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/45/thumbnail",
+          "status": 200,
+          "ms": 222.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/46/thumbnail",
+          "status": 200,
+          "ms": 223.0
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/48/thumbnail",
+          "status": 200,
+          "ms": 242.0
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/49/thumbnail",
+          "status": 200,
+          "ms": 242.0
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/50/thumbnail",
+          "status": 200,
+          "ms": 246.4
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/53/thumbnail",
+          "status": 200,
+          "ms": 246.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/52/thumbnail",
+          "status": 200,
+          "ms": 247.7
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/51/thumbnail",
+          "status": 200,
+          "ms": 248.1
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/54/thumbnail",
+          "status": 200,
+          "ms": 265.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/56/thumbnail",
+          "status": 200,
+          "ms": 268.8
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/55/thumbnail",
+          "status": 200,
+          "ms": 269.0
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/58/thumbnail",
+          "status": 200,
+          "ms": 270.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/59/thumbnail",
+          "status": 200,
+          "ms": 271.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/57/thumbnail",
+          "status": 200,
+          "ms": 272.1
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/60/thumbnail",
+          "status": 200,
+          "ms": 288.1
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/62/thumbnail",
+          "status": 200,
+          "ms": 291.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/61/thumbnail",
+          "status": 200,
+          "ms": 291.4
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/63/thumbnail",
+          "status": 200,
+          "ms": 291.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/64/thumbnail",
+          "status": 200,
+          "ms": 292.7
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/65/thumbnail",
+          "status": 200,
+          "ms": 295.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/66/thumbnail",
+          "status": 200,
+          "ms": 309.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/69/thumbnail",
+          "status": 200,
+          "ms": 312.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/70/thumbnail",
+          "status": 200,
+          "ms": 312.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/67/thumbnail",
+          "status": 200,
+          "ms": 313.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/68/thumbnail",
+          "status": 200,
+          "ms": 314.3
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/71/thumbnail",
+          "status": 200,
+          "ms": 318.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/72/thumbnail",
+          "status": 200,
+          "ms": 330.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/74/thumbnail",
+          "status": 200,
+          "ms": 336.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/73/thumbnail",
+          "status": 200,
+          "ms": 336.8
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/75/thumbnail",
+          "status": 200,
+          "ms": 337.7
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/76/thumbnail",
+          "status": 200,
+          "ms": 337.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/77/thumbnail",
+          "status": 200,
+          "ms": 338.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/78/thumbnail",
+          "status": 200,
+          "ms": 351.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/81/thumbnail",
+          "status": 200,
+          "ms": 358.8
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/79/thumbnail",
+          "status": 200,
+          "ms": 359.3
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/80/thumbnail",
+          "status": 200,
+          "ms": 361.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/82/thumbnail",
+          "status": 200,
+          "ms": 364.7
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/83/thumbnail",
+          "status": 200,
+          "ms": 366.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/84/thumbnail",
+          "status": 200,
+          "ms": 375.8
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/85/thumbnail",
+          "status": 200,
+          "ms": 381.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/86/thumbnail",
+          "status": 200,
+          "ms": 384.4
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/89/thumbnail",
+          "status": 200,
+          "ms": 385.4
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/87/thumbnail",
+          "status": 200,
+          "ms": 385.7
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/88/thumbnail",
+          "status": 200,
+          "ms": 387.0
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/90/thumbnail",
+          "status": 200,
+          "ms": 398.8
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/91/thumbnail",
+          "status": 200,
+          "ms": 403.4
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/93/thumbnail",
+          "status": 200,
+          "ms": 407.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/92/thumbnail",
+          "status": 200,
+          "ms": 407.8
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/94/thumbnail",
+          "status": 200,
+          "ms": 411.0
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/95/thumbnail",
+          "status": 200,
+          "ms": 412.7
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/96/thumbnail",
+          "status": 200,
+          "ms": 421.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/97/thumbnail",
+          "status": 200,
+          "ms": 427.0
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/98/thumbnail",
+          "status": 200,
+          "ms": 430.0
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/99/thumbnail",
+          "status": 200,
+          "ms": 433.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/100/thumbnail",
+          "status": 200,
+          "ms": 434.1
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/101/thumbnail",
+          "status": 200,
+          "ms": 435.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/102/thumbnail",
+          "status": 200,
+          "ms": 443.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/103/thumbnail",
+          "status": 200,
+          "ms": 446.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/105/thumbnail",
+          "status": 200,
+          "ms": 453.0
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/107/thumbnail",
+          "status": 200,
+          "ms": 453.0
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/104/thumbnail",
+          "status": 200,
+          "ms": 453.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/106/thumbnail",
+          "status": 200,
+          "ms": 456.4
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/109/thumbnail",
+          "status": 200,
+          "ms": 467.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/108/thumbnail",
+          "status": 200,
+          "ms": 469.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/110/thumbnail",
+          "status": 200,
+          "ms": 476.8
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/112/thumbnail",
+          "status": 200,
+          "ms": 480.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/113/thumbnail",
+          "status": 200,
+          "ms": 480.7
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/111/thumbnail",
+          "status": 200,
+          "ms": 482.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/114/thumbnail",
+          "status": 200,
+          "ms": 493.8
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/115/thumbnail",
+          "status": 200,
+          "ms": 494.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/116/thumbnail",
+          "status": 200,
+          "ms": 499.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/117/thumbnail",
+          "status": 200,
+          "ms": 505.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/119/thumbnail",
+          "status": 200,
+          "ms": 506.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/118/thumbnail",
+          "status": 200,
+          "ms": 510.1
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/120/thumbnail",
+          "status": 200,
+          "ms": 516.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/121/thumbnail",
+          "status": 200,
+          "ms": 517.0
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/122/thumbnail",
+          "status": 200,
+          "ms": 522.1
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/123/thumbnail",
+          "status": 200,
+          "ms": 528.4
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/124/thumbnail",
+          "status": 200,
+          "ms": 536.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/125/thumbnail",
+          "status": 200,
+          "ms": 544.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/126/thumbnail",
+          "status": 200,
+          "ms": 544.3
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/127/thumbnail",
+          "status": 200,
+          "ms": 544.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/128/thumbnail",
+          "status": 200,
+          "ms": 550.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/129/thumbnail",
+          "status": 200,
+          "ms": 556.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/130/thumbnail",
+          "status": 200,
+          "ms": 564.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/131/thumbnail",
+          "status": 200,
+          "ms": 570.3
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/132/thumbnail",
+          "status": 200,
+          "ms": 571.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/133/thumbnail",
+          "status": 200,
+          "ms": 573.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/134/thumbnail",
+          "status": 200,
+          "ms": 573.7
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/135/thumbnail",
+          "status": 200,
+          "ms": 573.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/136/thumbnail",
+          "status": 200,
+          "ms": 584.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/137/thumbnail",
+          "status": 200,
+          "ms": 590.6
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/99989b1a-5119-45b8-a39d-9abeaf34c6cb/scenes/138/thumbnail",
+          "status": 200,
+          "ms": 593.6
+        }
+      ],
+      "failed_api_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 9372,
+        "mojibake_hits": [],
+        "svg_count": 0,
+        "overflow_px": 0
+      }
+    },
+    "1. Add & Watch Folders": {
+      "clicked": true,
+      "settle_ms": 1022.1,
+      "api_calls": [
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/libraries",
+          "status": 200,
+          "ms": 14.8
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/libraries",
+          "status": 200,
+          "ms": 23.0
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/libraries/2755429e-2aa1-4390-8e90-91fe86eff8c4/roots",
+          "status": 200,
+          "ms": 31.0
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/libraries/roots/a324036f-4c70-4689-a25e-137517186198/scans",
+          "status": 200,
+          "ms": 7.8
+        }
+      ],
+      "failed_api_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 8066,
+        "mojibake_hits": [],
+        "svg_count": 0,
+        "overflow_px": 0
+      }
+    },
+    "2. Processing Pipelines": {
+      "clicked": true,
+      "settle_ms": 1007.8,
+      "api_calls": [
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/jobs",
+          "status": 200,
+          "ms": 4.3
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/jobs",
+          "status": 200,
+          "ms": 8.3
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/jobs/51e77deb-c649-4690-98b8-c3b08af81c90/stages",
+          "status": 200,
+          "ms": 11.9
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/jobs/versions/56939a4b-456f-5724-83ff-0ad7ddb19843/artifacts",
+          "status": 200,
+          "ms": 7.5
+        }
+      ],
+      "failed_api_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 1332,
+        "mojibake_hits": [
+          "\u00e2\u20ac",
+          "\u00e2\u20ac",
+          "\u00e2\u20ac",
+          "\u00e2\u20ac",
+          "\u00e2\u20ac",
+          "\u00e2\u20ac",
+          "\u00c2\u00b7",
+          "\u00e2\u20ac",
+          "\u00e2\u20ac",
+          "\u00e2\u20ac"
+        ],
+        "svg_count": 0,
+        "overflow_px": 0
+      }
+    },
+    "3. Archive & Export": {
+      "clicked": true,
+      "settle_ms": 1009.1,
+      "api_calls": [
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos",
+          "status": 200,
+          "ms": 13.1
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos",
+          "status": 200,
+          "ms": 19.1
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/libraries/duplicates",
+          "status": 200,
+          "ms": 19.3
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/libraries/duplicates",
+          "status": 200,
+          "ms": 26.5
+        }
+      ],
+      "failed_api_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 5032,
+        "mojibake_hits": [],
+        "svg_count": 1,
+        "overflow_px": 0
+      }
+    },
+    "Search & Ask Archive": {
+      "clicked": true,
+      "settle_ms": 1007.8,
+      "api_calls": [],
+      "failed_api_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 1120,
+        "mojibake_hits": [],
+        "svg_count": 0,
+        "overflow_px": 0
+      }
+    },
+    "Privacy & BYO-AI": {
+      "clicked": true,
+      "settle_ms": 1019.9,
+      "api_calls": [
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/ai/providers",
+          "status": 200,
+          "ms": 11.3
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/ai/consents",
+          "status": 200,
+          "ms": 15.4
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/ai/runs?limit=50",
+          "status": 200,
+          "ms": 15.5
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/ai/providers",
+          "status": 200,
+          "ms": 18.1
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/ai/runs?limit=50",
+          "status": 200,
+          "ms": 22.8
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/ai/consents",
+          "status": 200,
+          "ms": 23.0
+        }
+      ],
+      "failed_api_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 2862,
+        "mojibake_hits": [],
+        "svg_count": 0,
+        "overflow_px": 0
+      }
+    },
+    "MCP Agent Server": {
+      "clicked": true,
+      "settle_ms": 1027.1,
+      "api_calls": [
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/stats/summary",
+          "status": 200,
+          "ms": 6.2
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:8000/api/v1/videos/stats/summary",
+          "status": 200,
+          "ms": 9.3
+        }
+      ],
+      "failed_api_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 2443,
+        "mojibake_hits": [],
+        "svg_count": 0,
+        "overflow_px": 0
+      }
+    },
+    "Database Explorer": {
+      "clicked": true,
+      "settle_ms": 1012.2,
+      "api_calls": [],
+      "failed_api_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 385,
+        "mojibake_hits": [],
+        "svg_count": 0,
+        "overflow_px": 0
+      }
+    },
+    "Engine Telemetry & Health": {
+      "clicked": true,
+      "settle_ms": 1012.1,
+      "api_calls": [],
+      "failed_api_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 1474,
+        "mojibake_hits": [
+          "\u00e2\u0152"
+        ],
+        "svg_count": 0,
+        "overflow_px": 0
+      }
+    }
+  },
+  "db_explorer_repro": {
+    "locked_state": {
+      "has_locked_guidance": false,
+      "text_snippet": "Database Explorer\n/\nLocal-First Multimodal Creator Instrument\nLocal Enclave Active\nRemote AI: Consented Only\nSync Health\nLive SQLite Database Explorer\nMODE=RO \u00b7 QUERY_ONLY=ON\n\nRead-only schema introspection, row inspection, and relational mapping under SQLite WAL containment.\n\nAuthenticate\nRefresh\nOverview\nTables List\nTable Structure\nPaginated Rows\nMigration History\nER Relationships"
+    },
+    "after_auth": {
+      "has_videos_table": true,
+      "has_revision": true,
+      "text_len": 1442
+    },
+    "er_tab": {
+      "big_svg_diagram_count": 0,
+      "has_zoom_controls": false,
+      "has_list_toggle": false
+    },
+    "calls_on_auth": 10,
+    "calls_on_er": 6,
+    "calls_on_table_click": [
+      {
+        "url": "http://127.0.0.1:8000/api/v1/admin/database/tables/ai_consents/rows?limit=50&offset=0",
+        "status": 200,
+        "ms": 0.2
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/v1/admin/database/tables/ai_consents/rows?limit=50&offset=0",
+        "status": 200,
+        "ms": 22.7
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/v1/admin/database/overview",
+        "status": 200,
+        "ms": 30.9
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/v1/admin/database/tables",
+        "status": 200,
+        "ms": 52.1
+      }
+    ]
+  },
+  "total_console_errors": 0,
+  "total_page_errors": 0
+}
