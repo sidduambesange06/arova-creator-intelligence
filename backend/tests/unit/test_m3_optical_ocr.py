@@ -228,3 +228,31 @@ def test_optional_ocr_real_pixel_inference_on_synthetic_fixture(tmp_path: Path):
     assert res.status in ("extracted", "empty")
     assert res.engine is not None
     assert res.reason is None
+
+
+
+def test_detect_and_fingerprint_avoid_heavy_imports_and_rehash(monkeypatch: pytest.MonkeyPatch):
+    import subprocess
+    import sys
+
+    # Fresh subprocess: calling detect_ocr_engine + get_ocr_fingerprint_config must NOT import onnxruntime or cv2
+    code = (
+        "import sys; "
+        "from app.processing.visual_text import detect_ocr_engine, get_ocr_fingerprint_config; "
+        "detect_ocr_engine(); get_ocr_fingerprint_config(); "
+        "heavy = [m for m in ('onnxruntime', 'cv2', 'rapidocr_onnxruntime') if m in sys.modules]; "
+        "assert not heavy, f'Unexpected heavy imports during status/fingerprint check: {heavy}'"
+    )
+    proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=False)
+    assert proc.returncode == 0, proc.stderr or proc.stdout
+
+    # Repeated calls reuse cached weights hash without re-reading disk
+    from app.processing import visual_text as vt
+
+    if vt.detect_ocr_engine()[0] == "rapidocr_onnxruntime":
+        vt._MODEL_HASH_CACHE.clear()
+        cfg1 = vt.get_ocr_fingerprint_config()
+        assert len(vt._MODEL_HASH_CACHE) == 1
+        monkeypatch.setattr(vt.hashlib, "sha256", lambda: (_ for _ in ()).throw(AssertionError("rehashed!")))
+        cfg2 = vt.get_ocr_fingerprint_config()
+        assert cfg1 == cfg2
