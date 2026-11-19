@@ -559,6 +559,15 @@ export interface MigrationRevision {
   is_current: boolean;
 }
 
+export class ApiHttpError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiHttpError";
+    this.status = status;
+  }
+}
+
 export interface DatabaseRelationships {
   tables: {
     id: string;
@@ -575,6 +584,8 @@ export interface DatabaseRelationships {
     target_table: string;
     target_columns: string[];
     label: string;
+    relationship_type?: string;
+    is_inferred?: boolean;
   }[];
 }
 
@@ -585,21 +596,28 @@ function adminAuthHeader(token: string): HeadersInit {
   };
 }
 
-export async function fetchDatabaseOverview(token: string): Promise<DatabaseOverview> {
+async function parseAdminError(res: Response, fallback: string): Promise<ApiHttpError> {
+  const body = (await res.json().catch(() => ({}))) as { detail?: string };
+  return new ApiHttpError(body.detail ?? `${fallback} (HTTP ${res.status})`, res.status);
+}
+
+export async function fetchDatabaseOverview(
+  token: string,
+  signal?: AbortSignal
+): Promise<DatabaseOverview> {
   const res = await fetch(`${API_BASE_URL}/api/v1/admin/database/overview`, {
     headers: adminAuthHeader(token),
+    signal,
   });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { detail?: string };
-    throw new Error(body.detail ?? `Database overview failed (HTTP ${res.status})`);
-  }
+  if (!res.ok) throw await parseAdminError(res, "Database overview failed");
   return res.json() as Promise<DatabaseOverview>;
 }
 
 export async function fetchDatabaseTables(
   token: string,
   search?: string,
-  category?: string
+  category?: string,
+  signal?: AbortSignal
 ): Promise<TableSummary[]> {
   const params = new URLSearchParams();
   if (search) params.set("search", search);
@@ -607,25 +625,25 @@ export async function fetchDatabaseTables(
   const qs = params.toString() ? `?${params.toString()}` : "";
   const res = await fetch(`${API_BASE_URL}/api/v1/admin/database/tables${qs}`, {
     headers: adminAuthHeader(token),
+    signal,
   });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { detail?: string };
-    throw new Error(body.detail ?? `Failed to list tables (HTTP ${res.status})`);
-  }
+  if (!res.ok) throw await parseAdminError(res, "Failed to list tables");
   return res.json() as Promise<TableSummary[]>;
 }
 
-export async function fetchTableDetails(token: string, tableName: string): Promise<TableDetails> {
+export async function fetchTableDetails(
+  token: string,
+  tableName: string,
+  signal?: AbortSignal
+): Promise<TableDetails> {
   const res = await fetch(
     `${API_BASE_URL}/api/v1/admin/database/tables/${encodeURIComponent(tableName)}`,
     {
       headers: adminAuthHeader(token),
+      signal,
     }
   );
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { detail?: string };
-    throw new Error(body.detail ?? `Failed to fetch table details (HTTP ${res.status})`);
-  }
+  if (!res.ok) throw await parseAdminError(res, "Failed to fetch table details");
   return res.json() as Promise<TableDetails>;
 }
 
@@ -633,7 +651,8 @@ export async function fetchTableRows(
   token: string,
   tableName: string,
   limit = 50,
-  offset = 0
+  offset = 0,
+  signal?: AbortSignal
 ): Promise<TableRowsResponse> {
   const params = new URLSearchParams({
     limit: String(limit),
@@ -643,34 +662,34 @@ export async function fetchTableRows(
     `${API_BASE_URL}/api/v1/admin/database/tables/${encodeURIComponent(tableName)}/rows?${params.toString()}`,
     {
       headers: adminAuthHeader(token),
+      signal,
     }
   );
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { detail?: string };
-    throw new Error(body.detail ?? `Failed to fetch table rows (HTTP ${res.status})`);
-  }
+  if (!res.ok) throw await parseAdminError(res, "Failed to fetch table rows");
   return res.json() as Promise<TableRowsResponse>;
 }
 
-export async function fetchDatabaseMigrations(token: string): Promise<MigrationRevision[]> {
+export async function fetchDatabaseMigrations(
+  token: string,
+  signal?: AbortSignal
+): Promise<MigrationRevision[]> {
   const res = await fetch(`${API_BASE_URL}/api/v1/admin/database/migrations`, {
     headers: adminAuthHeader(token),
+    signal,
   });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { detail?: string };
-    throw new Error(body.detail ?? `Failed to fetch migrations (HTTP ${res.status})`);
-  }
+  if (!res.ok) throw await parseAdminError(res, "Failed to fetch migrations");
   return res.json() as Promise<MigrationRevision[]>;
 }
 
-export async function fetchDatabaseRelationships(token: string): Promise<DatabaseRelationships> {
+export async function fetchDatabaseRelationships(
+  token: string,
+  signal?: AbortSignal
+): Promise<DatabaseRelationships> {
   const res = await fetch(`${API_BASE_URL}/api/v1/admin/database/relationships`, {
     headers: adminAuthHeader(token),
+    signal,
   });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { detail?: string };
-    throw new Error(body.detail ?? `Failed to fetch relationships (HTTP ${res.status})`);
-  }
+  if (!res.ok) throw await parseAdminError(res, "Failed to fetch relationships");
   return res.json() as Promise<DatabaseRelationships>;
 }
 
