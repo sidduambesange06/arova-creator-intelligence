@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     API_HOST: str = "127.0.0.1"
     API_PORT: int = 8000
-    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
+    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173"
     ALLOWED_HOSTS: str = "localhost,127.0.0.1,testserver"
 
     # Optional local authentication token. When unset (None), local desktop access is unauthenticated.

@@ -264,9 +264,18 @@ def run_database_migrations(
                     "Automatic repair refused to prevent data corruption. A narrowly scoped repair must be proposed."
                 )
 
-    # Step 2: Create pre-migration backup before modifying database
-    target_path = db_path or settings.SQLITE_DB_PATH
-    if target_path and target_path != ":memory:":
+    # Step 2: Create pre-migration backup before modifying an existing non-empty database.
+    # Resolve target_path from target_engine rather than settings.SQLITE_DB_PATH so
+    # in-memory or isolated temporary engines never touch or copy the live database.
+    if db_path is not None:
+        target_path: str | Path | None = db_path
+    elif engine is not None:
+        engine_db = getattr(target_engine.url, "database", None)
+        target_path = engine_db if engine_db and engine_db != ":memory:" else None
+    else:
+        target_path = settings.SQLITE_DB_PATH
+
+    if target_path and str(target_path) != ":memory:" and decision != "empty_upgrade":
         create_backup(target_path)
 
     # Step 3: Execute migration according to decision

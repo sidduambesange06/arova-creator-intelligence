@@ -71,7 +71,7 @@ app.add_middleware(
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["GET", "POST", "DELETE", "OPTIONS", "PUT", "PATCH"],
-    allow_headers=["Authorization", "Content-Type", "X-API-Key", "X-Requested-With"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key", "X-Admin-Token", "X-Requested-With"],
 )
 
 # Protect all application routers with configurable local authentication
