@@ -9,6 +9,7 @@ synthetic or placeholder OCR strings.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
 import importlib.metadata
 import importlib.util
 from pathlib import Path
@@ -61,6 +62,41 @@ def detect_ocr_engine() -> tuple[str | None, str | None]:
         return ("tesseract", ver)
 
     return (None, None)
+
+
+def get_ocr_fingerprint_config(
+    *,
+    max_frames: int = DEFAULT_MAX_OCR_FRAMES,
+    min_interval_sec: float = DEFAULT_MIN_OCR_INTERVAL_SEC,
+    max_image_pixels: int = DEFAULT_MAX_IMAGE_PIXELS,
+) -> dict[str, Any]:
+    """Return deterministic OCR engine, weight, and preprocessing metadata for stage fingerprinting."""
+    engine_name, engine_version = detect_ocr_engine()
+    model_hash = "none"
+    if engine_name == "rapidocr_onnxruntime":
+        try:
+            import rapidocr_onnxruntime  # type: ignore
+
+            pkg_root = Path(rapidocr_onnxruntime.__file__).resolve().parent
+            h = hashlib.sha256()
+            for onnx_file in sorted(pkg_root.rglob("*.onnx")):
+                h.update(str(onnx_file.relative_to(pkg_root)).replace("\\", "/").encode("utf-8"))
+                h.update(str(onnx_file.stat().st_size).encode("utf-8"))
+                with onnx_file.open("rb") as fh:
+                    for chunk in iter(lambda: fh.read(65536), b""):
+                        h.update(chunk)
+            model_hash = h.hexdigest()[:24]
+        except Exception:
+            model_hash = "unknown"
+
+    return {
+        "ocr_engine": engine_name or "unavailable",
+        "ocr_engine_version": engine_version or "none",
+        "ocr_model_weights_hash": model_hash,
+        "max_frames": max_frames,
+        "min_interval_sec": min_interval_sec,
+        "max_image_pixels": max_image_pixels,
+    }
 
 
 def _run_optical_ocr(path: Path, engine: str, max_image_pixels: int) -> str:

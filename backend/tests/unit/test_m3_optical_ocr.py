@@ -195,3 +195,36 @@ def test_ocr_status_endpoint_distinguishes_all_six_states_and_fingerprint_invali
     finally:
         app.dependency_overrides.pop(get_db, None)
         engine.dispose()
+
+
+
+def test_ocr_fingerprint_config_includes_weights_and_preprocessing():
+    from app.processing.visual_text import get_ocr_fingerprint_config
+
+    cfg = get_ocr_fingerprint_config(max_frames=30, min_interval_sec=3.0, max_image_pixels=2_000_000)
+    assert "ocr_engine" in cfg
+    assert "ocr_engine_version" in cfg
+    assert "ocr_model_weights_hash" in cfg
+    assert cfg["max_frames"] == 30
+    assert cfg["min_interval_sec"] == 3.0
+    assert cfg["max_image_pixels"] == 2_000_000
+
+
+@pytest.mark.skipif(detect_ocr_engine()[0] is None, reason="Optional local OCR engine not installed")
+def test_optional_ocr_real_pixel_inference_on_synthetic_fixture(tmp_path: Path):
+    """Verifies real pixel-level OCR execution when optional OCR extra is installed.
+
+    Uses a synthetic rendered PNG fixture (distinct from the real-frame Tears of Steel benchmark).
+    """
+    from PIL import Image, ImageDraw  # type: ignore
+
+    img = Image.new("RGB", (480, 120), color=(255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    draw.text((24, 42), "AROVA OCR 2026", fill=(0, 0, 0))
+    fixture_path = tmp_path / "synthetic_ocr_fixture.png"
+    img.save(fixture_path)
+
+    res = extract_visual_text_with_provenance(fixture_path, timestamp_sec=1.0)
+    assert res.status in ("extracted", "empty")
+    assert res.engine is not None
+    assert res.reason is None

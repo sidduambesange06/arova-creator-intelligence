@@ -37,8 +37,8 @@ from app.processing.visual_text import (
 SOURCE_VIDEO = REPO_ROOT / "testdata" / "real_media" / "tears_of_steel" / "tears_of_steel_720p.mov"
 FRAMES_DIR = REPO_ROOT / "data" / "ocr_eval" / "tears_of_steel_frames"
 
-# Independently human-verified ground truth from visual inspection of extracted frames
-# (NOT generated from OCR output or transcripts).
+# Agent-annotated reference text from direct visual inspection of extracted frames
+# (NOT generated from OCR output or transcripts; not yet independently human-verified).
 ANNOTATED_FRAMES: list[dict[str, Any]] = [
     {
         "frame_id": "tos_f01_clear_opening",
@@ -274,7 +274,7 @@ def main() -> int:
         f"- **Source Media:** `tears_of_steel_720p.mov` (CC-BY 3.0) — SHA-256 immutable verified: `{source_immutable}` (`{src_sha_before}`)",
         f"- **Normalization Policy:** `{NORMALIZATION_POLICY_VERSION}`",
         f"- **Corrupt Frame Safety:** `{corrupt_handled_safely}`",
-        f"- **RSS Max Observed (discrete psutil samples):** `{report['resources']['rss_max_observed_mb']} MB` | **VRAM / Energy:** `NOT_MEASURED`",
+        f"- **RSS Max Observed:** `{f'{report[\"resources\"][\"rss_max_observed_mb\"]} MB (discrete psutil samples)' if report['resources']['rss_max_observed_mb'] is not None else 'NOT_MEASURED (psutil not installed in active venv)'}` | **VRAM / Energy:** `NOT_MEASURED`",
         "",
         "## Summary Metrics",
         "",
