@@ -11,13 +11,13 @@ import {
 } from "../../services/api";
 
 const CANONICAL_DAG_STAGES = [
-  "probe_metadata",
-  "extract_audio",
-  "transcribe_speech",
-  "detect_scenes",
-  "generate_embeddings",
-  "build_search_index",
-  "finalize_provenance",
+  "metadata_probe",
+  "scene_detection",
+  "ocr_detection",
+  "audio_extraction",
+  "asr_transcription",
+  "embedding_indexing",
+  "summarization",
 ];
 
 export function ProcessingJobsView() {
@@ -26,6 +26,11 @@ export function ProcessingJobsView() {
   const [stages, setStages] = useState<StageRun[]>([]);
   const [artifacts, setArtifacts] = useState<StageArtifact[]>([]);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const hasActiveJobs = jobs.some((j) =>
+    ["running", "processing", "pending", "queued"].includes((j.status || "").toLowerCase())
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -34,15 +39,21 @@ export function ProcessingJobsView() {
         const j = await fetchJobs();
         if (!cancelled) {
           setJobs(j);
-          if (j.length > 0 && !selectedJobId) {
-            setSelectedJobId(j[0].id);
-          }
+          setLoadError(null);
+          setSelectedJobId((prev) => (prev || j[0]?.id || ""));
         }
-      } catch {
-        // Handled
+      } catch (err) {
+        if (!cancelled) {
+          setLoadError(err instanceof Error ? err.message : "Failed to load processing jobs");
+        }
       }
     }
     void loadJobs();
+    if (!hasActiveJobs) {
+      return () => {
+        cancelled = true;
+      };
+    }
     const timer = setInterval(() => {
       void loadJobs();
     }, 5000);
@@ -50,7 +61,7 @@ export function ProcessingJobsView() {
       cancelled = true;
       clearInterval(timer);
     };
-  }, []);
+  }, [hasActiveJobs]);
 
   useEffect(() => {
     if (!selectedJobId) return;
@@ -62,9 +73,14 @@ export function ProcessingJobsView() {
         if (st.length > 0) {
           const arts = await fetchVersionArtifacts(st[0].version_id).catch(() => []);
           if (!cancelled) setArtifacts(arts);
+        } else if (!cancelled) {
+          setArtifacts([]);
         }
       } catch {
-        // Handled
+        if (!cancelled) {
+          setStages([]);
+          setArtifacts([]);
+        }
       }
     }
     void loadStagesAndArtifacts();
@@ -76,8 +92,10 @@ export function ProcessingJobsView() {
   async function handleCancel(jobId: string) {
     try {
       const updated = await cancelJob(jobId);
-      setActionMsg(`Job ${jobId.slice(0, 8)} cancelled.`);
-      setJobs((prev) => prev.map((j) => (j.id === jobId ? updated : j)));
+      setActionMsg(`Job ${jobId.slice(0, 8)} ${updated.status}.`);
+      setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, status: updated.status } : j)));
+      const fresh = await fetchJobs().catch(() => null);
+      if (fresh) setJobs(fresh);
     } catch (err) {
       setActionMsg(err instanceof Error ? err.message : "Cancel failed");
     }
@@ -114,6 +132,11 @@ export function ProcessingJobsView() {
           Fault-tolerant DAG processing with atomic leases, stage SHA-256 fingerprints, and immutable artifacts.
         </p>
 
+        {loadError && (
+          <div role="alert" className="p-2 rounded bg-rose-950/40 border border-rose-900 text-xs font-mono text-rose-300">
+            {loadError}
+          </div>
+        )}
         {actionMsg && (
           <div className="p-2 rounded bg-[#0B1019] border border-[#243149] text-xs font-mono text-[#51DCC8]">
             {actionMsg}
@@ -148,7 +171,7 @@ export function ProcessingJobsView() {
                   >
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-mono font-medium truncate max-w-[140px]">
-                        {job.id.slice(0, 10)}â€¦
+                        {job.id.slice(0, 10)}…
                       </span>
                       <span
                         className={`text-[10px] font-mono px-1.5 py-0.5 rounded uppercase ${
@@ -173,7 +196,7 @@ export function ProcessingJobsView() {
                     </div>
 
                     <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
-                      <span>Video: {job.video_id.slice(0, 8)}â€¦</span>
+                      <span>Video: {job.video_id.slice(0, 8)}…</span>
                       <span>{Math.round(job.progress * 100)}%</span>
                     </div>
                   </div>
@@ -193,7 +216,7 @@ export function ProcessingJobsView() {
                     Job DAG Execution: <span className="font-mono text-[#9B8CFF]">{selectedJob.id}</span>
                   </h2>
                   <p className="text-[11px] font-mono text-slate-400 mt-0.5">
-                    Type: {selectedJob.job_type} Â· Target Video: {selectedJob.video_id}
+                    Type: {selectedJob.job_type} · Target Video: {selectedJob.video_id}
                   </p>
                 </div>
 
@@ -275,7 +298,7 @@ export function ProcessingJobsView() {
                           <td className="py-1.5 px-2 text-[#9B8CFF]">{st.stage}</td>
                           <td className="py-1.5 px-2">#{st.attempt}</td>
                           <td className="py-1.5 px-2 text-[10px] text-slate-400">
-                            {st.fingerprint ? `${st.fingerprint.slice(0, 16)}â€¦` : "--"}
+                            {st.fingerprint ? `${st.fingerprint.slice(0, 16)}…` : "--"}
                           </td>
                           <td className="py-1.5 px-2">{st.status}</td>
                         </tr>

@@ -22,6 +22,8 @@ export interface VideoItem {
   processing_status: string;
   created_at: string;
   collection_ids: string[];
+  asset_id?: string | null;
+  version_id?: string | null;
 }
 
 export interface VideoImportResponse {
@@ -106,8 +108,13 @@ export interface VideoSceneItem {
 
 const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
-export async function fetchHealth(_signal?: AbortSignal): Promise<HealthResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/health`);
+export function resolveApiUrl(pathOrUrl: string): string {
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+  return `${API_BASE_URL}${pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`}`;
+}
+
+export async function fetchHealth(signal?: AbortSignal): Promise<HealthResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/health`, { signal });
   if (!res.ok) {
     throw new Error(`Health check failed with HTTP ${res.status}`);
   }
@@ -942,12 +949,12 @@ export async function fetchJobDetails(jobId: string): Promise<ProcessingJob> {
   return res.json() as Promise<ProcessingJob>;
 }
 
-export async function cancelJob(jobId: string): Promise<ProcessingJob> {
+export async function cancelJob(jobId: string): Promise<{ job_id?: string; id?: string; status: string }> {
   const res = await fetch(`${API_BASE_URL}/api/v1/jobs/${encodeURIComponent(jobId)}/cancel`, {
     method: "POST",
   });
   if (!res.ok) throw new Error(`Failed to cancel job (HTTP ${res.status})`);
-  return res.json() as Promise<ProcessingJob>;
+  return res.json() as Promise<{ job_id?: string; id?: string; status: string }>;
 }
 
 export async function resumeJob(jobId: string): Promise<ProcessingJob> {
@@ -1158,8 +1165,8 @@ export async function fetchDuplicateMedia(): Promise<DuplicateGroup[]> {
   return res.json() as Promise<DuplicateGroup[]>;
 }
 
-export async function fetchAnnotations(videoId?: string): Promise<AnnotationItem[]> {
-  const query = videoId ? `?video_id=${encodeURIComponent(videoId)}` : "";
+export async function fetchAnnotations(targetId?: string): Promise<AnnotationItem[]> {
+  const query = targetId ? `?target_id=${encodeURIComponent(targetId)}` : "";
   const res = await fetch(`${API_BASE_URL}/api/v1/annotations${query}`);
   if (!res.ok) throw new Error(`Failed to load annotations (HTTP ${res.status})`);
   return res.json() as Promise<AnnotationItem[]>;
@@ -1233,13 +1240,13 @@ export interface AIRunItem {
   id: string;
   provider: string;
   model: string;
-  prompt_tokens: number;
-  completion_tokens: number;
-  latency_ms: number;
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  latency_ms: number | null;
   video_id: string | null;
   task_id: string | null;
   consent_id: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 export async function fetchAiProviders(): Promise<AIProviderInfo[]> {
@@ -1263,6 +1270,7 @@ export async function verifyAiProvider(payload: {
   base_url?: string;
   model?: string;
 }): Promise<ProviderVerifyResponse> {
+  const t0 = performance.now();
   const res = await fetch(`${API_BASE_URL}/api/v1/ai/providers/verify`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1272,6 +1280,7 @@ export async function verifyAiProvider(payload: {
       base_url: payload.base_url || null,
     }),
   });
+  const measuredMs = Math.round(performance.now() - t0);
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { detail?: string };
     throw new Error(body.detail ?? `Provider verification failed (HTTP ${res.status})`);
@@ -1286,7 +1295,7 @@ export async function verifyAiProvider(payload: {
       (result.is_valid
         ? "Provider credentials and connectivity verified successfully."
         : (result.error ?? "Verification failed")),
-    latency_ms: result.latency_ms ?? 12,
+    latency_ms: typeof result.latency_ms === "number" ? result.latency_ms : measuredMs,
   };
 }
 
@@ -1316,12 +1325,16 @@ export async function grantAiConsent(payload: {
   scope_target_id?: string;
   duration_hours?: number;
 }): Promise<ConsentItem> {
+  const caps = payload.purpose
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
   const body = {
     provider: payload.provider,
     scope_type: payload.scope_type ?? "library",
     scope_id: payload.scope_target_id ?? "default_library",
     endpoint_host: payload.provider === "local" ? "127.0.0.1" : `${payload.provider}.api`,
-    capabilities: [payload.purpose || "llm_qa"],
+    capabilities: caps.length > 0 ? caps : ["llm_qa"],
     data_categories: ["query", "transcript_snippets"],
     expires_in_hours: payload.duration_hours ?? 24,
   };
@@ -1365,13 +1378,13 @@ export async function fetchAiRuns(limit = 50): Promise<AIRunItem[]> {
     id: r.id,
     provider: r.provider,
     model: r.model,
-    prompt_tokens: r.prompt_tokens ?? (r.prompt_hash ? 128 : 0),
-    completion_tokens: r.completion_tokens ?? 64,
-    latency_ms: r.latency_ms ?? 0,
+    prompt_tokens: typeof r.prompt_tokens === "number" ? r.prompt_tokens : null,
+    completion_tokens: typeof r.completion_tokens === "number" ? r.completion_tokens : null,
+    latency_ms: typeof r.latency_ms === "number" ? r.latency_ms : null,
     video_id: r.input_refs?.[0] ?? r.video_id ?? null,
     task_id: r.consent_id ?? r.task_id ?? null,
     consent_id: r.consent_id ?? null,
-    created_at: r.created_at ?? new Date().toISOString(),
+    created_at: r.created_at ?? null,
   }));
 }
 

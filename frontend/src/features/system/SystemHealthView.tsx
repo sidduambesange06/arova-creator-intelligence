@@ -7,7 +7,7 @@ import {
 } from "../../services/api";
 
 const SHORTCUTS = [
-  { key: "Ctrl + K / âŒ˜ + K", desc: "Open global command palette" },
+  { key: "Ctrl + K / Cmd + K", desc: "Open global command palette" },
   { key: "Space", desc: "Toggle Play / Pause in Video Workstation" },
   { key: "J / K / L", desc: "Shuttle backward / Pause / Shuttle forward" },
   { key: "I / O", desc: "Set In / Out markers for lossless clip export" },
@@ -41,6 +41,7 @@ export function SystemHealthView({
 }: SystemHealthViewProps = {}) {
   const [internalHealth, setInternalHealth] = useState<HealthResponse | null>(null);
   const [telemetry, setTelemetry] = useState<SystemTelemetry | null>(null);
+  const [telemetryError, setTelemetryError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [internalError, setInternalError] = useState<string | null>(null);
 
@@ -48,14 +49,35 @@ export function SystemHealthView({
   const error = propError !== undefined ? propError : internalError;
   const checking = propChecking !== undefined ? propChecking : loading;
 
-  // Appearance Preferences
-  const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
-  const [reducedMotion, setReducedMotion] = useState(false);
+  // Appearance Preferences (persisted & applied to root HTML dataset)
+  const [density, setDensity] = useState<"comfortable" | "compact">(() =>
+    localStorage.getItem("arova_ui_density") === "compact" ? "compact" : "comfortable"
+  );
+  const [reducedMotion, setReducedMotion] = useState<boolean>(
+    () => localStorage.getItem("arova_ui_reduced_motion") === "true"
+  );
+
+  useEffect(() => {
+    document.documentElement.dataset.density = density;
+    try {
+      localStorage.setItem("arova_ui_density", density);
+    } catch {
+      // Ignore storage restrictions
+    }
+  }, [density]);
+
+  useEffect(() => {
+    document.documentElement.dataset.reducedMotion = reducedMotion ? "true" : "false";
+    try {
+      localStorage.setItem("arova_ui_reduced_motion", reducedMotion ? "true" : "false");
+    } catch {
+      // Ignore storage restrictions
+    }
+  }, [reducedMotion]);
 
   useEffect(() => {
     let cancelled = false;
     async function probe() {
-      // Only probe health internally if not provided by parent
       if (propHealth === undefined && propError === undefined) {
         setLoading(true);
         setInternalError(null);
@@ -66,6 +88,17 @@ export function SystemHealthView({
           if (!cancelled) setInternalError(err instanceof Error ? err.message : "Backend unreachable");
         } finally {
           if (!cancelled) setLoading(false);
+        }
+      }
+      try {
+        const tel = await fetchSystemTelemetry();
+        if (!cancelled) {
+          setTelemetry(tel);
+          setTelemetryError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setTelemetryError(err instanceof Error ? err.message : "Telemetry unavailable");
         }
       }
     }
@@ -101,7 +134,14 @@ export function SystemHealthView({
             type="button"
             onClick={() => {
               if (onRefresh) onRefresh();
-              void fetchSystemTelemetry().then(setTelemetry).catch(() => {});
+              void fetchSystemTelemetry()
+                .then((tel) => {
+                  setTelemetry(tel);
+                  setTelemetryError(null);
+                })
+                .catch((err) => {
+                  setTelemetryError(err instanceof Error ? err.message : "Telemetry unavailable");
+                });
             }}
             disabled={checking}
             className="px-3.5 py-1.5 rounded-control bg-[#172235] hover:bg-[#232f48] text-xs font-mono text-slate-200 border border-[#243149] transition-colors disabled:opacity-50"
@@ -140,6 +180,11 @@ export function SystemHealthView({
       </div>
 
       {/* Worker Telemetry Metrics */}
+      {telemetryError && !telemetry && (
+        <div role="alert" className="p-3 rounded-panel bg-amber-950/30 border border-amber-900/60 text-amber-300 text-xs font-mono">
+          Worker telemetry unavailable: {telemetryError}
+        </div>
+      )}
       {telemetry && (
         <div className="p-5 rounded-panel bg-[#111827] border border-[#243149] space-y-3">
           <h2 className="text-sm font-semibold text-[#F5F7FB]">Worker Execution Telemetry</h2>

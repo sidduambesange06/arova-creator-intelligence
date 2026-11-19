@@ -16,7 +16,7 @@ describe("McpConfigView", () => {
     vi.restoreAllMocks();
   });
 
-  it("loads media library stats, displays 8 default tools plus optional export, and provides valid client snippets", async () => {
+  it("loads media library stats, displays 12 default tools plus optional export, and provides valid client snippets", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url = String(input);
       if (url.includes("/api/v1/videos/stats/summary")) {
@@ -38,8 +38,8 @@ describe("McpConfigView", () => {
       expect(screen.getByText("16")).toBeInTheDocument();
     });
 
-    // Verify 8 default read-only tools header
-    expect(screen.getByText(/Default Read-Only Tools \(8\)/i)).toBeInTheDocument();
+    // Verify 12 default read-only tools header
+    expect(screen.getByText(/Default Read-Only Tools \(12\)/i)).toBeInTheDocument();
 
     const readOnlyTools = [
       "list_videos",
@@ -50,6 +50,10 @@ describe("McpConfigView", () => {
       "summarize_video",
       "get_video_chapters",
       "get_media_library_stats",
+      "get_evidence_citations",
+      "get_media_availability",
+      "list_library_roots",
+      "get_processing_status",
     ];
     for (const tool of readOnlyTools) {
       expect(screen.getByTestId(`mcp-tool-${tool}`)).toBeInTheDocument();
