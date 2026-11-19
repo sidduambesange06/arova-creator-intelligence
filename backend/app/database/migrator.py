@@ -11,6 +11,7 @@ import uuid
 
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -226,7 +227,8 @@ def run_database_migrations(
         # Path 1: Already versioned database
         if "alembic_version" in all_tables:
             current_rev = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-            if current_rev == "0003_indic_fts5_tokenization":
+            head_rev = ScriptDirectory.from_config(_get_alembic_config()).get_current_head()
+            if current_rev == head_rev:
                 # Already at head: zero backup, zero migration rerun
                 return
             decision = "versioned_upgrade"

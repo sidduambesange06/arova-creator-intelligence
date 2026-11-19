@@ -615,7 +615,7 @@ def test_migration_schema_zero_rows_handled_correctly(tmp_path: Path) -> None:
     assert "libraries" in insp.get_table_names()
     with engine.connect() as conn:
         rev = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        assert rev in ("0002_task4_media_memory", "0003_indic_fts5_tokenization")
+        assert rev in ("0002_task4_media_memory", "0003_indic_fts5_tokenization", "0004_transcript_word_timings")
         assert conn.execute(text("PRAGMA integrity_check;")).fetchall() == [("ok",)]
     engine.dispose()
 

@@ -1,6 +1,9 @@
 from dataclasses import dataclass
+import math
 from pathlib import Path
 import re
+from typing import Any, Iterable
+import unicodedata
 
 
 @dataclass(frozen=True)
@@ -127,3 +130,188 @@ def find_sidecar_subtitles(video_path: str | Path) -> Path | None:
     except OSError:
         return None
     return None
+
+
+def normalize_word_timings(
+    words: list[dict[str, Any]] | None,
+    *,
+    media_duration: float | None = None,
+) -> list[dict[str, Any]] | None:
+    """Validate and normalize ASR word-level timings with finite, monotonic, bounded values.
+
+    Preserves Unicode (NFC, retaining Indic matras/viramas/ZWJ/ZWNJ).
+    Returns None if input is None or yields no valid words.
+    """
+    if not words:
+        return None
+
+    max_bound = float(media_duration) if (media_duration is not None and math.isfinite(media_duration) and media_duration > 0) else None
+    normalized: list[dict[str, Any]] = []
+    prev_start = 0.0
+
+    for item in words:
+        if not isinstance(item, dict):
+            continue
+        raw_word = item.get("word")
+        if not isinstance(raw_word, str):
+            continue
+        clean_word = unicodedata.normalize("NFC", raw_word).strip()
+        if not clean_word:
+            continue
+
+        try:
+            start = float(item["start"])
+            end = float(item["end"])
+        except (KeyError, TypeError, ValueError):
+            continue
+
+        if not (math.isfinite(start) and math.isfinite(end)):
+            continue
+
+        start = max(0.0, start)
+        if max_bound is not None:
+            start = min(start, max_bound)
+        if start < prev_start:
+            start = prev_start
+
+        end = max(start, end)
+        if max_bound is not None:
+            end = min(end, max_bound)
+            if start > end:
+                start = end
+
+        prob_raw = item.get("probability")
+        prob: float | None = None
+        if prob_raw is not None:
+            try:
+                p_val = float(prob_raw)
+                if math.isfinite(p_val):
+                    prob = round(max(0.0, min(1.0, p_val)), 4)
+            except (TypeError, ValueError):
+                prob = None
+
+        start_r = round(start, 3)
+        end_r = round(max(start_r, end), 3)
+        prev_start = start_r
+        entry: dict[str, Any] = {"word": clean_word, "start": start_r, "end": end_r}
+        if prob is not None:
+            entry["probability"] = prob
+        normalized.append(entry)
+
+    return normalized or None
+
+
+def _format_ms_timestamp(seconds: float, sep: str) -> str:
+    safe_sec = max(0.0, float(seconds)) if math.isfinite(seconds) else 0.0
+    total_ms = int(round(safe_sec * 1000.0))
+    hours, rem = divmod(total_ms, 3_600_000)
+    minutes, rem = divmod(rem, 60_000)
+    secs, ms = divmod(rem, 1_000)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}{sep}{ms:03d}"
+
+
+def _format_ass_timestamp(seconds: float) -> str:
+    safe_sec = max(0.0, float(seconds)) if math.isfinite(seconds) else 0.0
+    total_cs = int(round(safe_sec * 100.0))
+    hours, rem = divmod(total_cs, 360_000)
+    minutes, rem = divmod(rem, 6_000)
+    secs, cs = divmod(rem, 100)
+    return f"{hours:d}:{minutes:02d}:{secs:02d}.{cs:02d}"
+
+
+def _escape_ass_text(text: str) -> str:
+    """Escape ASS override braces, backslashes, and line breaks so untrusted text cannot inject tags."""
+    nfc = unicodedata.normalize("NFC", text or "")
+    normalized_nl = nfc.replace("\r\n", "\n").replace("\r", "\n")
+    escaped = normalized_nl.replace("\\", r"\\").replace("{", r"\{").replace("}", r"\}")
+    return escaped.replace("\n", r"\N")
+
+
+def _extract_seg_fields(seg: Any) -> tuple[float, float, str, list[dict[str, Any]] | None]:
+    if isinstance(seg, dict):
+        start = float(seg.get("start_time", 0.0))
+        end = float(seg.get("end_time", start))
+        text = str(seg.get("text", "")).strip()
+        words = seg.get("words")
+    else:
+        start = float(getattr(seg, "start_time", 0.0))
+        end = float(getattr(seg, "end_time", start))
+        text = str(getattr(seg, "text", "")).strip()
+        words = getattr(seg, "words", None)
+    return start, max(start, end), text, words
+
+
+def export_srt(segments: Iterable[Any]) -> str:
+    """Export transcript segments as deterministic UTF-8 SubRip (.srt) text."""
+    blocks: list[str] = []
+    idx = 1
+    for seg in segments:
+        start, end, text, _ = _extract_seg_fields(seg)
+        if not text:
+            continue
+        blocks.append(
+            f"{idx}\n{_format_ms_timestamp(start, ',')} --> {_format_ms_timestamp(end, ',')}\n"
+            f"{unicodedata.normalize('NFC', text)}"
+        )
+        idx += 1
+    return "\n\n".join(blocks) + ("\n" if blocks else "")
+
+
+def export_vtt(segments: Iterable[Any]) -> str:
+    """Export transcript segments as deterministic UTF-8 WebVTT (.vtt) text."""
+    blocks: list[str] = ["WEBVTT"]
+    for seg in segments:
+        start, end, text, _ = _extract_seg_fields(seg)
+        if not text:
+            continue
+        blocks.append(
+            f"{_format_ms_timestamp(start, '.')} --> {_format_ms_timestamp(end, '.')}\n"
+            f"{unicodedata.normalize('NFC', text)}"
+        )
+    return "\n\n".join(blocks) + "\n"
+
+
+def export_ass(
+    segments: Iterable[Any],
+    *,
+    title: str = "Arova Creator Intelligence Subtitles",
+    include_karaoke: bool = False,
+) -> str:
+    """Export transcript segments as valid ASS v4+ (.ass) with safe tag escaping."""
+    safe_title = unicodedata.normalize("NFC", title).replace("\r", " ").replace("\n", " ").strip()
+    lines = [
+        "[Script Info]",
+        f"Title: {safe_title}",
+        "ScriptType: v4.00+",
+        "WrapStyle: 0",
+        "ScaledBorderAndShadow: yes",
+        "PlayResX: 1920",
+        "PlayResY: 1080",
+        "",
+        "[V4+ Styles]",
+        "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
+        "Style: Default,Arial,48,&H00FFFFFF,&H000088EF,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,2,1,2,40,40,36,1",
+        "",
+        "[Events]",
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
+    ]
+    for seg in segments:
+        start, end, text, words = _extract_seg_fields(seg)
+        if not text:
+            continue
+        if include_karaoke and words:
+            norm_words = normalize_word_timings(words)
+            if norm_words:
+                parts: list[str] = []
+                for w in norm_words:
+                    dur_cs = max(1, int(round((w["end"] - w["start"]) * 100.0)))
+                    parts.append(f"{{\\k{dur_cs}}}{_escape_ass_text(w['word'])}")
+                body = " ".join(parts)
+            else:
+                body = _escape_ass_text(text)
+        else:
+            body = _escape_ass_text(text)
+        lines.append(
+            f"Dialogue: 0,{_format_ass_timestamp(start)},{_format_ass_timestamp(end)},Default,,0,0,0,,{body}"
+        )
+    return "\n".join(lines) + "\n"

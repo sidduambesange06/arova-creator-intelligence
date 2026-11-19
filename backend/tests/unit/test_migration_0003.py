@@ -21,8 +21,8 @@ def test_migration_0003_upgrade_downgrade_idempotence(tmp_path):
 
     cfg = _get_alembic_config(engine)
 
-    # 1. Upgrade through head (includes 0001, 0002, 0003)
-    command.upgrade(cfg, "head")
+    # 1. Upgrade through 0003 (includes 0001, 0002, 0003)
+    command.upgrade(cfg, "0003_indic_fts5_tokenization")
 
     # Verify alembic_version is at 0003_indic_fts5_tokenization
     with engine.connect() as conn:
@@ -58,8 +58,8 @@ def test_migration_0003_upgrade_downgrade_idempotence(tmp_path):
         rev = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
         assert rev == "0002_task4_media_memory"
 
-    # 3. Re-upgrade to head (idempotence)
-    command.upgrade(cfg, "head")
+    # 3. Re-upgrade to 0003 (idempotence)
+    command.upgrade(cfg, "0003_indic_fts5_tokenization")
     with engine.connect() as conn:
         rev = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
         assert rev == "0003_indic_fts5_tokenization"

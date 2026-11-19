@@ -2,6 +2,13 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class WordTimingOut(BaseModel):
+    word: str
+    start: float
+    end: float
+    probability: float | None = None
+
+
 class TranscriptSegmentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -10,6 +17,8 @@ class TranscriptSegmentOut(BaseModel):
     end_time: float
     text: str
     confidence: float
+    words: list[WordTimingOut] | None = None
+    timing_source: str | None = None
 
 
 class TranscriptOut(BaseModel):

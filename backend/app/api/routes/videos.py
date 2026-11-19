@@ -5,7 +5,7 @@ import re
 import unicodedata
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -17,6 +17,7 @@ from app.processing.clip_export import (
     get_last_export_mode,
     measure_clip_duration,
 )
+from app.processing.subtitles import export_ass, export_srt, export_vtt
 from app.schemas.media import (
     ClipExportRequest,
     ClipExportResponse,
@@ -130,6 +131,37 @@ def get_video_transcript_endpoint(
         full_text=transcript.full_text,
         segments=[TranscriptSegmentOut.model_validate(s) for s in transcript.segments],
     )
+
+
+@router.get("/{video_id}/subtitles/export", response_class=PlainTextResponse)
+def export_video_subtitles_endpoint(
+    video_id: str,
+    format: str = Query(default="srt", description="Subtitle export format: srt, vtt, or ass"),
+    karaoke: bool = Query(default=False, description="Include word-level \\k timing tags for ASS export when available"),
+    db: Session = Depends(get_db),
+) -> PlainTextResponse:
+    fmt = format.strip().lower()
+    if fmt not in ("srt", "vtt", "ass"):
+        raise HTTPException(status_code=400, detail=f"Unsupported subtitle format '{format}'. Expected srt, vtt, or ass.")
+
+    video = db.query(Video).filter_by(id=video_id).first()
+    transcript = db.query(Transcript).filter_by(video_id=video_id).first()
+    if not transcript:
+        raise HTTPException(status_code=404, detail=f"No transcript found for video {video_id}")
+
+    ordered_segments = sorted(transcript.segments, key=lambda s: (s.start_time, s.end_time))
+    if fmt == "srt":
+        body = export_srt(ordered_segments)
+        media_type = "application/x-subrip; charset=utf-8"
+    elif fmt == "vtt":
+        body = export_vtt(ordered_segments)
+        media_type = "text/vtt; charset=utf-8"
+    else:
+        title = video.filename if video else f"video-{video_id}"
+        body = export_ass(ordered_segments, title=title, include_karaoke=karaoke)
+        media_type = "text/plain; charset=utf-8"
+
+    return PlainTextResponse(content=body, media_type=media_type)
 
 
 @router.get("/{video_id}/scenes", response_model=list[VideoSceneOut])
