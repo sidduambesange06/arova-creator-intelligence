@@ -1,65 +1,77 @@
-# M4 Multilingual ASR Decision & Baseline Summary
+# M4 Multilingual ASR Decision Summary (Baseline vs Large-v3-Turbo)
 
 - **Date:** 2026-11-20
-- **Branch:** `feat/m4-multilingual-asr` (stacked on stabilization checkpoint `e36c524` -> `feat/m4-indic-asr-research` `9747503` -> `feat/m3-baseline-execution` `761c9ed`)
+- **Branch:** `feat/m4-multilingual-asr` (stacked on `e36c524` -> `feat/m4-indic-asr-research` `9747503` -> `feat/m3-baseline-execution` `761c9ed`)
 - **Dataset (Frozen Held-Out):** `m4_multilingual_eval_50clip@1.0.0` (`50` clips = `10` × `5` languages, `563.92s`, `manifest_sha256: 4426c1e10c85c5caf304db120cd83e445740a077778fdde7086647749c9a1480`; preserves frozen `m4_kn_eval_10clip` verbatim)
-- **Dataset (Internal Dev):** `m4_multilingual_dev_50clip@1.0.0` (`50` clips = `10` × `5` languages, `742.84s`, `manifest_sha256: 07a0a362931b144fc715be4b0091b1513c50705013b899821665187718ca0c25`; preserves frozen `m4_kn_dev_10clip` verbatim)
-- **Reference Baseline Model:** `faster-whisper-small` (`Systran/faster-whisper-small`, revision `536b0662742c02347bc0e980a01041f333bce120`, Apache-2.0, `cpu`, `int8`, `cpu_threads=4`, `language_mode=forced`, `beam_size=5`, `vad_filter=False`, `word_timestamps=False`, `v2_indic_unicode_safe_nfc`)
-- **First Multilingual Challenger:** `deepdml/faster-whisper-large-v3-turbo-ct2` (revision `4df90f75321148c3a29a9e2351b7ddf8f5b115a8`, MIT, `1,621,669,956` bytes = `1,546.54 MiB`) — **`AWAITING_USER_DOWNLOAD_AUTHORIZATION`** (zero weights downloaded)
+- **Dataset (Internal Dev Sanity):** `m4_multilingual_dev_50clip@1.0.0` (`manifest_sha256: 07a0a362931b144fc715be4b0091b1513c50705013b899821665187718ca0c25`; 5-clip 1/language dev sanity passed `5/5` `script_ok=True`, `0` invalid timings, `1,916.87 MB` peak WSET)
+- **Baseline Model:** `faster-whisper-small` (`Systran/faster-whisper-small`, rev `536b0662742c02347bc0e980a01041f333bce120`, Apache-2.0, `fp=ca6e822bca18510103fbf7fdd798e61f762b938dc9b74f18adc3e947346fa153`)
+- **Challenger Model:** `faster-whisper-large-v3-turbo` (`deepdml/faster-whisper-large-v3-turbo-ct2`, rev `4df90f75321148c3a29a9e2351b7ddf8f5b115a8`, MIT, `model.bin` SHA-256 `e76620f83d5f5b69efd3d87e3dc180c1bd21df9fbebacfd4335e5e1efcc018da`, `fp=53f5b47969d4f8d811e7631e8375ca620ada27b7d3989ec4f5a2d949c75aec60`)
+- **Matched Execution Protocol:** `device="cpu"`, `compute_type="int8"`, `cpu_threads=4`, `language_mode="forced"`, `beam_size=5`, `vad_filter=False`, `condition_on_previous_text=False`, `word_timestamps=False`, `normalization="v2_indic_unicode_safe_nfc"`, sequential execution, `HF_HUB_OFFLINE=1`
+- **Production Default Decision:** **`KEEP_CURRENT_DEFAULT_UNCHANGED`** (`faster-whisper-small` remains production default during M4; `faster-whisper-large-v3-turbo` earns `PASS_EXPERIMENTAL` on `kn_in` and `en_us`, `NON_REGRESSION_ONLY_BELOW_USABILITY_TARGET` on `hi_in`, and `KEEP_DEFAULT_FAIL` on `ta_in` and `te_in`).
 
 ---
 
-## 1. Per-Language Decision Table (Forced Mode, Frozen 50-Clip Held-Out Split)
+## 1. Five-Language Gate Table (Pre-Registered M4 v2.0 Criteria Unchanged, Forced Mode)
 
-| Language | baseline WER | candidate WER | empty/total | RTF | measured memory | timing status | decision | evidence path |
-|---|---:|---:|---:|---:|---|---|---|---|
-| `en_us` | `11.00%` (`16S/0D/6I` / `200w`, macro `11.49%`, CER `6.26%`) | `BLOCKED_DOWNLOAD_APPROVAL` | `0/10` | `0.4244x` (`35.46s` / `83.56s`) | `995.09 MB` OS peak WSET (`994.82 MB` 50ms RSS) | `pre-fix: 1/10 EOF +0.54s overshoot; fixed by provider clamp` | `KEEP_DEFAULT_PENDING_CHALLENGER` (baseline meets `<=15%` control) | `reports/product-acceptance/M4_MULTILINGUAL_BASELINE_SMALL_FORCED.json` |
-| `hi_in` | `59.48%` (`112S/7D/19I` / `232w`, macro `59.54%`, CER `23.78%`) | `BLOCKED_DOWNLOAD_APPROVAL` | `0/10` | `0.8809x` (`104.38s` / `118.50s`) | `995.09 MB` OS peak WSET (`994.82 MB` 50ms RSS) | `segment_only_valid` (`10/10`) | `KEEP_DEFAULT_PENDING_CHALLENGER` (baseline below `<=35%` usability target) | `reports/product-acceptance/M4_MULTILINGUAL_BASELINE_SMALL_FORCED.json` |
-| `kn_in` | `111.03%` (`88S/48D/15I` / `136w`, macro `110.24%`, CER `94.08%`) | `BLOCKED_DOWNLOAD_APPROVAL` | `2/10` (`20%`) | `5.3508x` (`590.08s` / `110.28s`) | `995.09 MB` OS peak WSET (`994.82 MB` 50ms RSS) | `pre-fix: 1/10 EOF overshoot; fixed by provider clamp` | `UNUSABLE_BASELINE_PENDING_CHALLENGER` (fails `<=65%` WER & `<=10%` empty) | `reports/product-acceptance/M4_MULTILINGUAL_BASELINE_SMALL_FORCED.json` |
-| `ta_in` | `65.52%` (`77S/7D/11I` / `145w`, macro `65.45%`, CER `15.97%`) | `BLOCKED_DOWNLOAD_APPROVAL` | `0/10` | `1.3958x` (`165.41s` / `118.50s`) | `995.09 MB` OS peak WSET (`994.82 MB` 50ms RSS) | `segment_only_valid` (`10/10`) | `KEEP_DEFAULT_PENDING_CHALLENGER` (baseline below `<=40%` usability target) | `reports/product-acceptance/M4_MULTILINGUAL_BASELINE_SMALL_FORCED.json` |
-| `te_in` | `116.06%` (`64S/129D/31I` / `193w`, macro `117.00%`, CER `99.55%`) | `BLOCKED_DOWNLOAD_APPROVAL` | `3/10` (`30%`) | `5.1977x` (`691.72s` / `133.08s`) | `995.09 MB` OS peak WSET (`994.82 MB` 50ms RSS) | `pre-fix: 2/10 EOF overshoot; fixed by provider clamp` | `UNUSABLE_BASELINE_PENDING_CHALLENGER` (fails `<=65%` WER & `<=10%` empty) | `reports/product-acceptance/M4_MULTILINGUAL_BASELINE_SMALL_FORCED.json` |
+| Language | Baseline WER (S/D/I / ref w) | Turbo WER (S/D/I / ref w) | Improvement (pp) | Turbo CER (edits / ref c) | Empty / Failed / Total | RTF (infer / audio) | Peak Memory (OS WSET / 50ms RSS) | Timestamp Validity | Verdict | Evidence Path |
+|---|---|---|---:|---|---|---|---|---|---|---|
+| `kn_in` | `111.03%` (`88/48/15` / `136w`) | `57.35%` (`66/9/3` / `136w`) | **`+53.68 pp`** | `19.33%` (`209/1081c`) | `0` / `0` / `10` | `1.3617x` (`150.17s` / `110.28s`) | `1917.66 MB` / `1823.61 MB` | `segment_only_valid` (`10/10`) | **`PASS_EXPERIMENTAL`** | `reports/product-acceptance/M4_MULTILINGUAL_CHALLENGER_TURBO_FORCED.json` |
+| `hi_in` | `59.48%` (`112/7/19` / `232w`) | `38.36%` (`81/0/8` / `232w`) | **`+21.12 pp`** | `19.81%` (`244/1232c`) | `0` / `0` / `10` | `1.5233x` (`180.51s` / `118.50s`) | `1917.66 MB` / `1823.61 MB` | `segment_only_valid` (`10/10`) | **`NON_REGRESSION_ONLY_BELOW_USABILITY_TARGET`** | `reports/product-acceptance/M4_MULTILINGUAL_CHALLENGER_TURBO_FORCED.json` |
+| `en_us` | `11.00%` (`16/0/6` / `200w`) | `7.50%` (`11/0/4` / `200w`) | **`+3.50 pp`** | `3.36%` (`37/1102c`) | `0` / `0` / `10` | `1.3701x` (`114.48s` / `83.56s`) | `1917.66 MB` / `1823.61 MB` | `segment_only_valid` (`10/10`) | **`PASS_EXPERIMENTAL`** | `reports/product-acceptance/M4_MULTILINGUAL_CHALLENGER_TURBO_FORCED.json` |
+| `ta_in` | `65.52%` (`77/7/11` / `145w`) | `76.55%` (`94/9/8` / `145w`) | **`-11.03 pp`** | `33.33%` (`428/1284c`) | `0` / `0` / `10` | `1.4147x` (`167.65s` / `118.50s`) | `1917.66 MB` / `1823.61 MB` | `segment_only_valid` (`10/10`) | **`KEEP_DEFAULT_FAIL`** | `reports/product-acceptance/M4_MULTILINGUAL_CHALLENGER_TURBO_FORCED.json` |
+| `te_in` | `116.06%` (`64/129/31` / `193w`) | `85.49%` (`124/36/5` / `193w`) | **`+30.57 pp`** | `39.83%` (`613/1539c`) | `0` / `0` / `10` | `1.4682x` (`195.39s` / `133.08s`) | `1917.66 MB` / `1823.61 MB` | `segment_only_valid` (`10/10`) | **`KEEP_DEFAULT_FAIL`** | `reports/product-acceptance/M4_MULTILINGUAL_CHALLENGER_TURBO_FORCED.json` |
 
-- **Baseline Corpus Summary:** `50/50` succeeded, `0` crashes, `5/50` (`10%`) empty hypotheses (`2` Kannada, `3` Telugu), Cold Init `1.8633s`, Total Inference `1,587.0527s` over `563.92s` audio (`Corpus RTF 2.8143x`), `50ms` Sampled Max RSS `994.82 MB` (`25,415` samples), OS Peak Working Set `995.09 MB` (`single_process_no_children`), VRAM & Energy `NOT_MEASURED`.
-- **Important Diagnostic Catch (Timing Validity):** Independent timing validation caught `4/50` baseline utterances (`fleurs_168de341_en_us_1885`, `kn_in_1663`, `te_in_1743`, `te_in_1921`) where Whisper predicted segment `end_time` past the actual audio EOF (e.g., `9.48s` on an `8.94s` English clip). `FasterWhisperProvider.transcribe()` was fixed to clamp segment and word boundaries to `[0.0, info.duration]` and drop post-EOF hallucination segments (`test_provider_clamps_segment_and_word_timings_to_audio_duration`).
+- **Challenger Corpus Summary:** `50/50` succeeded, `0` crashes, **`0/50` empty hypotheses** (vs `5/50` empty on baseline), Cold Init `5.2957s`, Total Infer `808.1968s` over `563.92s` audio (**`Corpus RTF 1.4332x`**, nearly 2× faster than baseline `2.8143x`!), `50ms` Sampled Max RSS `1,823.61 MB` (`12,992` samples), OS Peak Working Set `1,917.66 MB` (`single_process_no_children`, well within `<= 3,500 MB` budget), `50/50` valid segment timings (`0` invalid), VRAM & Energy `NOT_MEASURED`.
+- **Mode & Scope Disclosures:** This run supplied `language_mode="forced"`; automatic language detection (`language_mode="auto"`) and mixed-language / Hinglish speech require separate evaluations and are NOT covered by these verdicts. FLEURS speaker disjointness is `UNKNOWN` and upstream training contamination is `CONTAMINATION_RISK_DISCLOSED`.
 
 ---
 
-## 2. Exact Reproduction Commands
+## 2. Failure-Pattern Diagnosis for Missed Languages & Specialist Proposals
 
-### Materialize & Validate Frozen 5-Language Splits
-```powershell
-$env:PYTHONPATH = "backend;."
-.venv\Scripts\python.exe scripts/materialize_m4_multilingual_splits.py
-uv run --project backend --no-sync python scripts/validate_indic_bench.py --dataset-root data/indic_creator_bench/m4_multilingual_dev_50clip
-uv run --project backend --no-sync python scripts/validate_indic_bench.py --dataset-root data/indic_creator_bench/m4_multilingual_eval_50clip
-```
+1. **Tamil (`ta_in` — `KEEP_DEFAULT_FAIL`, regressed `-11.03 pp` to `76.55%` WER / `33.33%` CER):**
+   - **Failure Pattern A (Cross-lingual decoder derailment):** On `fleurs_168de341_ta_in_1795` (`19.68s`), the pruned 4-layer decoder broke into mixed Russian/French/English/Hindi/Turkish subwords (`"99.98 Кстати हeb intéressant வாக்குப்பட்டfallsdoingulos... Winter"`, `100%` WER, `87.6%` CER, `56.96s` infer).
+   - **Failure Pattern B (Numeral/acronym expansion & Tamil consonant confusion):** Spoken numerals/acronyms (`10:00-11:00 pm MDT`, `1200 GMT`) were expanded in Tamil script while consonant retroflex/dental confusions (`இரவு -> இறவு`, `விபத்து -> விவத்து`) inflated word-level edits across agglutinative compounds.
+   - **Proposed Specialist Comparison (requires separate approval):** Evaluate a pinned Tamil specialist (e.g., `vasista22/whisper-tamil-small` or `ai4bharat/indic-conformer-600m-multilingual`) under the exact same frozen `m4_multilingual_eval_50clip` Tamil partition with explicit `language="ta"` override.
+2. **Telugu (`te_in` — `KEEP_DEFAULT_FAIL`, improved `+30.57 pp` to `85.49%` WER / `39.83%` CER):**
+   - **Failure Pattern:** Eliminated all empty outputs (`3/10 -> 0/10`) and slashed CER by `59.7 pp` (`99.55% -> 39.83%`), confirming genuine Telugu script recognition, but still missed both `>= 35pp` WER reduction (`+30.57pp`) and `<= 65%` WER (`85.49%`) due to aspirated consonant substitutions (`124S`) and tail-end truncation (`36D` across `193` ref words on clips like `te_in_1995`, `te_in_1683`, `te_in_1690`).
+   - **Proposed Specialist Comparison (requires separate approval):** Evaluate pinned **`vasista22/whisper-telugu-small`** (`717212f9c4c16a78a86ddcb98f93c7f73ef8a5cc`, Apache-2.0, ungated, `0` `.py` files, `~924.0 MB` selective PyTorch transfer to `D:`, converted to CT2 `int8`) under the exact same frozen Telugu held-out partition with explicit `language="te"` override.
+3. **Hindi (`hi_in` — `NON_REGRESSION_ONLY_BELOW_USABILITY_TARGET`, improved `+21.12 pp` to `38.36%` WER / `19.81%` CER):**
+   - **Failure Pattern:** Cleared non-regression by `24.12 pp` margin, missing the `<= 35.0%` absolute usability target by `3.36 pp` due to (a) one severe acoustic derailment outlier (`hi_in_1939`, `100%` WER, `23S`, `6.30x` RTF — the other 9 clips average `31.6%` micro WER) and (b) Latin-script rendering of English loanwords (`device`, `move`, `action`, `USA Gymnastics`, `USOC`) where FLEURS references use Devanagari transliteration.
+   - **Proposed Next Step:** Confirm Hindi usability on authorized real Hindi creator recordings (where natural English loanwords match creator expectations) before deciding whether a Hindi specialist is needed.
+4. **Kannada Residual Risk (`kn_in` — `PASS_EXPERIMENTAL`, `57.35%` WER / `19.33%` CER):**
+   - Passed all M4 v2.0 gates cleanly (`+53.68 pp` drop, `0/10` empty, `1.36x` RTF, `10/10` valid timing). One short clip (`kn_in_1755`, `4.32s`) showed Devanagari script bleed (`100%` WER / `91.5%` CER) despite `forced="kn"`; the remaining 9 clips emitted pure Kannada script (`5.2%–30.6%` CER). Still requires confirmation on authorized real Kannada creator footage before any default promotion.
 
-### Reproduce 5-Language `faster-whisper-small` Baseline (Forced, CPU `int8`, `cpu_threads=4`)
+---
+
+## 3. Exact Reproduction Commands
+
 ```powershell
-$env:PYTHONPATH = "backend;."
-$env:HF_HUB_OFFLINE = "1"
-$env:AROVA_MODELS_HOME = "D:\ArovaStep2ASRProgram\models"
+$env:PYTHONPATH = "backend;."; $env:HF_HUB_OFFLINE = "1"; $env:AROVA_MODELS_HOME = "D:\ArovaStep2ASRProgram\models"
+
+# 1. Challenger 50-clip forced evaluation (large-v3-turbo, cpu/int8/t4)
 uv run --project backend --no-sync python scripts/run_m3_asr_baseline.py `
   --dataset-root data/indic_creator_bench/m4_multilingual_eval_50clip `
-  --model-size-or-path D:\ArovaStep2ASRProgram\models\faster-whisper-small `
-  --model-id faster-whisper-small `
-  --model-revision 536b0662742c02347bc0e980a01041f333bce120 `
+  --model-size-or-path D:\ArovaStep2ASRProgram\models\faster-whisper-large-v3-turbo `
+  --model-id faster-whisper-large-v3-turbo `
+  --model-revision 4df90f75321148c3a29a9e2351b7ddf8f5b115a8 `
   --device cpu --compute-type int8 --cpu-threads 4 `
   --language-mode forced --beam-size 5 --no-word-timestamps `
-  --checkpoint D:\ArovaStep2ASRProgram\tmp\m4_small_eval50_forced.ckpt.jsonl `
-  --json-out reports/product-acceptance/M4_MULTILINGUAL_BASELINE_SMALL_FORCED.json `
-  --md-out reports/product-acceptance/M4_MULTILINGUAL_BASELINE_SMALL_FORCED.md
-```
+  --checkpoint D:\ArovaStep2ASRProgram\tmp\m4_turbo_eval50_forced.ckpt.jsonl `
+  --json-out reports/product-acceptance/M4_MULTILINGUAL_CHALLENGER_TURBO_FORCED.json `
+  --md-out reports/product-acceptance/M4_MULTILINGUAL_CHALLENGER_TURBO_FORCED.md
 
-### Next Command (Immediately After User Approves `1,546.54 MiB` Download to `D:`)
-1. Download `deepdml/faster-whisper-large-v3-turbo-ct2@4df90f75321148c3a29a9e2351b7ddf8f5b115a8` into `D:\ArovaStep2ASRProgram\models\faster-whisper-large-v3-turbo\` and verify `model.bin` SHA-256 `e76620f83d5f5b69efd3d87e3dc180c1bd21df9fbebacfd4335e5e1efcc018da`.
-2. Run the exact matched 50-clip forced-mode evaluation (`cpu`, `int8`, `cpu_threads=4`, `beam_size=5`, `--no-word-timestamps`) + Auto-LID confusion evaluation if Auto mode is exposed in UI.
-3. Apply `evaluate_multilingual_language_decision()` per language; only if a language misses its gate, evaluate the corresponding pinned specialist (`vasista22/whisper-kannada-small` / `vasista22/whisper-telugu-small`).
+# 2. Reproduce five-language comparison table & gate verdicts
+uv run --project backend --no-sync python scripts/compare_m4_multilingual_runs.py `
+  --baseline-json reports/product-acceptance/M4_MULTILINGUAL_BASELINE_SMALL_FORCED.json `
+  --candidate-json reports/product-acceptance/M4_MULTILINGUAL_CHALLENGER_TURBO_FORCED.json `
+  --json-out reports/product-acceptance/M4_MULTILINGUAL_DECISION_COMPARISON.json `
+  --md-out reports/product-acceptance/M4_MULTILINGUAL_DECISION_COMPARISON.md
+```
 
 ---
 
-## 3. Experimental Status & Next Unresolved Gates
-- **Current Product Default:** Unchanged (`faster-whisper-small`; reliable on English `11.00%` WER, draft-only on Hindi `59.48%` / Tamil `65.52%`, unusable on Kannada `111.03%` / Telugu `116.06%`).
-- **Next Unresolved Gate #1:** User download authorization for `deepdml/faster-whisper-large-v3-turbo-ct2` (`1,546.54 MiB` to `D:\ArovaStep2ASRProgram\models\faster-whisper-large-v3-turbo\`, `~3.1 GiB` peak temp on `D:` with `69.12 GB` free).
-- **Next Unresolved Gate #2:** Authorized real creator recordings (names, music, spontaneous speech) required before changing any language's product default beyond `PASS_EXPERIMENTAL`.
-- **Next Unresolved Gate #3:** Mixed-language / Hinglish remains excluded (`NO_VERIFIED_REFERENCE`).
+## 4. Recommended Next Action
+
+Keep `faster-whisper-small` as the production default during M4 (weights stay strictly outside Git) and choose **one** next bounded authorization:
+- **Option A (Recommended — Fix Worst Remaining Dravidian Miss First):** Authorize downloading pinned `vasista22/whisper-telugu-small` (`717212f9c4c16a78a86ddcb98f93c7f73ef8a5cc`, Apache-2.0, ungated, `~924.0 MB` selective PyTorch transfer to `D:`) for a controlled Telugu specialist trial on the same frozen `m4_multilingual_eval_50clip` Telugu clips (and separately confirm a pinned Tamil specialist candidate before downloading).
+- **Option B (Creator Confirmation for Passing Languages):** Supply authorized local creator recordings in Kannada/English/Hindi to validate `faster-whisper-large-v3-turbo` (`PASS_EXPERIMENTAL` on `kn_in`/`en_us`) on real spontaneous speech with music and names before any opt-in model selection UI.

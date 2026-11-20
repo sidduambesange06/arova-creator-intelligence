@@ -512,3 +512,38 @@ def test_pipeline_asr_fingerprint_invalidates_on_model_revision_language_or_deco
         assert p4.seen_languages == ["hi"]
         asr_runs = db.query(StageRun).filter_by(stage=STAGE_ASR_TRANSCRIPTION).all()
         assert len({r.fingerprint for r in asr_runs}) == 4
+
+
+def test_compare_m4_multilingual_runs_rejects_protocol_mismatch() -> None:
+    import sys
+
+    scripts_dir = str(REPO_ROOT / "scripts")
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+    from compare_m4_multilingual_runs import compare_reports
+
+    base = json.loads(
+        (REPO_ROOT / "reports" / "product-acceptance" / "M4_MULTILINGUAL_BASELINE_SMALL_FORCED.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    cand = json.loads(
+        (REPO_ROOT / "reports" / "product-acceptance" / "M4_MULTILINGUAL_CHALLENGER_TURBO_FORCED.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    summary = compare_reports(base, cand)
+    assert len(summary["rows"]) == 5
+    verdicts = {r["language_code"]: r["verdict"] for r in summary["rows"]}
+    assert verdicts["kn_in"] == "PASS_EXPERIMENTAL"
+    assert verdicts["en_us"] == "PASS_EXPERIMENTAL"
+    assert verdicts["hi_in"] == "NON_REGRESSION_ONLY_BELOW_USABILITY_TARGET"
+    assert verdicts["ta_in"] == "KEEP_DEFAULT_FAIL"
+    assert verdicts["te_in"] == "KEEP_DEFAULT_FAIL"
+
+    # Mutating cpu_threads must fail loudly rather than mixing unmatched protocols
+    bad_cand = json.loads(json.dumps(cand))
+    bad_cand["asr_provenance"]["decoding_params"]["cpu_threads"] = 8
+    with pytest.raises(ValueError, match="cpu_threads"):
+        compare_reports(base, bad_cand)

@@ -6,7 +6,7 @@ This manifest tracks pinned, verified external model weights for M4 evaluation. 
 
 ## Section A — First Multilingual Challenger (PRIORITY): `deepdml/faster-whisper-large-v3-turbo-ct2`
 
-- **Status:** `AWAITING_USER_DOWNLOAD_AUTHORIZATION` (not present in `D:\ArovaStep2ASRProgram\models\` as of 2026-11-20)
+- **Status:** `VERIFIED_ON_DISK_AND_EVALUATED` (user-approved download completed 2026-11-20 to `D:\ArovaStep2ASRProgram\models\faster-whisper-large-v3-turbo\`; `model.bin` SHA-256 `e76620f83d5f5b69efd3d87e3dc180c1bd21df9fbebacfd4335e5e1efcc018da` exact match; offline CTranslate2 load verified; 50-clip held-out eval completed — see `M4_MULTILINGUAL_DECISION_SUMMARY.md`)
 - **Model Identifier:** `deepdml/faster-whisper-large-v3-turbo-ct2` (registered catalog ID: `faster-whisper-large-v3-turbo`)
 - **Pinned Immutable Revision (HF Commit SHA):** `4df90f75321148c3a29a9e2351b7ddf8f5b115a8`
 - **Upstream Base Model:** `openai/whisper-large-v3-turbo` (`41f01f3fe87f28c78e2fbf8b568835947dd65ed9`, MIT)
