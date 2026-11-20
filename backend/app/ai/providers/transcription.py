@@ -243,19 +243,26 @@ class FasterWhisperProvider:
 
                 detected_lang = getattr(info, "language", language or "en")
                 lang_prob = round(float(getattr(info, "language_probability", 1.0)), 4) if getattr(info, "language_probability", None) is not None else None
+                raw_duration = getattr(info, "duration", None)
+                max_duration = float(raw_duration) if isinstance(raw_duration, (int, float)) and raw_duration > 0 else None
 
                 segments: list[SegmentResult] = []
                 for s in segments_raw:
                     t_text = (s.text or "").strip()
-                    if t_text and s.end > s.start:
+                    seg_start = max(0.0, float(s.start))
+                    seg_end = float(s.end)
+                    if max_duration is not None:
+                        seg_start = min(seg_start, max_duration)
+                        seg_end = min(seg_end, max_duration)
+                    if t_text and seg_end > seg_start:
                         # Extract word timestamps only when genuinely supported and requested
                         words_data = None
                         if effective_word_timestamps and getattr(s, "words", None):
                             words_data = [
                                 {
                                     "word": w.word,
-                                    "start": round(float(w.start), 3),
-                                    "end": round(float(w.end), 3),
+                                    "start": round(max(seg_start, min(float(w.start), seg_end)), 3),
+                                    "end": round(max(seg_start, min(float(w.end), seg_end)), 3),
                                     "probability": round(float(w.probability), 4) if getattr(w, "probability", None) is not None else None,
                                 }
                                 for w in s.words
@@ -268,8 +275,8 @@ class FasterWhisperProvider:
 
                         segments.append(
                             SegmentResult(
-                                start_time=round(float(s.start), 3),
-                                end_time=round(float(s.end), 3),
+                                start_time=round(seg_start, 3),
+                                end_time=round(seg_end, 3),
                                 text=t_text,
                                 confidence=raw_avg_logprob if raw_avg_logprob is not None else 0.0,
                                 avg_logprob=raw_avg_logprob,

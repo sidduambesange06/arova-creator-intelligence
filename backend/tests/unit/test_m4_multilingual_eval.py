@@ -202,6 +202,48 @@ def test_provider_cpu_threads_in_cache_key_and_param_hash(tmp_path: Path, monkey
     assert r4.parameter_hash != r8.parameter_hash
 
 
+def test_provider_clamps_segment_and_word_timings_to_audio_duration(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    wav = tmp_path / "clip.wav"
+    _write_tiny_wav(wav, duration_sec=0.5)
+
+    class _OvershootModel:
+        def transcribe(self, path: str, **kwargs: object):
+            # Simulates Whisper predicting end_time past audio EOF and a post-EOF hallucination segment
+            seg1 = SimpleNamespace(
+                start=0.0,
+                end=9.48,
+                text="valid speech slightly overshooting",
+                avg_logprob=-0.1,
+                no_speech_prob=0.01,
+                compression_ratio=1.0,
+                temperature=0.0,
+                words=[SimpleNamespace(word="yard", start=7.24, end=9.48, probability=0.9)],
+            )
+            seg2 = SimpleNamespace(
+                start=12.0,
+                end=29.5,
+                text="post-eof hallucination",
+                avg_logprob=-0.9,
+                no_speech_prob=0.5,
+                compression_ratio=2.0,
+                temperature=0.0,
+                words=None,
+            )
+            return [seg1, seg2], SimpleNamespace(language="en", language_probability=0.99, duration=8.94)
+
+    provider = FasterWhisperProvider(model_size_or_path="small", cpu_threads=4)
+    monkeypatch.setattr(provider, "_get_or_load_model", lambda: _OvershootModel())
+
+    res = provider.transcribe(wav, language="en", word_timestamps=True)
+    assert len(res.segments) == 1
+    assert res.segments[0].start_time == 0.0
+    assert res.segments[0].end_time == 8.94
+    assert res.segments[0].words is not None
+    assert res.segments[0].words[0]["end"] == 8.94
+
+
 def test_runner_tracks_timing_validity_auto_lid_confusion_and_checkpoint_isolation(tmp_path: Path) -> None:
     ds_root = _make_multilang_mini_dataset(tmp_path)
     ckpt = tmp_path / "eval.ckpt.jsonl"
