@@ -970,6 +970,7 @@ export function VideoWorkstationView({
                           <div className="relative w-24 h-14 bg-black rounded overflow-hidden flex items-center justify-center text-[10px] text-slate-400 font-mono">
                             {sc.thumbnail_path && (
                               <img
+                                loading="lazy"
                                 src={getSceneThumbnailUrl(selectedVideo.id, sc.scene_index)}
                                 alt={`Scene #${sc.scene_index + 1}`}
                                 className="absolute inset-0 w-full h-full object-cover opacity-80"

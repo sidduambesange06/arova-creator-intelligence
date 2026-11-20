@@ -35,3 +35,6 @@
 - **What Did Not Materially Drop (Honest Disclosure):**
   - Warm latency on `/admin/database/{overview,tables,relationships}` remains `~20–32 ms` because each request opens a fresh read-only SQLite engine (`get_readonly_engine()`) and disposes it in `finally` to guarantee clean WAL visibility and zero leaked descriptors. At `~20–32 ms` on 30 tables, this is well inside the `<= 50 ms` admin budget and does not justify pooling complexity yet.
   - Full-suite `pytest` runtime (~60s) is dominated by FFmpeg subprocess tests and stress fixtures rather than DB overhead.
+
+## Workstation scene-strip follow-up
+On the same 139-scene video, the [pre-change browser run](STABILIZATION_DB_RECHECK.json) recorded 144 API requests during initial navigation. Native lazy loading on scene images reduced this to 15 in the [follow-up run](STABILIZATION_WORKSTATION_RECHECK.json), including 10 scene thumbnail requests. Scrolling to the final scene loaded its image. Counts cover the probe's initial observation window. The fixed 900 ms wait precludes a rendering-speed claim. Fresh warm search medians varied from 9.61 to 14.66 ms across the two runs.
