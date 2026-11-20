@@ -36,3 +36,6 @@
 3. **Local `.env` `CORS_ORIGINS` & `ADMIN_AUTH_TOKEN`:** `.env.example` was updated with `:4173` preview origins and `ADMIN_AUTH_TOKEN` documentation, while the user's private `.env` was intentionally left untouched. To unlock Database Explorer in local sessions, set `ADMIN_AUTH_TOKEN` in `.env` and restart FastAPI.
 4. **M4 Kannada Specialist Model:** `vasista22/whisper-kannada-small` download (`~924.0 MB` to `D:\ArovaStep2ASRProgram\models\`) remains cleanly paused pending separate user authorization.
 5. **Superpowers Plugin:** Available in the Marketplace (`antigravity-plugins-partners/plugin/superpowers`); not auto-installed per plugin safety rules — core `systematic-debugging` and `verification-before-completion` procedures were incorporated directly into `docs/engineering/ENGINEERING_SYSTEM.md`.
+
+## Subsequent browser verification
+Use [the corrected Database Explorer fixture run](STABILIZATION_DB_RECHECK.json) for the rows, inspector and accessible-list claims above. The original after-probe had three false flags and selected the wrong table.

@@ -31,3 +31,6 @@
 | **Empty Database & FTS5 Safety** | 0-row schema & `transcript_chunks_fts` handled cleanly without 500 errors | **PASS** | `test_stabilization_db_safety.py::test_database_explorer_reads_are_strictly_readonly_and_support_empty_and_fts` |
 | **Read-Only Non-Mutation Proof** | Zero database mutations; live `data/app.db` untouched | **PASS** | `db_records_immutable: true`, `live_db_immutable: true`, byte-for-byte SHA-256 verified in unit test (`mode=ro` + `PRAGMA query_only=ON`) |
 | **Production Console / Page Errors** | Zero unexpected console errors or uncaught page errors | **PASS** | `non_401_console_errors: []`, `total_page_errors: []` |
+
+## Fixture recheck on November 20
+The original browser run selected `collection_videos` by substring. Its inspector and accessible-list assertions also returned false. The corrected browser probe selects the exact table name, reads a populated incoming-reference control, and checks the relationship table header and body. One GET to `/tables/videos/rows` returned 200 and the expected movie was visible. Validate the [fresh evidence](STABILIZATION_DB_RECHECK.json) with `python scripts/check_database_explorer_evidence.py reports/product-acceptance/STABILIZATION_DB_RECHECK.json`. The original after-probe fails this gate.
