@@ -134,7 +134,14 @@ def _classify_error(exc: Exception) -> str:
     return "INFERENCE_ERROR"
 
 
-def _load_checkpoint(checkpoint_path: Path | None, config_fingerprint: str) -> dict[str, dict[str, Any]]:
+def _load_checkpoint(
+    checkpoint_path: Path | None,
+    config_fingerprint: str,
+    *,
+    manifest_sha256: str,
+    model_id: str,
+    model_revision: str,
+) -> dict[str, dict[str, Any]]:
     if checkpoint_path is None or not checkpoint_path.is_file():
         return {}
     loaded: dict[str, dict[str, Any]] = {}
@@ -148,11 +155,177 @@ def _load_checkpoint(checkpoint_path: Path | None, config_fingerprint: str) -> d
             continue
         if (
             obj.get("config_fingerprint_sha256") == config_fingerprint
+            and obj.get("manifest_sha256") == manifest_sha256
+            and obj.get("model_id") == model_id
+            and obj.get("model_revision") == model_revision
             and obj.get("status") == "COMPLETED"
             and isinstance(obj.get("utterance_id"), str)
         ):
             loaded[obj["utterance_id"]] = obj
     return loaded
+
+
+def _assess_utterance_timing(segments: list[Any], duration_sec: float) -> dict[str, Any]:
+    """Validate segment & word timing boundaries independently of transcription accuracy."""
+    if not segments:
+        return {
+            "status": "no_segments",
+            "segment_timing_valid": True,
+            "word_timing_present": False,
+            "word_timing_valid": None,
+            "segment_count": 0,
+            "word_count": 0,
+        }
+
+    max_end = max(duration_sec, 0.0) + 0.5
+    seg_valid = True
+    prev_start = -0.001
+    word_count = 0
+    word_valid = True
+
+    for seg in segments:
+        start = float(getattr(seg, "start_time", -1.0))
+        end = float(getattr(seg, "end_time", -1.0))
+        if start < -0.001 or end <= start or start + 0.001 < prev_start or end > max_end:
+            seg_valid = False
+        prev_start = start
+
+        words = getattr(seg, "words", None) or []
+        if words:
+            prev_w_start = -0.001
+            for w in words:
+                word_count += 1
+                ws = float(w.get("start", -1.0))
+                we = float(w.get("end", -1.0))
+                if ws < -0.001 or we < ws or ws + 0.001 < prev_w_start or we > max_end:
+                    word_valid = False
+                prev_w_start = ws
+
+    has_words = word_count > 0
+    if not seg_valid or (has_words and not word_valid):
+        status = "invalid_timing"
+    elif has_words:
+        status = "word_level_valid"
+    else:
+        status = "segment_only_valid"
+
+    return {
+        "status": status,
+        "segment_timing_valid": seg_valid,
+        "word_timing_present": has_words,
+        "word_timing_valid": word_valid if has_words else None,
+        "segment_count": len(segments),
+        "word_count": word_count,
+    }
+
+
+def _summarize_timing_validity(utterances: list[dict[str, Any]]) -> dict[str, Any]:
+    completed = [u for u in utterances if u.get("status") == "COMPLETED"]
+    valid_seg = 0
+    word_level = 0
+    invalid = 0
+    no_segments = 0
+    for u in completed:
+        tv = u.get("timing_validity") or {}
+        st = tv.get("status")
+        if st == "word_level_valid":
+            valid_seg += 1
+            word_level += 1
+        elif st == "segment_only_valid":
+            valid_seg += 1
+        elif st == "no_segments":
+            no_segments += 1
+        else:
+            invalid += 1
+
+    if not completed:
+        overall = "not_evaluated"
+    elif invalid > 0:
+        overall = "invalid_timing"
+    elif valid_seg == 0:
+        overall = "no_segments"
+    elif word_level == valid_seg:
+        overall = "word_level_valid"
+    else:
+        overall = "segment_only_valid"
+
+    return {
+        "status": overall,
+        "evaluated_count": len(completed),
+        "valid_segment_timing_count": valid_seg,
+        "word_level_valid_count": word_level,
+        "no_segments_count": no_segments,
+        "invalid_timing_count": invalid,
+    }
+
+
+def evaluate_multilingual_language_decision(
+    *,
+    language_code: str,
+    baseline_micro_wer: float | None,
+    candidate_micro_wer: float | None,
+    empty_count: int,
+    total_count: int,
+    failed_count: int,
+    rtf: float | None,
+    measured_memory_mb: float | None,
+    timing_valid: bool,
+    max_rtf: float = 6.0,
+    max_memory_mb: float = 3500.0,
+) -> dict[str, Any]:
+    """Apply pre-registered M4 v2.0 per-language acceptance gates."""
+    empty_rate = (empty_count / float(total_count)) if total_count > 0 else 1.0
+    reliability_ok = (failed_count == 0) and (total_count > 0) and (empty_rate <= 0.10) and timing_valid
+    memory_measured = measured_memory_mb is not None
+    budget_ok = memory_measured and (measured_memory_mb <= max_memory_mb) and (rtf is not None and rtf <= max_rtf)
+
+    non_regression_passed: bool | None = None
+    absolute_usability_passed: bool | None = None
+    accuracy_passed = False
+
+    if candidate_micro_wer is not None:
+        if language_code in ("kn_in", "te_in"):
+            drop_ok = baseline_micro_wer is not None and (baseline_micro_wer - candidate_micro_wer) >= 0.35
+            abs_ok = candidate_micro_wer <= 0.65
+            accuracy_passed = drop_ok and abs_ok
+            absolute_usability_passed = abs_ok
+        elif language_code == "en_us":
+            abs_ok = candidate_micro_wer <= 0.15
+            accuracy_passed = abs_ok
+            absolute_usability_passed = abs_ok
+        elif language_code == "hi_in":
+            non_regression_passed = baseline_micro_wer is not None and candidate_micro_wer <= (baseline_micro_wer + 0.03)
+            absolute_usability_passed = candidate_micro_wer <= 0.35
+            accuracy_passed = bool(non_regression_passed and absolute_usability_passed)
+        elif language_code == "ta_in":
+            non_regression_passed = baseline_micro_wer is not None and candidate_micro_wer <= (baseline_micro_wer + 0.03)
+            absolute_usability_passed = candidate_micro_wer <= 0.40
+            accuracy_passed = bool(non_regression_passed and absolute_usability_passed)
+
+    if not memory_measured:
+        decision = "HOLD_MEMORY_UNMEASURED"
+    elif not reliability_ok:
+        decision = "KEEP_DEFAULT_FAIL"
+    elif accuracy_passed and budget_ok:
+        decision = "PASS_EXPERIMENTAL"
+    elif accuracy_passed and not budget_ok:
+        decision = "EXPERIMENTAL_OVER_BUDGET"
+    elif language_code in ("hi_in", "ta_in") and non_regression_passed and not absolute_usability_passed and budget_ok:
+        decision = "NON_REGRESSION_ONLY_BELOW_USABILITY_TARGET"
+    else:
+        decision = "KEEP_DEFAULT_FAIL"
+
+    return {
+        "language_code": language_code,
+        "decision": decision,
+        "reliability_passed": reliability_ok,
+        "memory_measured": memory_measured,
+        "budget_passed": budget_ok,
+        "accuracy_passed": accuracy_passed,
+        "non_regression_passed": non_regression_passed,
+        "absolute_usability_passed": absolute_usability_passed,
+        "empty_rate": round(empty_rate, 6),
+    }
 
 
 def _append_checkpoint(checkpoint_path: Path | None, record: dict[str, Any]) -> None:
@@ -172,6 +345,7 @@ def run_indic_asr_baseline(
     provider_type: str = "faster_whisper",
     device: str = "cpu",
     compute_type: str = "int8",
+    cpu_threads: int = 0,
     language_mode: str = "forced",
     beam_size: int = 5,
     vad_filter: bool = False,
@@ -208,6 +382,7 @@ def run_indic_asr_baseline(
         "vad_filter": vad_filter,
         "word_timestamps": word_timestamps,
         "condition_on_previous_text": condition_on_previous_text,
+        "cpu_threads": int(cpu_threads),
     }
     env_info = _get_dependency_versions()
 
@@ -299,7 +474,13 @@ def run_indic_asr_baseline(
         environment=env_info,
     )
     cfg_fp = provisional_prov["config_fingerprint_sha256"]
-    cached_records = _load_checkpoint(checkpoint_path, cfg_fp)
+    cached_records = _load_checkpoint(
+        checkpoint_path,
+        cfg_fp,
+        manifest_sha256=manifest_sha256,
+        model_id=model_id,
+        model_revision=model_revision,
+    )
 
     rss_before = _get_rss_mb()
     rss_peak = rss_before
@@ -423,6 +604,7 @@ def run_indic_asr_baseline(
                 policy_version=NORMALIZATION_POLICY_VERSION,
             )
             rtf = round(infer_sec / duration_sec, 4) if duration_sec > 0 else None
+            timing_val = _assess_utterance_timing(tx_result.segments, duration_sec)
 
             rec = {
                 "utterance_id": uid,
@@ -436,13 +618,17 @@ def run_indic_asr_baseline(
                 "forced_language": forced_lang,
                 "detected_language": tx_result.language,
                 "segment_count": len(tx_result.segments),
-                "word_count": sum(len(s.words or []) for s in tx_result.segments),
+                "word_count": timing_val["word_count"],
+                "timing_validity": timing_val,
                 "inference_sec": infer_sec,
                 "rtf": rtf,
                 "raw_reference": raw_ref,
                 "raw_hypothesis": raw_hyp,
                 "metrics": utt_metrics,
                 "config_fingerprint_sha256": cfg_fp,
+                "manifest_sha256": manifest_sha256,
+                "model_id": model_id,
+                "model_revision": model_revision,
             }
             _append_checkpoint(checkpoint_path, rec)
             utterances.append(rec)
@@ -504,13 +690,33 @@ def run_indic_asr_baseline(
     )
 
     per_language_summary: dict[str, Any] = {}
+    lid_confusion: dict[str, dict[str, int]] = {}
+    lid_total = 0
+    lid_correct = 0
+
     for lang_code in sorted(per_lang_counts.keys()):
         lang_ms = per_lang_metrics[lang_code]
+        lang_utts = [u for u in utterances if u.get("language_code") == lang_code]
         micro = compute_safe_corpus_metrics(lang_ms)
         valid_wers = [m["wer"] for m in lang_ms if m["wer"] is not None]
         valid_cers = [m["cer"] for m in lang_ms if m["cer"] is not None]
         lang_audio = round(per_lang_audio_sec[lang_code], 3)
         lang_infer = round(per_lang_infer_sec[lang_code], 4)
+        lang_timing = _summarize_timing_validity(lang_utts)
+
+        expected_whisper_lang = WHISPER_LANG_MAP.get(lang_code, lang_code.split("_")[0])
+        if language_mode == "auto":
+            counts_for_lang: dict[str, int] = defaultdict(int)
+            for u in lang_utts:
+                if u.get("status") != "COMPLETED":
+                    continue
+                det = str(u.get("detected_language") or "unknown").strip().lower()
+                counts_for_lang[det] += 1
+                lid_total += 1
+                if det == expected_whisper_lang:
+                    lid_correct += 1
+            lid_confusion[lang_code] = dict(sorted(counts_for_lang.items()))
+
         per_language_summary[lang_code] = {
             "total_count": per_lang_counts[lang_code]["total"],
             "succeeded_count": per_lang_counts[lang_code]["succeeded"],
@@ -521,7 +727,27 @@ def run_indic_asr_baseline(
             "micro": micro,
             "macro_wer": round(sum(valid_wers) / len(valid_wers), 6) if valid_wers else None,
             "macro_cer": round(sum(valid_cers) / len(valid_cers), 6) if valid_cers else None,
+            "timing_validity": lang_timing,
         }
+
+    corpus_timing_validity = _summarize_timing_validity(utterances)
+    language_id_summary: dict[str, Any] = (
+        {
+            "enabled": True,
+            "total_evaluated": lid_total,
+            "correct_count": lid_correct,
+            "accuracy": round(lid_correct / float(lid_total), 6) if lid_total > 0 else None,
+            "confusion_matrix": lid_confusion,
+        }
+        if language_mode == "auto"
+        else {
+            "enabled": False,
+            "total_evaluated": 0,
+            "correct_count": 0,
+            "accuracy": None,
+            "confusion_matrix": {},
+        }
+    )
 
     succeeded_audio_sec = round(sum(per_lang_audio_sec.values()), 3)
     corpus_micro = compute_safe_corpus_metrics(succeeded_metrics)
@@ -549,6 +775,8 @@ def run_indic_asr_baseline(
             "succeeded_audio_sec": succeeded_audio_sec,
             "corpus_rtf": round(total_inference_sec / succeeded_audio_sec, 4) if succeeded_audio_sec > 0 else None,
         },
+        "timing_validity": corpus_timing_validity,
+        "language_id_summary": language_id_summary,
         "resources": {
             "rss_before_mb": rss_before,
             "rss_after_init_mb": rss_after_init,

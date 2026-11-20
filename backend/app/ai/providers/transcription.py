@@ -88,6 +88,7 @@ class FasterWhisperProvider:
         model_revision: str | None = None,
         supported_languages: frozenset[str] | set[str] | tuple[str, ...] | None = None,
         supports_word_timestamps: bool = True,
+        cpu_threads: int = 0,
     ) -> None:
         self.model_target = model_size_or_path or model_id or settings.WHISPER_MODEL_SIZE or "small"
         self.compute_type = compute_type or settings.WHISPER_COMPUTE_TYPE or "int8"
@@ -100,9 +101,10 @@ class FasterWhisperProvider:
             else None
         )
         self.supports_word_timestamps = bool(supports_word_timestamps)
+        self.cpu_threads = max(0, int(cpu_threads))
 
     def _get_cache_key(self) -> str:
-        return f"{self.model_target}:{self.device}:{self.compute_type}"
+        return f"{self.model_target}:{self.device}:{self.compute_type}:t{self.cpu_threads}"
 
     def _resolve_model_path(self) -> str | None:
         target_path = Path(self.model_target)
@@ -175,6 +177,7 @@ class FasterWhisperProvider:
                 model_size_or_path=resolved_path,
                 device=self.device,
                 compute_type=self.compute_type,
+                cpu_threads=self.cpu_threads,
                 local_files_only=True,
             )
             _LOADED_MODELS_CACHE[cache_key] = model
@@ -213,6 +216,7 @@ class FasterWhisperProvider:
             "model_target": str(self.model_target),
             "device": self.device,
             "compute_type": self.compute_type,
+            "cpu_threads": self.cpu_threads,
             "language": language,
             "vad_filter": vad_filter,
             "word_timestamps": effective_word_timestamps,

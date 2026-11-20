@@ -53,9 +53,10 @@ def _render_markdown(report: dict, git_sha: str, dataset_root: Path, title: str 
         f"- **Dataset:** `{ds['dataset_id']}@{ds['dataset_version']}` (`split={ds['split']}`, `license={ds['license_summary']}`)",
         f"- **Manifest SHA-256:** `{ds['manifest_sha256']}`",
         f"- **Model:** `{prov['model_id']}` (revision `{prov['model_revision']}`, device `{prov['device']}`, compute_type `{prov['compute_type']}`)",
-        f"- **Language Mode:** `{prov['language_mode']}` | **Word Timestamps:** `{dec.get('word_timestamps')}` | **Normalization:** `{prov['normalization_policy_version']}`",
+        f"- **Language Mode:** `{prov['language_mode']}` | **Word Timestamps:** `{dec.get('word_timestamps')}` | **CPU Threads:** `{dec.get('cpu_threads', 0)}` | **Normalization:** `{prov['normalization_policy_version']}`",
         f"- **Config Fingerprint:** `{prov['config_fingerprint_sha256']}`",
         f"- **Sample Coverage:** `{batch['succeeded_items']}/{batch['total_items']}` succeeded, `{batch['failed_items']}` failed, `{batch['skipped_items']}` skipped (`coverage_complete={cm.get('coverage_complete')}`)",
+        f"- **Timing Validity (Independent of WER):** `{(report.get('timing_validity') or {}).get('status', 'not_evaluated')}`",
         "",
         f"> **Scope Disclaimer:** {ds.get('note', 'Local benchmark partition; does not establish population-level accuracy claims.')} Hinglish remains excluded (`NO_VERIFIED_REFERENCE`).",
         "",
@@ -79,18 +80,35 @@ def _render_markdown(report: dict, git_sha: str, dataset_root: Path, title: str 
         "",
         f"Aggregation method: {cm['aggregation_method']}.",
         "",
-        "| Language | Succeeded / Total | Failed | Empty Hyp | Audio (s) | Infer (s) | RTF | Micro WER (S/D/I) | Micro CER | Macro WER | Macro CER |",
-        "|---|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|",
+        "| Language | Succeeded / Total | Failed | Empty Hyp | Ref Words | Audio (s) | Infer (s) | RTF | Micro WER (S/D/I) | Micro CER | Macro WER | Macro CER | Timing Status |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|---|",
     ]
     for lang, stats in report["per_language"].items():
         micro = stats["micro"]
         sdi = f"{micro.get('total_word_substitutions', 0)}/{micro.get('total_word_deletions', 0)}/{micro.get('total_word_insertions', 0)}"
+        t_status = (stats.get("timing_validity") or {}).get("status", "not_evaluated")
         lines.append(
             f"| `{lang}` | {stats['succeeded_count']}/{stats['total_count']} | {stats['failed_count']} | "
-            f"{micro.get('empty_hypothesis_count', 0)} | "
+            f"{micro.get('empty_hypothesis_count', 0)} | {micro.get('total_ref_words', 0)} | "
             f"{stats['audio_sec']:.2f} | {stats['inference_sec']:.2f} | {stats['rtf']} | "
-            f"`{micro['corpus_wer']}` ({sdi}) | {micro['corpus_cer']} | {stats['macro_wer']} | {stats['macro_cer']} |"
+            f"`{micro['corpus_wer']}` ({sdi}) | {micro['corpus_cer']} | {stats['macro_wer']} | {stats['macro_cer']} | `{t_status}` |"
         )
+    lid = report.get("language_id_summary") or {}
+    if lid.get("enabled"):
+        lines.extend(
+            [
+                "",
+                "## Automatic Language Identification Confusion",
+                "",
+                f"- **LID Accuracy:** `{lid.get('correct_count')}/{lid.get('total_evaluated')}` (`{lid.get('accuracy')}`)",
+                "",
+                "| Expected Language | Detected Language Counts |",
+                "|---|---|",
+            ]
+        )
+        for exp_lang, det_map in (lid.get("confusion_matrix") or {}).items():
+            summary_str = ", ".join(f"`{k}`: {v}" for k, v in det_map.items())
+            lines.append(f"| `{exp_lang}` | {summary_str} |")
     lines.extend(
         [
             "",
@@ -128,6 +146,7 @@ def main() -> int:
     parser.add_argument("--model-revision", type=str, default="local_pinned")
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--compute-type", type=str, default="int8")
+    parser.add_argument("--cpu-threads", type=int, default=0, help="Explicit CTranslate2 CPU thread count (0 = runtime default).")
     parser.add_argument("--language-mode", type=str, choices=("forced", "auto"), default="forced")
     parser.add_argument("--beam-size", type=int, default=5)
     parser.add_argument("--vad-filter", action="store_true")
@@ -162,6 +181,7 @@ def main() -> int:
         model_revision=args.model_revision,
         supported_languages=supported_langs,
         supports_word_timestamps=use_word_ts,
+        cpu_threads=args.cpu_threads,
     )
 
     report = run_indic_asr_baseline(
@@ -171,6 +191,7 @@ def main() -> int:
         model_revision=args.model_revision,
         device=args.device,
         compute_type=args.compute_type,
+        cpu_threads=args.cpu_threads,
         language_mode=args.language_mode,
         beam_size=args.beam_size,
         vad_filter=args.vad_filter,
