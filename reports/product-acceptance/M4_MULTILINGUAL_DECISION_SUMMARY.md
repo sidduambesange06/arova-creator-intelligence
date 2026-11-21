@@ -43,15 +43,40 @@
 
 ---
 
-## 3. Exact Reproduction Commands
+## 3. Prerequisites & Exact Reproduction Commands
 
+### Prerequisites
+1. **Backend + ASR extra:** `uv sync --project backend --group dev --extra asr --locked` (installs `faster-whisper`, `ctranslate2`, `psutil`).
+2. **Pinned FLEURS parquets (only if re-materializing WAV clips from source parquets):** `google/fleurs@168de341b3db6859a9bac1c50a2ef5e3b47647e0` (`CC-BY-4.0`) test parquets (`<lang>/test/0000.parquet` for `en_us`, `hi_in`, `kn_in`, `ta_in`, `te_in`, SHA-256 registry in `M4_EVALUATION_PLAN.md`). Pass `--fleurs-root <path>` (or set `AROVA_FLEURS_ROOT`) and run with `--with pyarrow` if `pyarrow` is not installed in the backend venv.
+3. **Pinned local CTranslate2 weights (kept outside Git):**
+   - `faster-whisper-small` (`Systran/faster-whisper-small@536b0662742c02347bc0e980a01041f333bce120`, Apache-2.0)
+   - `faster-whisper-large-v3-turbo` (`deepdml/faster-whisper-large-v3-turbo-ct2@4df90f75321148c3a29a9e2351b7ddf8f5b115a8`, MIT, `model.bin` SHA-256 `e76620f83d5f5b69efd3d87e3dc180c1bd21df9fbebacfd4335e5e1efcc018da`)
+   - Install locally via `python -m arova models install faster-whisper-small` and `python -m arova models install faster-whisper-large-v3-turbo` (storage location controlled by `AROVA_MODELS_HOME`).
+
+### Step-by-Step Commands (Windows PowerShell; set `PYTHONPATH=backend:.` on Linux/macOS)
 ```powershell
 $env:PYTHONPATH = "backend;."; $env:HF_HUB_OFFLINE = "1"; $env:AROVA_MODELS_HOME = "D:\ArovaStep2ASRProgram\models"
 
-# 1. Challenger 50-clip forced evaluation (large-v3-turbo, cpu/int8/t4)
+# 1. Materialize (if audio WAVs are not yet unpacked locally) & validate frozen 50-clip eval split
+uv run --project backend --no-sync --with pyarrow python scripts/materialize_m4_multilingual_splits.py --fleurs-root D:\ArovaStep2ASRProgram\eval_data\fleurs
+uv run --project backend --no-sync python scripts/validate_indic_bench.py --dataset-root data/indic_creator_bench/m4_multilingual_eval_50clip
+
+# 2. Baseline 50-clip forced evaluation (faster-whisper-small, cpu/int8/t4)
 uv run --project backend --no-sync python scripts/run_m3_asr_baseline.py `
   --dataset-root data/indic_creator_bench/m4_multilingual_eval_50clip `
-  --model-size-or-path D:\ArovaStep2ASRProgram\models\faster-whisper-large-v3-turbo `
+  --model-size-or-path "$env:AROVA_MODELS_HOME\faster-whisper-small" `
+  --model-id faster-whisper-small `
+  --model-revision 536b0662742c02347bc0e980a01041f333bce120 `
+  --device cpu --compute-type int8 --cpu-threads 4 `
+  --language-mode forced --beam-size 5 --no-word-timestamps `
+  --checkpoint D:\ArovaStep2ASRProgram\tmp\m4_small_eval50_forced.ckpt.jsonl `
+  --json-out reports/product-acceptance/M4_MULTILINGUAL_BASELINE_SMALL_FORCED.json `
+  --md-out reports/product-acceptance/M4_MULTILINGUAL_BASELINE_SMALL_FORCED.md
+
+# 3. Challenger 50-clip forced evaluation (faster-whisper-large-v3-turbo, cpu/int8/t4)
+uv run --project backend --no-sync python scripts/run_m3_asr_baseline.py `
+  --dataset-root data/indic_creator_bench/m4_multilingual_eval_50clip `
+  --model-size-or-path "$env:AROVA_MODELS_HOME\faster-whisper-large-v3-turbo" `
   --model-id faster-whisper-large-v3-turbo `
   --model-revision 4df90f75321148c3a29a9e2351b7ddf8f5b115a8 `
   --device cpu --compute-type int8 --cpu-threads 4 `
@@ -60,7 +85,7 @@ uv run --project backend --no-sync python scripts/run_m3_asr_baseline.py `
   --json-out reports/product-acceptance/M4_MULTILINGUAL_CHALLENGER_TURBO_FORCED.json `
   --md-out reports/product-acceptance/M4_MULTILINGUAL_CHALLENGER_TURBO_FORCED.md
 
-# 2. Reproduce five-language comparison table & gate verdicts
+# 4. Reproduce five-language comparison table & pre-registered gate verdicts
 uv run --project backend --no-sync python scripts/compare_m4_multilingual_runs.py `
   --baseline-json reports/product-acceptance/M4_MULTILINGUAL_BASELINE_SMALL_FORCED.json `
   --candidate-json reports/product-acceptance/M4_MULTILINGUAL_CHALLENGER_TURBO_FORCED.json `
@@ -70,8 +95,9 @@ uv run --project backend --no-sync python scripts/compare_m4_multilingual_runs.p
 
 ---
 
-## 4. Recommended Next Action
+## 4. Kannada Creator Workstation Workflow Check — Single Missing Input (Benchmark Closed)
 
-Keep `faster-whisper-small` as the production default during M4 (weights stay strictly outside Git) and choose **one** next bounded authorization:
-- **Option A (Recommended — Fix Worst Remaining Dravidian Miss First):** Authorize downloading pinned `vasista22/whisper-telugu-small` (`717212f9c4c16a78a86ddcb98f93c7f73ef8a5cc`, Apache-2.0, ungated, `~924.0 MB` selective PyTorch transfer to `D:`) for a controlled Telugu specialist trial on the same frozen `m4_multilingual_eval_50clip` Telugu clips (and separately confirm a pinned Tamil specialist candidate before downloading).
-- **Option B (Creator Confirmation for Passing Languages):** Supply authorized local creator recordings in Kannada/English/Hindi to validate `faster-whisper-large-v3-turbo` (`PASS_EXPERIMENTAL` on `kn_in`/`en_us`) on real spontaneous speech with music and names before any opt-in model selection UI.
+- **Closure Status:** **`M4_MULTILINGUAL_BENCHMARK_CLOSED` (`KEEP_CURRENT_DEFAULT_UNCHANGED`)**
+- **Workstation Creator-Clip Audit (2026-11-22):** Inspected `sample_data/`, `data/`, `test_data/`, `benchmarks/`, `D:\ArovaStep2ASRProgram\`, and live `data/app.db`. Only English videos (`tears_of_steel_720p.mov`, `demo_developer_lecture.mp4`, synthetic demo clips) and 10-second read-speech FLEURS `.wav` audio clips exist locally.
+- **Single Missing Input:** **No authorized local Kannada creator video clip with known timestamps is available** to execute the end-to-end Small-vs-Turbo workstation indexing, top-3 search, seek, and SRT export comparison on real creator footage.
+- **Next Gate (Deferred):** Supply one authorized local Kannada creator video clip with three ground-truth timestamped queries (or separately authorize pinned Telugu/Tamil specialist evaluations) before reconsidering any default-model change. Specialist downloads, automatic routing, and additional dashboards remain deferred.

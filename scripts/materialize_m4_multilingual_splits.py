@@ -12,8 +12,10 @@ test parquets (168de341b3db6859a9bac1c50a2ef5e3b47647e0, CC-BY-4.0):
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import random
 import shutil
@@ -38,7 +40,7 @@ from app.core.security import compute_sha256
 
 FLEURS_REV = "168de341b3db6859a9bac1c50a2ef5e3b47647e0"
 FLEURS_REV_SHORT = FLEURS_REV[:8]
-FLEURS_ROOT = Path(r"D:\ArovaStep2ASRProgram\eval_data\fleurs")
+DEFAULT_FLEURS_ROOT = Path(os.environ.get("AROVA_FLEURS_ROOT", r"D:\ArovaStep2ASRProgram\eval_data\fleurs"))
 SMOKE_MANIFEST = REPO_ROOT / "sample_data" / "indic_creator_bench" / "m2_smoke_10clip" / "manifest.jsonl"
 LANGUAGES_ORDER = ("en_us", "hi_in", "kn_in", "ta_in", "te_in")
 CLIPS_PER_LANG = 10
@@ -88,10 +90,11 @@ def _sample_language_rows(
     smoke_lang_ids: set[tuple[str, str]],
     smoke_shas: set[str],
     smoke_lang_texts: set[tuple[str, str]],
+    fleurs_root: Path = DEFAULT_FLEURS_ROOT,
 ) -> tuple[str, int, list[dict[str, Any]], list[dict[str, Any]]]:
     import pyarrow.parquet as pq
 
-    parquet_path = FLEURS_ROOT / lang / "test" / "0000.parquet"
+    parquet_path = fleurs_root / lang / "test" / "0000.parquet"
     if not parquet_path.is_file():
         raise FileNotFoundError(f"Missing local FLEURS parquet for {lang}: {parquet_path}")
 
@@ -265,7 +268,17 @@ def _write_and_validate_split(
     }
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Materialize frozen M4 5-language dev/eval splits from pinned FLEURS parquets.")
+    parser.add_argument(
+        "--fleurs-root",
+        type=Path,
+        default=DEFAULT_FLEURS_ROOT,
+        help="Directory containing <lang>/test/0000.parquet from google/fleurs@168de341... (or set AROVA_FLEURS_ROOT).",
+    )
+    args = parser.parse_args(argv)
+    fleurs_root = args.fleurs_root
+
     smoke_lang_ids, smoke_shas, smoke_lang_texts = _load_smoke_exclusions()
 
     dev_id = "m4_multilingual_dev_50clip"
@@ -290,7 +303,7 @@ def main() -> int:
             continue
 
         parquet_sha, eligible_count, d_rows, e_rows = _sample_language_rows(
-            lang, smoke_lang_ids, smoke_shas, smoke_lang_texts
+            lang, smoke_lang_ids, smoke_shas, smoke_lang_texts, fleurs_root=fleurs_root
         )
         parquet_audit[lang] = {
             "parquet_sha256": parquet_sha,
