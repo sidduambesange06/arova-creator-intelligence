@@ -146,7 +146,7 @@ def test_database_overview_endpoint(admin_headers: dict[str, str]) -> None:
 
     assert data["engine"] == "sqlite"
     assert data["integrity_status"] == "ok"
-    assert data["current_revision"] in ("0002_task4_media_memory", "0003_indic_fts5_tokenization")
+    assert data["current_revision"] in ("0002_task4_media_memory", "0003_indic_fts5_tokenization", "0004_transcript_word_timings")
     assert data["table_counts"]["total"] >= 20
     assert data["table_counts"]["application"] >= 14
     assert data["table_counts"]["fts5_shadow"] >= 1
@@ -281,7 +281,7 @@ def test_migration_history_endpoint(admin_headers: dict[str, str]) -> None:
 
     # Current head should be the latest migration
     current = next(h for h in history if h["is_current"])
-    assert current["revision"] in ("0002_task4_media_memory", "0003_indic_fts5_tokenization")
+    assert current["revision"] in ("0002_task4_media_memory", "0003_indic_fts5_tokenization", "0004_transcript_word_timings")
 
 
 def test_database_relationships_endpoint(admin_headers: dict[str, str]) -> None:

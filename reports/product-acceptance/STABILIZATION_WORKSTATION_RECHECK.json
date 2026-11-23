@@ -1,0 +1,328 @@
+{
+  "frontend_mode": "production_vite_preview_4173",
+  "backend_ready_ms": 1809.77,
+  "backend_startup_ms": 1815.59,
+  "api_benchmarks": {
+    "health": {
+      "status": 200,
+      "cold_ms": 25.35,
+      "warm_n": 10,
+      "warm_median_ms": 7.73,
+      "warm_mean_ms": 9.4,
+      "warm_max_ms": 22.98
+    },
+    "videos_list": {
+      "status": 200,
+      "cold_ms": 17.41,
+      "warm_n": 10,
+      "warm_median_ms": 3.29,
+      "warm_mean_ms": 8.9,
+      "warm_max_ms": 24.5
+    },
+    "videos_stats": {
+      "status": 200,
+      "cold_ms": 6.65,
+      "warm_n": 10,
+      "warm_median_ms": 9.18,
+      "warm_mean_ms": 11.05,
+      "warm_max_ms": 25.02
+    },
+    "jobs_list": {
+      "status": 200,
+      "cold_ms": 4.55,
+      "warm_n": 10,
+      "warm_median_ms": 2.76,
+      "warm_mean_ms": 4.46,
+      "warm_max_ms": 22.2
+    },
+    "jobs_telemetry": {
+      "status": 200,
+      "cold_ms": 2.91,
+      "warm_n": 10,
+      "warm_median_ms": 1.89,
+      "warm_mean_ms": 6.45,
+      "warm_max_ms": 25.99
+    },
+    "system_telemetry_legacy": {
+      "status": 200,
+      "cold_ms": 2.75,
+      "warm_n": 10,
+      "warm_median_ms": 1.62,
+      "warm_mean_ms": 7.1,
+      "warm_max_ms": 15.93
+    },
+    "search_semantic": {
+      "status": 200,
+      "cold_ms": 15.84,
+      "warm_n": 10,
+      "warm_median_ms": 14.66,
+      "warm_mean_ms": 13.9,
+      "warm_max_ms": 28.14
+    },
+    "db_overview": {
+      "status": 200,
+      "cold_ms": 21.74,
+      "warm_n": 10,
+      "warm_median_ms": 25.05,
+      "warm_mean_ms": 20.97,
+      "warm_max_ms": 32.6
+    },
+    "db_tables": {
+      "status": 200,
+      "cold_ms": 33.77,
+      "warm_n": 10,
+      "warm_median_ms": 28.86,
+      "warm_mean_ms": 26.71,
+      "warm_max_ms": 43.07
+    },
+    "db_relationships": {
+      "status": 200,
+      "cold_ms": 24.75,
+      "warm_n": 10,
+      "warm_median_ms": 26.8,
+      "warm_mean_ms": 35.36,
+      "warm_max_ms": 109.69
+    },
+    "db_rows_videos": {
+      "status": 200,
+      "cold_ms": 30.36,
+      "warm_n": 10,
+      "warm_median_ms": 17.62,
+      "warm_mean_ms": 20.72,
+      "warm_max_ms": 36.97
+    },
+    "db_rows_fts": {
+      "status": 200,
+      "cold_ms": 5.5,
+      "warm_n": 10,
+      "warm_median_ms": 5.45,
+      "warm_mean_ms": 6.94,
+      "warm_max_ms": 20.46
+    }
+  },
+  "vite_preview_ready_ms": 915.5,
+  "last_scene_thumbnail_loaded_after_scroll": true,
+  "views_audit": {
+    "Mission Overview": {
+      "clicked": true,
+      "settle_ms": 904.5,
+      "api_calls_count": 0,
+      "scene_thumbnail_calls": 0,
+      "app_failed_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 1467,
+        "mojibake_hits": [],
+        "overflow_px": 0,
+        "has_worker_telemetry": false,
+        "has_12_mcp_tools": false
+      }
+    },
+    "Studio Media Library": {
+      "clicked": true,
+      "settle_ms": 912.4,
+      "api_calls_count": 12,
+      "scene_thumbnail_calls": 0,
+      "app_failed_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 9183,
+        "mojibake_hits": [],
+        "overflow_px": 0,
+        "has_worker_telemetry": false,
+        "has_12_mcp_tools": false
+      }
+    },
+    "Precision Workstation": {
+      "clicked": true,
+      "settle_ms": 914.3,
+      "api_calls_count": 15,
+      "scene_thumbnail_calls": 10,
+      "app_failed_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 9372,
+        "mojibake_hits": [],
+        "overflow_px": 0,
+        "has_worker_telemetry": false,
+        "has_12_mcp_tools": false
+      }
+    },
+    "1. Add & Watch Folders": {
+      "clicked": true,
+      "settle_ms": 922.7,
+      "api_calls_count": 3,
+      "scene_thumbnail_calls": 0,
+      "app_failed_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 8266,
+        "mojibake_hits": [],
+        "overflow_px": 0,
+        "has_worker_telemetry": false,
+        "has_12_mcp_tools": false
+      }
+    },
+    "2. Processing Pipelines": {
+      "clicked": true,
+      "settle_ms": 905.4,
+      "api_calls_count": 3,
+      "scene_thumbnail_calls": 0,
+      "app_failed_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 1312,
+        "mojibake_hits": [],
+        "overflow_px": 0,
+        "has_worker_telemetry": false,
+        "has_12_mcp_tools": false
+      }
+    },
+    "3. Archive & Export": {
+      "clicked": true,
+      "settle_ms": 913.9,
+      "api_calls_count": 2,
+      "scene_thumbnail_calls": 0,
+      "app_failed_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 5140,
+        "mojibake_hits": [],
+        "overflow_px": 0,
+        "has_worker_telemetry": false,
+        "has_12_mcp_tools": false
+      }
+    },
+    "Search & Ask Archive": {
+      "clicked": true,
+      "settle_ms": 918.6,
+      "api_calls_count": 0,
+      "scene_thumbnail_calls": 0,
+      "app_failed_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 1120,
+        "mojibake_hits": [],
+        "overflow_px": 0,
+        "has_worker_telemetry": false,
+        "has_12_mcp_tools": false
+      }
+    },
+    "Privacy & BYO-AI": {
+      "clicked": true,
+      "settle_ms": 919.5,
+      "api_calls_count": 3,
+      "scene_thumbnail_calls": 0,
+      "app_failed_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 3131,
+        "mojibake_hits": [],
+        "overflow_px": 0,
+        "has_worker_telemetry": false,
+        "has_12_mcp_tools": false
+      }
+    },
+    "MCP Agent Server": {
+      "clicked": true,
+      "settle_ms": 918.4,
+      "api_calls_count": 2,
+      "scene_thumbnail_calls": 0,
+      "app_failed_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 2709,
+        "mojibake_hits": [],
+        "overflow_px": 0,
+        "has_worker_telemetry": false,
+        "has_12_mcp_tools": true
+      }
+    },
+    "Database Explorer": {
+      "clicked": true,
+      "settle_ms": 906.3,
+      "api_calls_count": 0,
+      "scene_thumbnail_calls": 0,
+      "app_failed_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 854,
+        "mojibake_hits": [],
+        "overflow_px": 0,
+        "has_worker_telemetry": false,
+        "has_12_mcp_tools": false
+      }
+    },
+    "Engine Telemetry & Health": {
+      "clicked": true,
+      "settle_ms": 905.4,
+      "api_calls_count": 1,
+      "scene_thumbnail_calls": 0,
+      "app_failed_calls": [],
+      "console_errors": [],
+      "page_errors": [],
+      "dom": {
+        "text_len": 1597,
+        "mojibake_hits": [],
+        "overflow_px": 0,
+        "has_worker_telemetry": true,
+        "has_12_mcp_tools": false
+      }
+    }
+  },
+  "db_explorer_acceptance": {
+    "locked_state": {
+      "locked_panel_visible": true,
+      "status_badge": "Locked",
+      "has_env_guidance": true
+    },
+    "unauthorized_401_state": {
+      "unauthorized_panel_visible": true,
+      "status_badge": "Unauthorized"
+    },
+    "after_auth": {
+      "status_badge": "Authorized",
+      "has_videos_table": true,
+      "has_revision": true,
+      "has_integrity_ok": true
+    },
+    "client_side_filter_api_calls": 0,
+    "rows_click_get_calls": [
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:8000/api/v1/admin/database/tables/videos/rows?limit=50&offset=0",
+        "status": 200,
+        "ms": 19.2
+      }
+    ],
+    "rows_shows_tears_of_steel": true,
+    "er_diagram": {
+      "svg_present": true,
+      "svg_width": 1628,
+      "svg_height": 1180,
+      "node_count": 23,
+      "fk_edge_path_count": 24,
+      "has_zoom_fit_controls": true,
+      "inspector_shows_referenced_by": true,
+      "honest_zero_inferred_label": true
+    },
+    "zoom_in_works": true,
+    "accessible_list_view_works": true,
+    "lock_clears_session_and_data": true,
+    "db_records_immutable": true
+  },
+  "live_db_immutable": true,
+  "spurious_backups_created": 0,
+  "total_console_errors_excluding_expected_401": [],
+  "total_page_errors": []
+}

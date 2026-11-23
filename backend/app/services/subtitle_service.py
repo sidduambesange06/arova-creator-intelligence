@@ -48,6 +48,7 @@ def ingest_subtitles_for_video(
             end_time=cue.end_time,
             text=cue.text,
             confidence=1.0,
+            timing_source="subtitle_cue",
         )
         db.add(segment_row)
 

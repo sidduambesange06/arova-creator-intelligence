@@ -458,8 +458,22 @@ class TranscriptSegment(Base):
     end_time: Mapped[float] = mapped_column(Float, nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     confidence: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
+    words_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    timing_source: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     transcript: Mapped["Transcript"] = relationship(back_populates="segments")
+
+    @property
+    def words(self) -> list[dict[str, object]] | None:
+        if not self.words_json:
+            return None
+        try:
+            import json
+
+            parsed = json.loads(self.words_json)
+            return parsed if isinstance(parsed, list) else None
+        except Exception:
+            return None
 
 
 class VideoScene(Base):

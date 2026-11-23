@@ -90,6 +90,20 @@ DEFAULT_MODELS: dict[str, ModelMetadata] = {
         format="ctranslate2",
         install_status="not_installed",
     ),
+    "faster-whisper-large-v3-turbo": ModelMetadata(
+        model_id="faster-whisper-large-v3-turbo",
+        repo_id="deepdml/faster-whisper-large-v3-turbo-ct2",
+        commit_revision="4df90f75321148c3a29a9e2351b7ddf8f5b115a8",
+        license="MIT",
+        license_url="https://choosealicense.com/licenses/mit/",
+        model_card_url="https://huggingface.co/deepdml/faster-whisper-large-v3-turbo-ct2",
+        estimated_size_bytes=1621669956,
+        installed_size_bytes=0,
+        supported_languages=["en", "hi", "kn", "ta", "te", "es", "fr", "de", "zh", "ja"],
+        min_ram_mb=2048,
+        format="ctranslate2",
+        install_status="not_installed",
+    ),
 }
 
 

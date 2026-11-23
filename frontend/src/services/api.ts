@@ -22,6 +22,8 @@ export interface VideoItem {
   processing_status: string;
   created_at: string;
   collection_ids: string[];
+  asset_id?: string | null;
+  version_id?: string | null;
 }
 
 export interface VideoImportResponse {
@@ -37,13 +39,54 @@ export interface CollectionItem {
   video_count: number;
 }
 
+export interface WordTimingItem {
+  word: string;
+  start: number;
+  end: number;
+  probability?: number | null;
+}
+
 export interface TranscriptSegmentItem {
   id: string;
   start_time: number;
   end_time: number;
   text: string;
   confidence: number;
+  words?: WordTimingItem[] | null;
+  timing_source?: string | null;
 }
+
+export interface OcrFrameEvidenceItem {
+  scene_index: number;
+  timestamp_sec: number;
+  text: string;
+  thumbnail_path: string | null;
+}
+
+export type VideoOcrState =
+  | "engine_unavailable"
+  | "not_processed"
+  | "running"
+  | "completed_no_text"
+  | "completed_with_text"
+  | "failed";
+
+export interface VideoOcrStatusItem {
+  video_id: string;
+  version_id: string | null;
+  status: VideoOcrState;
+  engine_available: boolean;
+  engine_name: string | null;
+  engine_version: string | null;
+  stage_status: string | null;
+  skip_reason: string | null;
+  error_message: string | null;
+  extracted_count: number;
+  frames: OcrFrameEvidenceItem[];
+  remediation_hint: string | null;
+}
+
+export type SubtitleExportFormat = "srt" | "vtt" | "ass";
 
 export interface TranscriptItem {
   id: string;
@@ -65,8 +108,13 @@ export interface VideoSceneItem {
 
 const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
-export async function fetchHealth(_signal?: AbortSignal): Promise<HealthResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/health`);
+export function resolveApiUrl(pathOrUrl: string): string {
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+  return `${API_BASE_URL}${pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`}`;
+}
+
+export async function fetchHealth(signal?: AbortSignal): Promise<HealthResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/health`, { signal });
   if (!res.ok) {
     throw new Error(`Health check failed with HTTP ${res.status}`);
   }
@@ -180,6 +228,40 @@ export async function fetchVideoScenes(videoId: string): Promise<VideoSceneItem[
     throw new Error(`Failed to load scenes (HTTP ${res.status})`);
   }
   return res.json() as Promise<VideoSceneItem[]>;
+}
+
+export async function fetchVideoOcrStatus(videoId: string): Promise<VideoOcrStatusItem | null> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/videos/${encodeURIComponent(videoId)}/ocr/status`
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`Failed to load OCR status (HTTP ${res.status})`);
+  }
+  return res.json() as Promise<VideoOcrStatusItem>;
+}
+
+export async function exportVideoSubtitles(
+  videoId: string,
+  format: SubtitleExportFormat,
+  karaoke: boolean = false
+): Promise<{ content: string; mimeType: string }> {
+  const params = new URLSearchParams({ format });
+  if (format === "ass" && karaoke) {
+    params.set("karaoke", "true");
+  }
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/videos/${encodeURIComponent(videoId)}/subtitles/export?${params.toString()}`
+  );
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(body.detail ?? `Subtitle export failed (HTTP ${res.status})`);
+  }
+  const content = await res.text();
+  const mimeType =
+    res.headers.get("content-type") ??
+    (format === "vtt" ? "text/vtt; charset=utf-8" : "text/plain; charset=utf-8");
+  return { content, mimeType };
 }
 
 export type EvidenceChannel = "all" | "speech" | "visual" | "multimodal";
@@ -484,6 +566,15 @@ export interface MigrationRevision {
   is_current: boolean;
 }
 
+export class ApiHttpError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiHttpError";
+    this.status = status;
+  }
+}
+
 export interface DatabaseRelationships {
   tables: {
     id: string;
@@ -500,6 +591,8 @@ export interface DatabaseRelationships {
     target_table: string;
     target_columns: string[];
     label: string;
+    relationship_type?: string;
+    is_inferred?: boolean;
   }[];
 }
 
@@ -510,21 +603,28 @@ function adminAuthHeader(token: string): HeadersInit {
   };
 }
 
-export async function fetchDatabaseOverview(token: string): Promise<DatabaseOverview> {
+async function parseAdminError(res: Response, fallback: string): Promise<ApiHttpError> {
+  const body = (await res.json().catch(() => ({}))) as { detail?: string };
+  return new ApiHttpError(body.detail ?? `${fallback} (HTTP ${res.status})`, res.status);
+}
+
+export async function fetchDatabaseOverview(
+  token: string,
+  signal?: AbortSignal
+): Promise<DatabaseOverview> {
   const res = await fetch(`${API_BASE_URL}/api/v1/admin/database/overview`, {
     headers: adminAuthHeader(token),
+    signal,
   });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { detail?: string };
-    throw new Error(body.detail ?? `Database overview failed (HTTP ${res.status})`);
-  }
+  if (!res.ok) throw await parseAdminError(res, "Database overview failed");
   return res.json() as Promise<DatabaseOverview>;
 }
 
 export async function fetchDatabaseTables(
   token: string,
   search?: string,
-  category?: string
+  category?: string,
+  signal?: AbortSignal
 ): Promise<TableSummary[]> {
   const params = new URLSearchParams();
   if (search) params.set("search", search);
@@ -532,25 +632,25 @@ export async function fetchDatabaseTables(
   const qs = params.toString() ? `?${params.toString()}` : "";
   const res = await fetch(`${API_BASE_URL}/api/v1/admin/database/tables${qs}`, {
     headers: adminAuthHeader(token),
+    signal,
   });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { detail?: string };
-    throw new Error(body.detail ?? `Failed to list tables (HTTP ${res.status})`);
-  }
+  if (!res.ok) throw await parseAdminError(res, "Failed to list tables");
   return res.json() as Promise<TableSummary[]>;
 }
 
-export async function fetchTableDetails(token: string, tableName: string): Promise<TableDetails> {
+export async function fetchTableDetails(
+  token: string,
+  tableName: string,
+  signal?: AbortSignal
+): Promise<TableDetails> {
   const res = await fetch(
     `${API_BASE_URL}/api/v1/admin/database/tables/${encodeURIComponent(tableName)}`,
     {
       headers: adminAuthHeader(token),
+      signal,
     }
   );
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { detail?: string };
-    throw new Error(body.detail ?? `Failed to fetch table details (HTTP ${res.status})`);
-  }
+  if (!res.ok) throw await parseAdminError(res, "Failed to fetch table details");
   return res.json() as Promise<TableDetails>;
 }
 
@@ -558,7 +658,8 @@ export async function fetchTableRows(
   token: string,
   tableName: string,
   limit = 50,
-  offset = 0
+  offset = 0,
+  signal?: AbortSignal
 ): Promise<TableRowsResponse> {
   const params = new URLSearchParams({
     limit: String(limit),
@@ -568,34 +669,34 @@ export async function fetchTableRows(
     `${API_BASE_URL}/api/v1/admin/database/tables/${encodeURIComponent(tableName)}/rows?${params.toString()}`,
     {
       headers: adminAuthHeader(token),
+      signal,
     }
   );
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { detail?: string };
-    throw new Error(body.detail ?? `Failed to fetch table rows (HTTP ${res.status})`);
-  }
+  if (!res.ok) throw await parseAdminError(res, "Failed to fetch table rows");
   return res.json() as Promise<TableRowsResponse>;
 }
 
-export async function fetchDatabaseMigrations(token: string): Promise<MigrationRevision[]> {
+export async function fetchDatabaseMigrations(
+  token: string,
+  signal?: AbortSignal
+): Promise<MigrationRevision[]> {
   const res = await fetch(`${API_BASE_URL}/api/v1/admin/database/migrations`, {
     headers: adminAuthHeader(token),
+    signal,
   });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { detail?: string };
-    throw new Error(body.detail ?? `Failed to fetch migrations (HTTP ${res.status})`);
-  }
+  if (!res.ok) throw await parseAdminError(res, "Failed to fetch migrations");
   return res.json() as Promise<MigrationRevision[]>;
 }
 
-export async function fetchDatabaseRelationships(token: string): Promise<DatabaseRelationships> {
+export async function fetchDatabaseRelationships(
+  token: string,
+  signal?: AbortSignal
+): Promise<DatabaseRelationships> {
   const res = await fetch(`${API_BASE_URL}/api/v1/admin/database/relationships`, {
     headers: adminAuthHeader(token),
+    signal,
   });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { detail?: string };
-    throw new Error(body.detail ?? `Failed to fetch relationships (HTTP ${res.status})`);
-  }
+  if (!res.ok) throw await parseAdminError(res, "Failed to fetch relationships");
   return res.json() as Promise<DatabaseRelationships>;
 }
 
@@ -848,12 +949,12 @@ export async function fetchJobDetails(jobId: string): Promise<ProcessingJob> {
   return res.json() as Promise<ProcessingJob>;
 }
 
-export async function cancelJob(jobId: string): Promise<ProcessingJob> {
+export async function cancelJob(jobId: string): Promise<{ job_id?: string; id?: string; status: string }> {
   const res = await fetch(`${API_BASE_URL}/api/v1/jobs/${encodeURIComponent(jobId)}/cancel`, {
     method: "POST",
   });
   if (!res.ok) throw new Error(`Failed to cancel job (HTTP ${res.status})`);
-  return res.json() as Promise<ProcessingJob>;
+  return res.json() as Promise<{ job_id?: string; id?: string; status: string }>;
 }
 
 export async function resumeJob(jobId: string): Promise<ProcessingJob> {
@@ -1064,8 +1165,8 @@ export async function fetchDuplicateMedia(): Promise<DuplicateGroup[]> {
   return res.json() as Promise<DuplicateGroup[]>;
 }
 
-export async function fetchAnnotations(videoId?: string): Promise<AnnotationItem[]> {
-  const query = videoId ? `?video_id=${encodeURIComponent(videoId)}` : "";
+export async function fetchAnnotations(targetId?: string): Promise<AnnotationItem[]> {
+  const query = targetId ? `?target_id=${encodeURIComponent(targetId)}` : "";
   const res = await fetch(`${API_BASE_URL}/api/v1/annotations${query}`);
   if (!res.ok) throw new Error(`Failed to load annotations (HTTP ${res.status})`);
   return res.json() as Promise<AnnotationItem[]>;
@@ -1139,13 +1240,13 @@ export interface AIRunItem {
   id: string;
   provider: string;
   model: string;
-  prompt_tokens: number;
-  completion_tokens: number;
-  latency_ms: number;
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  latency_ms: number | null;
   video_id: string | null;
   task_id: string | null;
   consent_id: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 export async function fetchAiProviders(): Promise<AIProviderInfo[]> {
@@ -1169,6 +1270,7 @@ export async function verifyAiProvider(payload: {
   base_url?: string;
   model?: string;
 }): Promise<ProviderVerifyResponse> {
+  const t0 = performance.now();
   const res = await fetch(`${API_BASE_URL}/api/v1/ai/providers/verify`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1178,6 +1280,7 @@ export async function verifyAiProvider(payload: {
       base_url: payload.base_url || null,
     }),
   });
+  const measuredMs = Math.round(performance.now() - t0);
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { detail?: string };
     throw new Error(body.detail ?? `Provider verification failed (HTTP ${res.status})`);
@@ -1192,7 +1295,7 @@ export async function verifyAiProvider(payload: {
       (result.is_valid
         ? "Provider credentials and connectivity verified successfully."
         : (result.error ?? "Verification failed")),
-    latency_ms: result.latency_ms ?? 12,
+    latency_ms: typeof result.latency_ms === "number" ? result.latency_ms : measuredMs,
   };
 }
 
@@ -1222,12 +1325,16 @@ export async function grantAiConsent(payload: {
   scope_target_id?: string;
   duration_hours?: number;
 }): Promise<ConsentItem> {
+  const caps = payload.purpose
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
   const body = {
     provider: payload.provider,
     scope_type: payload.scope_type ?? "library",
     scope_id: payload.scope_target_id ?? "default_library",
     endpoint_host: payload.provider === "local" ? "127.0.0.1" : `${payload.provider}.api`,
-    capabilities: [payload.purpose || "llm_qa"],
+    capabilities: caps.length > 0 ? caps : ["llm_qa"],
     data_categories: ["query", "transcript_snippets"],
     expires_in_hours: payload.duration_hours ?? 24,
   };
@@ -1271,13 +1378,13 @@ export async function fetchAiRuns(limit = 50): Promise<AIRunItem[]> {
     id: r.id,
     provider: r.provider,
     model: r.model,
-    prompt_tokens: r.prompt_tokens ?? (r.prompt_hash ? 128 : 0),
-    completion_tokens: r.completion_tokens ?? 64,
-    latency_ms: r.latency_ms ?? 0,
+    prompt_tokens: typeof r.prompt_tokens === "number" ? r.prompt_tokens : null,
+    completion_tokens: typeof r.completion_tokens === "number" ? r.completion_tokens : null,
+    latency_ms: typeof r.latency_ms === "number" ? r.latency_ms : null,
     video_id: r.input_refs?.[0] ?? r.video_id ?? null,
     task_id: r.consent_id ?? r.task_id ?? null,
     consent_id: r.consent_id ?? null,
-    created_at: r.created_at ?? new Date().toISOString(),
+    created_at: r.created_at ?? null,
   }));
 }
 

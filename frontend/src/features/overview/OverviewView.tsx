@@ -13,9 +13,10 @@ import {
 interface OverviewViewProps {
   onNavigate: (section: string) => void;
   onSelectVideo?: (videoId: string) => void;
+  onQuickQuery?: (query: string) => void;
 }
 
-export function OverviewView({ onNavigate, onSelectVideo }: OverviewViewProps) {
+export function OverviewView({ onNavigate, onSelectVideo, onQuickQuery }: OverviewViewProps) {
   const [stats, setStats] = useState<MediaLibraryStats | null>(null);
   const [recentVideos, setRecentVideos] = useState<VideoItem[]>([]);
   const [recentJobs, setRecentJobs] = useState<ProcessingJob[]>([]);
@@ -175,7 +176,7 @@ export function OverviewView({ onNavigate, onSelectVideo }: OverviewViewProps) {
             <button
               key={q}
               type="button"
-              onClick={() => onNavigate("hybrid-search")}
+              onClick={() => (onQuickQuery ? onQuickQuery(q) : onNavigate("hybrid-search"))}
               className="px-2.5 py-1 rounded bg-[#0B1019] hover:bg-[#172235] text-slate-300 border border-[#243149] text-[11px] font-mono transition-colors"
             >
               {q}
@@ -249,7 +250,7 @@ export function OverviewView({ onNavigate, onSelectVideo }: OverviewViewProps) {
         <div className="p-3.5 rounded-panel bg-[#111827] border border-[#243149] flex flex-col justify-between">
           <span className="text-[11px] font-mono text-slate-400">Total Videos</span>
           <span className="text-xl font-bold font-mono text-[#F5F7FB] mt-1">
-            {stats ? stats.total_videos : loading ? "â€¦" : "0"}
+            {stats ? stats.total_videos : loading ? "…" : "0"}
           </span>
           <span className="text-[10px] text-slate-500 font-mono mt-1">Indexed files</span>
         </div>
@@ -269,7 +270,7 @@ export function OverviewView({ onNavigate, onSelectVideo }: OverviewViewProps) {
         <div className="p-3.5 rounded-panel bg-[#111827] border border-[#243149] flex flex-col justify-between">
           <span className="text-[11px] font-mono text-slate-400">Transcripts</span>
           <span className="text-xl font-bold font-mono text-[#51DCC8] mt-1">
-            {stats ? stats.total_transcripts_indexed : loading ? "â€¦" : "0"}
+            {stats ? stats.total_transcripts_indexed : loading ? "…" : "0"}
           </span>
           <span className="text-[10px] text-slate-500 font-mono mt-1">ASR / Subtitles</span>
         </div>
@@ -277,7 +278,7 @@ export function OverviewView({ onNavigate, onSelectVideo }: OverviewViewProps) {
         <div className="p-3.5 rounded-panel bg-[#111827] border border-[#243149] flex flex-col justify-between">
           <span className="text-[11px] font-mono text-slate-400">Scene Cuts</span>
           <span className="text-xl font-bold font-mono text-[#F4BF69] mt-1">
-            {stats ? stats.total_scene_cuts : loading ? "â€¦" : "0"}
+            {stats ? stats.total_scene_cuts : loading ? "…" : "0"}
           </span>
           <span className="text-[10px] text-slate-500 font-mono mt-1">Visual segments</span>
         </div>
@@ -285,7 +286,7 @@ export function OverviewView({ onNavigate, onSelectVideo }: OverviewViewProps) {
         <div className="p-3.5 rounded-panel bg-[#111827] border border-[#243149] flex flex-col justify-between">
           <span className="text-[11px] font-mono text-slate-400">Collections</span>
           <span className="text-xl font-bold font-mono text-[#6BCBFF] mt-1">
-            {stats ? stats.total_collections : loading ? "â€¦" : "0"}
+            {stats ? stats.total_collections : loading ? "…" : "0"}
           </span>
           <span className="text-[10px] text-slate-500 font-mono mt-1">Organized bins</span>
         </div>
@@ -310,7 +311,7 @@ export function OverviewView({ onNavigate, onSelectVideo }: OverviewViewProps) {
               onClick={() => onNavigate("media-library")}
               className="text-xs font-mono text-[#9B8CFF] hover:underline"
             >
-              View All ({recentVideos.length}) â†’
+              View All ({recentVideos.length}) →
             </button>
           </div>
 
@@ -324,8 +325,11 @@ export function OverviewView({ onNavigate, onSelectVideo }: OverviewViewProps) {
                 <div
                   key={vid.id}
                   onClick={() => {
-                    onSelectVideo?.(vid.id);
-                    onNavigate("media-library");
+                    if (onSelectVideo) {
+                      onSelectVideo(vid.id);
+                    } else {
+                      onNavigate("workstation");
+                    }
                   }}
                   className="p-2.5 rounded-control bg-[#0B1019] hover:bg-[#172235] border border-[#243149] flex items-center justify-between cursor-pointer transition-colors"
                 >
@@ -353,7 +357,7 @@ export function OverviewView({ onNavigate, onSelectVideo }: OverviewViewProps) {
               onClick={() => onNavigate("processing-jobs")}
               className="text-xs font-mono text-[#9B8CFF] hover:underline"
             >
-              All Jobs ({recentJobs.length}) â†’
+              All Jobs ({recentJobs.length}) →
             </button>
           </div>
 
@@ -370,7 +374,7 @@ export function OverviewView({ onNavigate, onSelectVideo }: OverviewViewProps) {
                 >
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-mono text-[#F5F7FB] truncate max-w-[200px]">
-                      Job: {job.id.slice(0, 8)}â€¦
+                      Job: {job.id.slice(0, 8)}…
                     </span>
                     <span
                       className={`text-[10px] font-mono px-1.5 py-0.5 rounded uppercase ${
@@ -440,7 +444,7 @@ export function OverviewView({ onNavigate, onSelectVideo }: OverviewViewProps) {
                 }}
                 className="text-slate-400 hover:text-white text-sm"
               >
-                âœ•
+                ×
               </button>
             </div>
 

@@ -9,9 +9,10 @@ from sqlalchemy.orm import Session
 from app.ai.providers.embeddings import (
     EmbeddingProvider,
     LocalMiniLMEmbeddingProvider,
+    get_default_embedding_provider,
     load_vectors_from_disk,
 )
-from app.ai.reranking.cross_encoder_reranker import CrossEncoderReranker
+from app.ai.reranking.cross_encoder_reranker import CrossEncoderReranker, get_default_reranker
 from app.models.entities import EmbeddingRecord, Video
 
 
@@ -130,7 +131,7 @@ def run_hybrid_search(
         )
 
     t_s1_start = time.perf_counter()
-    active_embedder = embedder or LocalMiniLMEmbeddingProvider()
+    active_embedder = embedder or get_default_embedding_provider()
     q_vec = active_embedder.embed_text(q_clean)
     stored_vectors = load_vectors_from_disk(storage_dir=storage_dir)
 
@@ -196,12 +197,21 @@ def run_hybrid_search(
 
     # When speech-only or visual-only filter is active, prevent dense vector bleed from the excluded channel
     if norm_channel in ("speech", "visual") and eligible_channel_texts is not None and query_words:
+        dense_eids = [eid for eid, _ in sorted_dense]
+        full_texts_by_eid: dict[str, str] = {}
+        if dense_eids:
+            for row_eid, row_txt in (
+                db.query(EmbeddingRecord.embedding_id, EmbeddingRecord.chunk_text)
+                .filter(EmbeddingRecord.embedding_id.in_(dense_eids))
+                .all()
+            ):
+                full_texts_by_eid[str(row_eid)] = row_txt or ""
+
         filtered_dense_ranks: dict[str, int] = {}
         d_rank = 1
         for eid, _ in sorted_dense:
             ch_txt = eligible_channel_texts.get(eid, "")
-            full_rec = db.query(EmbeddingRecord.chunk_text).filter_by(embedding_id=eid).first()
-            full_txt = full_rec[0] if full_rec else ch_txt
+            full_txt = full_texts_by_eid.get(eid, ch_txt)
             sp_part, vis_part = _split_chunk_channels(full_txt)
             other_part = vis_part.lower() if norm_channel == "speech" else sp_part.lower()
             target_part = sp_part.lower() if norm_channel == "speech" else vis_part.lower()
@@ -272,7 +282,7 @@ def run_hybrid_search(
     # 4. Stage-2 ML Cross-Encoder Re-Ranking
     stage2_rerank_ms = 0.0
     if use_reranker and candidates:
-        active_reranker = reranker or CrossEncoderReranker()
+        active_reranker = reranker or get_default_reranker()
         reranked_items, stage2_rerank_ms = active_reranker.rerank(
             query=q_clean,
             candidates=candidates[:20],

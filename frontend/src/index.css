@@ -37,7 +37,7 @@
   }
 }
 
-/* Prefers-reduced-motion fallback */
+/* Prefers-reduced-motion fallback + explicit user preference */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: 0.01ms !important;
@@ -45,6 +45,21 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+html[data-reduced-motion="true"] *,
+html[data-reduced-motion="true"] ::before,
+html[data-reduced-motion="true"] ::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+html[data-density="compact"] table td,
+html[data-density="compact"] table th {
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
 }
 
 /* Clean technical scrollbar */

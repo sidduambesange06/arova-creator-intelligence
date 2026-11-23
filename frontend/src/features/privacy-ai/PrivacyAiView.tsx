@@ -13,18 +13,18 @@ import {
 } from "../../services/api";
 
 const INDIC_LANGUAGES = [
-  { code: "hi", name: "Hindi", script: "Devanagari", status: "Verified Local ASR" },
-  { code: "kn", name: "Kannada", script: "Kannada", status: "Verified Local ASR" },
-  { code: "ta", name: "Tamil", script: "Tamil", status: "Verified Local ASR" },
-  { code: "te", name: "Telugu", script: "Telugu", status: "Verified Local ASR" },
-  { code: "mr", name: "Marathi", script: "Devanagari", status: "Supported" },
-  { code: "bn", name: "Bengali", script: "Bengali", status: "Supported" },
-  { code: "ml", name: "Malayalam", script: "Malayalam", status: "Supported" },
-  { code: "gu", name: "Gujarati", script: "Gujarati", status: "Supported" },
-  { code: "pa", name: "Punjabi", script: "Gurmukhi", status: "Supported" },
-  { code: "or", name: "Odia", script: "Odia", status: "Supported" },
-  { code: "as", name: "Assamese", script: "Bengali-Assamese", status: "Supported" },
-  { code: "ur", name: "Urdu", script: "Perso-Arabic", status: "Supported" },
+  { code: "en", name: "English", script: "Latin", status: "Baseline Verified (9.4% WER)" },
+  { code: "hi", name: "Hindi", script: "Devanagari", status: "Baseline Quality Tier" },
+  { code: "ta", name: "Tamil", script: "Tamil", status: "Baseline Quality Tier" },
+  { code: "kn", name: "Kannada", script: "Kannada", status: "Experimental (Specialist Planned)" },
+  { code: "te", name: "Telugu", script: "Telugu", status: "Experimental (Specialist Planned)" },
+  { code: "mr", name: "Marathi", script: "Devanagari", status: "Not Evaluated Yet" },
+  { code: "bn", name: "Bengali", script: "Bengali", status: "Not Evaluated Yet" },
+  { code: "ml", name: "Malayalam", script: "Malayalam", status: "Not Evaluated Yet" },
+  { code: "gu", name: "Gujarati", script: "Gujarati", status: "Not Evaluated Yet" },
+  { code: "pa", name: "Punjabi", script: "Gurmukhi", status: "Not Evaluated Yet" },
+  { code: "or", name: "Odia", script: "Odia", status: "Not Evaluated Yet" },
+  { code: "ur", name: "Urdu", script: "Perso-Arabic", status: "Not Evaluated Yet" },
 ];
 
 export function PrivacyAiView() {
@@ -43,7 +43,7 @@ export function PrivacyAiView() {
 
   // Grant Consent Form State
   const [consentProvider, setConsentProvider] = useState("google-gemini");
-  const [consentPurpose, setConsentPurpose] = useState("Grounded Q&A & Video Summarization");
+  const [consentPurpose, setConsentPurpose] = useState("llm_qa,summarization");
   const [consentHours, setConsentHours] = useState(24);
   const [granting, setGranting] = useState(false);
 
@@ -323,15 +323,16 @@ export function PrivacyAiView() {
             </div>
 
             <div>
-              <label className="text-[11px] text-slate-400 font-mono">Purpose Description:</label>
-              <input
-                type="text"
-                required
+              <label className="text-[11px] text-slate-400 font-mono">Capabilities Scope:</label>
+              <select
                 value={consentPurpose}
                 onChange={(e) => setConsentPurpose(e.target.value)}
-                placeholder="e.g. Grounded Video Q&A and Scene Summarization"
-                className="w-full mt-1 px-2.5 py-1.5 rounded bg-[#111827] border border-[#243149] text-xs text-white focus:outline-none"
-              />
+                className="w-full mt-1 px-2.5 py-1.5 rounded bg-[#111827] border border-[#243149] text-xs font-mono text-white focus:outline-none"
+              >
+                <option value="llm_qa,summarization">llm_qa + summarization (Q&amp;A &amp; Summaries)</option>
+                <option value="llm_qa">llm_qa (Grounded Q&amp;A only)</option>
+                <option value="summarization">summarization (Video Summaries only)</option>
+              </select>
             </div>
 
             <button
@@ -435,10 +436,10 @@ export function PrivacyAiView() {
                         </span>
                       </td>
                       <td className="py-2 px-2 text-[#51DCC8]">
-                        {r.latency_ms && r.latency_ms > 0 ? `${r.latency_ms.toFixed(0)}ms` : "Instant"}
+                        {r.latency_ms != null && r.latency_ms > 0 ? `${r.latency_ms.toFixed(0)}ms` : "--"}
                       </td>
                       <td className="py-2 px-2 text-[10px] text-slate-500">
-                        {r.created_at ? new Date(r.created_at).toLocaleTimeString() : "Recent"}
+                        {r.created_at ? new Date(r.created_at).toLocaleTimeString() : "--"}
                       </td>
                     </tr>
                   ))}
@@ -453,14 +454,14 @@ export function PrivacyAiView() {
       <div className="p-5 rounded-panel bg-[#111827] border border-[#243149] space-y-3">
         <div className="flex items-center justify-between border-b border-[#243149] pb-2">
           <h2 className="text-sm font-semibold text-[#F5F7FB]">
-            Multilingual &amp; Indic Language Readiness Matrix
+            Multilingual &amp; Indic ASR Baseline Status
           </h2>
           <span className="text-[10px] font-mono text-[#51DCC8]">
-            12 Indian Languages Evaluated
+            5 Languages Benchmarked (FLEURS)
           </span>
         </div>
         <p className="text-xs text-[#A2AEC0]">
-          Whisper, Faster-Whisper, and IndicConformer multi-script ASR evaluated on real-world Indian creator speech with mixed Hinglish support.
+          Local faster-whisper-small baseline evaluated on English, Hindi, Tamil, Kannada, and Telugu FLEURS clips. Specialist Indic models remain experimental; Hinglish is excluded until verified references exist.
         </p>
 
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 pt-1">

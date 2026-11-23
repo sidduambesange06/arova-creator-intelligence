@@ -219,6 +219,248 @@ describe("Cinematic Instrument Workstation Views", () => {
       fireEvent.change(filterInput, { target: { value: "nonexistent phrase" } });
       expect(screen.getByText(/No dialogue segments match the current filter/i)).toBeInTheDocument();
     });
+
+    it("exports SRT/VTT/ASS subtitles with object URL cleanup, gates karaoke on real word timings, and displays honest OCR states", async () => {
+      const origCreateObjectURL = URL.createObjectURL;
+      const origRevokeObjectURL = URL.revokeObjectURL;
+      const createUrlSpy = vi.fn().mockReturnValue("blob:mock-sub-url");
+      const revokeUrlSpy = vi.fn();
+      URL.createObjectURL = createUrlSpy;
+      URL.revokeObjectURL = revokeUrlSpy;
+      const anchorClickSpy = vi
+        .spyOn(HTMLAnchorElement.prototype, "click")
+        .mockImplementation(() => {});
+
+      try {
+
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+        const url = String(input);
+        if (url.includes("/api/v1/videos/vid-w/transcript")) {
+          return new Response(
+            JSON.stringify({
+              id: "tx-w",
+              video_id: "vid-w",
+              language: "hi",
+              model_name: "faster-whisper-small",
+              full_text: "नमस्ते भारत",
+              segments: [
+                {
+                  id: "seg-w1",
+                  start_time: 0.0,
+                  end_time: 1.5,
+                  text: "नमस्ते भारत",
+                  confidence: -0.14,
+                  timing_source: "asr_estimated",
+                  words: [
+                    { word: "नमस्ते", start: 0.0, end: 0.7, probability: 0.94 },
+                    { word: "भारत", start: 0.75, end: 1.5, probability: 0.91 },
+                  ],
+                },
+              ],
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+        if (url.includes("/api/v1/videos/vid-w/ocr/status")) {
+          return new Response(
+            JSON.stringify({
+              video_id: "vid-w",
+              version_id: "ver-99887766",
+              status: "engine_unavailable",
+              engine_available: false,
+              engine_name: null,
+              engine_version: null,
+              stage_status: "succeeded",
+              skip_reason: "ocr_engine_unavailable:DEPENDENCY_MISSING",
+              error_message: null,
+              extracted_count: 0,
+              frames: [],
+              remediation_hint: "Install rapidocr-onnxruntime or tesseract to enable OCR.",
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+        if (url.includes("/api/v1/videos/vid-w/subtitles/export")) {
+          return new Response("[Script Info]\n[Events]\nDialogue: 0,0:00:00.00,0:00:01.50,Default,,0,0,0,,{\\k70}नमस्ते", {
+            status: 200,
+            headers: { "Content-Type": "text/plain; charset=utf-8" },
+          });
+        }
+        if (url.includes("/api/v1/videos/vid-w/scenes")) {
+          return new Response(JSON.stringify([]), { status: 200 });
+        }
+        if (url.includes("/api/v1/annotations")) {
+          return new Response(JSON.stringify([]), { status: 200 });
+        }
+        if (url.includes("/api/v1/videos")) {
+          return new Response(
+            JSON.stringify([
+              {
+                id: "vid-w",
+                filename: "hindi_clip.mp4",
+                duration: 1.5,
+                width: 1280,
+                height: 720,
+                fps: 24,
+                codec: "h264",
+                format: "mp4",
+                file_size: 204800,
+                file_hash: "sha256_w",
+                file_path: "C:/videos/hindi_clip.mp4",
+                processing_status: "completed",
+                created_at: "2026-11-19T00:00:00Z",
+                collection_ids: [],
+              },
+            ]),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+        return new Response("{}", { status: 200 });
+      });
+
+      render(<VideoWorkstationView initialVideoId="vid-w" />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("timing-mode-badge")).toHaveTextContent(
+          /ASR-estimated word timing/i
+        );
+        expect(screen.getByTestId("ocr-state-badge")).toHaveTextContent("OCR Engine Unavailable");
+        expect(
+          screen.getByText(/Install rapidocr-onnxruntime or tesseract/i)
+        ).toBeInTheDocument();
+      });
+
+      // Enable ASS karaoke (only rendered because real words exist) and export ASS
+      const karaokeCheckbox = screen.getByLabelText(/ASS Karaoke/i);
+      fireEvent.click(karaokeCheckbox);
+      fireEvent.click(screen.getByRole("button", { name: "Export ASS subtitles" }));
+
+      await waitFor(() => {
+        expect(screen.getByRole("status")).toHaveTextContent("Exported hindi_clip.ass");
+      });
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.stringContaining("/api/v1/videos/vid-w/subtitles/export?format=ass&karaoke=true")
+      );
+      expect(createUrlSpy).toHaveBeenCalledTimes(1);
+      expect(anchorClickSpy).toHaveBeenCalledTimes(1);
+      expect(revokeUrlSpy).toHaveBeenCalledWith("blob:mock-sub-url");
+      } finally {
+        URL.createObjectURL = origCreateObjectURL;
+        URL.revokeObjectURL = origRevokeObjectURL;
+      }
+    });
+
+    it("hides karaoke when word timings are absent and renders clickable OCR frame evidence when completed_with_text", async () => {
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+        const url = String(input);
+        if (url.includes("/api/v1/videos/vid-o/transcript")) {
+          return new Response(
+            JSON.stringify({
+              id: "tx-o",
+              video_id: "vid-o",
+              language: "en",
+              model_name: "subtitles:sidecar.srt",
+              full_text: "Segment only line",
+              segments: [
+                {
+                  id: "seg-o1",
+                  start_time: 0.0,
+                  end_time: 3.0,
+                  text: "Segment only line",
+                  confidence: 1.0,
+                  timing_source: "subtitle_cue",
+                  words: null,
+                },
+              ],
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+        if (url.includes("/api/v1/videos/vid-o/ocr/status")) {
+          return new Response(
+            JSON.stringify({
+              video_id: "vid-o",
+              version_id: "ver-ocr12345",
+              status: "completed_with_text",
+              engine_available: true,
+              engine_name: "rapidocr_onnxruntime",
+              engine_version: "1.4.4",
+              stage_status: "succeeded",
+              skip_reason: null,
+              error_message: null,
+              extracted_count: 1,
+              frames: [
+                {
+                  scene_index: 2,
+                  timestamp_sec: 14.5,
+                  text: "API Endpoint: GET /health",
+                  thumbnail_path: "data/thumbnails/scene2.jpg",
+                },
+              ],
+              remediation_hint: null,
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+        if (url.includes("/api/v1/videos/vid-o/subtitles/export")) {
+          return new Response(JSON.stringify({ detail: "Export failed" }), { status: 500 });
+        }
+        if (url.includes("/api/v1/videos/vid-o/scenes")) {
+          return new Response(JSON.stringify([]), { status: 200 });
+        }
+        if (url.includes("/api/v1/annotations")) {
+          return new Response(JSON.stringify([]), { status: 200 });
+        }
+        if (url.includes("/api/v1/videos")) {
+          return new Response(
+            JSON.stringify([
+              {
+                id: "vid-o",
+                filename: "ocr_demo.mp4",
+                duration: 30.0,
+                width: 1280,
+                height: 720,
+                fps: 24,
+                codec: "h264",
+                format: "mp4",
+                file_size: 409600,
+                file_hash: "sha256_o",
+                file_path: "C:/videos/ocr_demo.mp4",
+                processing_status: "completed",
+                created_at: "2026-11-19T00:00:00Z",
+                collection_ids: [],
+              },
+            ]),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+        return new Response("{}", { status: 200 });
+      });
+
+      render(<VideoWorkstationView initialVideoId="vid-o" />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("timing-mode-badge")).toHaveTextContent(/Segment-level only/i);
+        expect(screen.getByTestId("ocr-state-badge")).toHaveTextContent(
+          "Completed — 1 Frame(s)"
+        );
+        expect(screen.getByText("API Endpoint: GET /health")).toBeInTheDocument();
+        expect(screen.getByText("ver:ver-ocr1")).toBeInTheDocument();
+      });
+
+      // Karaoke option must NOT be rendered when word timings are absent
+      expect(screen.queryByLabelText(/ASS Karaoke/i)).not.toBeInTheDocument();
+
+      // Clicking OCR frame seeks player cleanly
+      fireEvent.click(screen.getByRole("button", { name: /Seek to OCR frame at 14.5s/i }));
+
+      // Subtitle export failure displays accessible alert
+      fireEvent.click(screen.getByRole("button", { name: "Export SRT subtitles" }));
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toHaveTextContent("Export failed");
+      });
+    });
   });
 
   describe("DiscoverySourcesView", () => {

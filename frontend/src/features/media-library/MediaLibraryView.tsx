@@ -90,15 +90,20 @@ export function MediaLibraryView({ onNavigate, onSelectVideo }: MediaLibraryView
       setSummary(null);
       return;
     }
+    let cancelled = false;
     setSummary(null);
     void Promise.all([
-      fetchVideoTranscript(selectedVideo.id)
-        .then(setTranscript)
-        .catch(() => setTranscript(null)),
-      fetchVideoScenes(selectedVideo.id)
-        .then(setScenes)
-        .catch(() => setScenes([])),
-    ]);
+      fetchVideoTranscript(selectedVideo.id).catch(() => null),
+      fetchVideoScenes(selectedVideo.id).catch(() => []),
+    ]).then(([t, s]) => {
+      if (!cancelled) {
+        setTranscript(t);
+        setScenes(s);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [selectedVideo]);
 
   async function handleImport(e: FormEvent) {

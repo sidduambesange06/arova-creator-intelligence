@@ -29,6 +29,8 @@ def _to_video_out(video: Video) -> VideoOut:
         processing_status=video.processing_status,
         created_at=video.created_at,
         collection_ids=[cv.collection_id for cv in video.collections],
+        asset_id=video.asset_id,
+        version_id=video.version_id,
     )
 
 

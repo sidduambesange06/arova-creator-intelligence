@@ -2,6 +2,13 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class WordTimingOut(BaseModel):
+    word: str
+    start: float
+    end: float
+    probability: float | None = None
+
+
 class TranscriptSegmentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -10,6 +17,8 @@ class TranscriptSegmentOut(BaseModel):
     end_time: float
     text: str
     confidence: float
+    words: list[WordTimingOut] | None = None
+    timing_source: str | None = None
 
 
 class TranscriptOut(BaseModel):
@@ -32,6 +41,28 @@ class VideoSceneOut(BaseModel):
     start_time: float
     end_time: float
     thumbnail_path: str | None
+
+
+class OcrFrameEvidenceOut(BaseModel):
+    scene_index: int
+    timestamp_sec: float
+    text: str
+    thumbnail_path: str | None = None
+
+
+class VideoOcrStatusOut(BaseModel):
+    video_id: str
+    version_id: str | None = None
+    status: str  # engine_unavailable | not_processed | running | completed_no_text | completed_with_text | failed
+    engine_available: bool
+    engine_name: str | None = None
+    engine_version: str | None = None
+    stage_status: str | None = None
+    skip_reason: str | None = None
+    error_message: str | None = None
+    extracted_count: int = 0
+    frames: list[OcrFrameEvidenceOut] = Field(default_factory=list)
+    remediation_hint: str | None = None
 
 
 class ProcessingJobOut(BaseModel):

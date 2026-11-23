@@ -31,14 +31,15 @@ const QA_PRESETS = [
 ];
 
 interface HybridSearchViewProps {
+  initialQuery?: string;
   onSelectVideo?: (videoId: string, startTime?: number) => void;
 }
 
-export function HybridSearchView({ onSelectVideo }: HybridSearchViewProps) {
+export function HybridSearchView({ initialQuery, onSelectVideo }: HybridSearchViewProps) {
   const [activeTab, setActiveTab] = useState<"search" | "smart-loop" | "tools">("search");
 
   // Semantic Search State
-  const [query, setQuery] = useState<string>("");
+  const [query, setQuery] = useState<string>(initialQuery ?? "");
   const [useReranker, setUseReranker] = useState<boolean>(true);
   const [searching, setSearching] = useState<boolean>(false);
   const [searchResponse, setSearchResponse] = useState<HybridSearchResponse | null>(null);
@@ -78,6 +79,13 @@ export function HybridSearchView({ onSelectVideo }: HybridSearchViewProps) {
   const [executingTool, setExecutingTool] = useState<boolean>(false);
   const [toolResult, setToolResult] = useState<ToolExecuteResult | null>(null);
   const [toolError, setToolError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialQuery && initialQuery.trim()) {
+      setQuery(initialQuery);
+      setActiveTab("search");
+    }
+  }, [initialQuery]);
 
   useEffect(() => {
     if (activeTab === "tools" && tools.length === 0) {

@@ -5,18 +5,20 @@ import re
 import unicodedata
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.database.session import get_db
-from app.models.entities import Transcript, Video, VideoScene
+from app.models.entities import StageRun, Transcript, Video, VideoScene
 from app.processing.clip_export import (
     _validate_clip_timestamps,
     export_subclip,
     get_last_export_mode,
     measure_clip_duration,
 )
+from app.processing.subtitles import export_ass, export_srt, export_vtt
+from app.processing.visual_text import detect_ocr_engine
 from app.schemas.media import (
     ClipExportRequest,
     ClipExportResponse,
@@ -25,7 +27,13 @@ from app.schemas.media import (
     VideoImportResponse,
     VideoOut,
 )
-from app.schemas.pipeline import TranscriptOut, TranscriptSegmentOut, VideoSceneOut
+from app.schemas.pipeline import (
+    OcrFrameEvidenceOut,
+    TranscriptOut,
+    TranscriptSegmentOut,
+    VideoOcrStatusOut,
+    VideoSceneOut,
+)
 from app.services import media_service
 from app.services.subtitle_service import ingest_subtitles_for_video
 from app.workers.pipeline_runner import run_video_pipeline
@@ -132,6 +140,37 @@ def get_video_transcript_endpoint(
     )
 
 
+@router.get("/{video_id}/subtitles/export", response_class=PlainTextResponse)
+def export_video_subtitles_endpoint(
+    video_id: str,
+    format: str = Query(default="srt", description="Subtitle export format: srt, vtt, or ass"),
+    karaoke: bool = Query(default=False, description="Include word-level \\k timing tags for ASS export when available"),
+    db: Session = Depends(get_db),
+) -> PlainTextResponse:
+    fmt = format.strip().lower()
+    if fmt not in ("srt", "vtt", "ass"):
+        raise HTTPException(status_code=400, detail=f"Unsupported subtitle format '{format}'. Expected srt, vtt, or ass.")
+
+    video = db.query(Video).filter_by(id=video_id).first()
+    transcript = db.query(Transcript).filter_by(video_id=video_id).first()
+    if not transcript:
+        raise HTTPException(status_code=404, detail=f"No transcript found for video {video_id}")
+
+    ordered_segments = sorted(transcript.segments, key=lambda s: (s.start_time, s.end_time))
+    if fmt == "srt":
+        body = export_srt(ordered_segments)
+        media_type = "application/x-subrip; charset=utf-8"
+    elif fmt == "vtt":
+        body = export_vtt(ordered_segments)
+        media_type = "text/vtt; charset=utf-8"
+    else:
+        title = video.filename if video else f"video-{video_id}"
+        body = export_ass(ordered_segments, title=title, include_karaoke=karaoke)
+        media_type = "text/plain; charset=utf-8"
+
+    return PlainTextResponse(content=body, media_type=media_type)
+
+
 @router.get("/{video_id}/scenes", response_model=list[VideoSceneOut])
 def get_video_scenes_endpoint(
     video_id: str,
@@ -144,6 +183,86 @@ def get_video_scenes_endpoint(
         .all()
     )
     return [VideoSceneOut.model_validate(s) for s in scenes]
+
+
+@router.get("/{video_id}/ocr/status", response_model=VideoOcrStatusOut)
+def get_video_ocr_status_endpoint(
+    video_id: str,
+    db: Session = Depends(get_db),
+) -> VideoOcrStatusOut:
+    video = db.query(Video).filter_by(id=video_id).first()
+    if not video:
+        raise HTTPException(status_code=404, detail=f"Video {video_id} not found")
+
+    engine_name, engine_version = detect_ocr_engine()
+    engine_available = engine_name is not None
+
+    latest_stage: StageRun | None = None
+    if video.version_id:
+        latest_stage = (
+            db.query(StageRun)
+            .filter_by(version_id=video.version_id, stage="ocr_detection")
+            .order_by(StageRun.attempt.desc(), StageRun.started_at.desc())
+            .first()
+        )
+
+    scenes_with_text = (
+        db.query(VideoScene)
+        .filter_by(video_id=video_id)
+        .filter(VideoScene.description.isnot(None))
+        .order_by(VideoScene.scene_index.asc())
+        .all()
+    )
+    frames = [
+        OcrFrameEvidenceOut(
+            scene_index=s.scene_index,
+            timestamp_sec=s.start_time,
+            text=s.description.strip(),
+            thumbnail_path=s.thumbnail_path,
+        )
+        for s in scenes_with_text
+        if s.description and s.description.strip()
+    ]
+
+    remediation_hint = (
+        None
+        if engine_available
+        else "Install an optional local OCR engine (e.g. rapidocr-onnxruntime or system tesseract + pytesseract + Pillow) and reprocess to enable frame OCR."
+    )
+
+    stage_status = latest_stage.status if latest_stage else None
+    skip_reason = latest_stage.skip_reason if latest_stage else None
+    error_message = (latest_stage.error_detail or latest_stage.error_code) if latest_stage else None
+
+    if stage_status == "running":
+        status = "running"
+    elif stage_status == "failed":
+        status = "failed"
+    elif frames:
+        status = "completed_with_text"
+    elif not engine_available and (latest_stage is None or (skip_reason or "").startswith("ocr_engine_unavailable")):
+        status = "engine_unavailable"
+    elif latest_stage is None:
+        status = "not_processed"
+    elif (skip_reason or "").startswith("ocr_engine_unavailable"):
+        status = "engine_unavailable"
+    else:
+        status = "completed_no_text"
+
+    return VideoOcrStatusOut(
+        video_id=video_id,
+        version_id=video.version_id,
+        status=status,
+        engine_available=engine_available,
+        engine_name=engine_name,
+        engine_version=engine_version,
+        stage_status=stage_status,
+        skip_reason=skip_reason,
+        error_message=error_message,
+        extracted_count=len(frames),
+        frames=frames,
+        remediation_hint=remediation_hint,
+    )
 
 
 @router.get("/{video_id}/scenes/{scene_index}/thumbnail")

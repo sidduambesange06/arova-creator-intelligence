@@ -101,8 +101,8 @@ def get_database_overview(
             table_counts[cat] = table_counts.get(cat, 0) + 1
 
         with ro_engine.connect() as conn:
-            # PRAGMA integrity check
-            check_res = conn.execute(text("PRAGMA integrity_check;")).fetchall()
+            # PRAGMA quick_check validates B-tree structure without full-table O(N) re-indexing scan
+            check_res = conn.execute(text("PRAGMA quick_check;")).fetchall()
             integrity_status = "ok" if check_res == [("ok",)] else str(check_res)
 
             # Alembic revision
@@ -288,7 +288,7 @@ def get_table_rows(
         columns_meta = [{"name": c.name, "type": str(c.type)} for c in table_obj.columns]
 
         with ro_engine.connect() as conn:
-            total_count = conn.execute(select(func.count()).select_from(table_obj)).scalar() or 0
+            total_count = safe_table_count(conn, table_name)
 
             # Select paginated rows
             stmt = select(table_obj).limit(limit_clamped).offset(offset_clamped)
@@ -393,10 +393,7 @@ def get_database_relationships(
                 pk_cols = set(pk_constraint.get("constrained_columns", []) if pk_constraint else [])
                 fks = inspector.get_foreign_keys(t)
 
-                try:
-                    count = conn.execute(text(f'SELECT COUNT(*) FROM "{t}"')).scalar() or 0
-                except Exception:
-                    count = 0
+                count = 0 if cat == "fts5_shadow" else safe_table_count(conn, t)
 
                 nodes.append({
                     "id": t,
@@ -426,6 +423,8 @@ def get_database_relationships(
                             "target_table": referred_table,
                             "target_columns": referred_cols,
                             "label": f"{', '.join(constrained_cols)} -> {', '.join(referred_cols)}",
+                            "relationship_type": "foreign_key",
+                            "is_inferred": False,
                         })
                         edge_idx += 1
 

@@ -413,12 +413,18 @@ class PipelineOrchestrator:
                 job=job,
             )
 
-            # Stage 3: OCR Detection
+            # Stage 3: OCR Detection (include engine, weight hash, and preprocessing config in fingerprint)
             self._check_cancellation(job.id)
+            from app.processing.visual_text import get_ocr_fingerprint_config
+
+            ocr_cfg = {
+                **get_ocr_fingerprint_config(),
+                **(self.config.get(STAGE_OCR_DETECTION) or {}),
+            }
             fp_ocr = compute_stage_fingerprint(
                 version_id,
                 STAGE_OCR_DETECTION,
-                self.config.get(STAGE_OCR_DETECTION),
+                ocr_cfg,
                 [stage_fingerprints[STAGE_SCENE_DETECTION]],
             )
             stage_fingerprints[STAGE_OCR_DETECTION] = fp_ocr
@@ -450,11 +456,22 @@ class PipelineOrchestrator:
             )
 
             # Stage 5: ASR Transcription (or Subtitle Ingestion)
+            # Include active provider model/revision and decode/language settings in stage fingerprint
+            # so changing model revision, language, or decode params invalidates stale transcripts.
             self._check_cancellation(job.id)
+            asr_user_cfg = dict(self.config.get(STAGE_ASR_TRANSCRIPTION) or {})
+            asr_fp_cfg: dict[str, Any] = {
+                "model_id": getattr(self.provider, "model_id", settings.WHISPER_MODEL_SIZE),
+                "model_revision": getattr(self.provider, "model_revision", "local_pinned"),
+                "device": getattr(self.provider, "device", "cpu"),
+                "compute_type": getattr(self.provider, "compute_type", settings.WHISPER_COMPUTE_TYPE),
+                "cpu_threads": getattr(self.provider, "cpu_threads", 0),
+                **asr_user_cfg,
+            }
             fp_asr = compute_stage_fingerprint(
                 version_id,
                 STAGE_ASR_TRANSCRIPTION,
-                self.config.get(STAGE_ASR_TRANSCRIPTION),
+                asr_fp_cfg,
                 [stage_fingerprints[STAGE_AUDIO_EXTRACTION]],
             )
             stage_fingerprints[STAGE_ASR_TRANSCRIPTION] = fp_asr
@@ -538,7 +555,17 @@ class PipelineOrchestrator:
         )
 
         if existing_run and existing_run.status == StageStatus.SUCCEEDED.value:
-            if stage_name == STAGE_ASR_TRANSCRIPTION:
+            if stage_name == STAGE_AUDIO_EXTRACTION:
+                # Re-extract temporary WAV if downstream ASR cleaned it up on a prior run
+                if existing_run.output_ref and Path(existing_run.output_ref).is_file():
+                    job.progress = progress_on_success
+                    self.db.commit()
+                    return existing_run.output_ref
+                if existing_run.skip_reason in ("sidecar_subtitles_present", "no_audio_stream"):
+                    job.progress = progress_on_success
+                    self.db.commit()
+                    return existing_run.output_ref
+            elif stage_name == STAGE_ASR_TRANSCRIPTION:
                 from app.models.entities import TranscriptSegment
                 # Ensure a transcript actually exists for this video
                 has_t = self.db.query(Transcript).filter_by(video_id=job.video_id).first() is not None
@@ -569,6 +596,8 @@ class PipelineOrchestrator:
                                     end_time=seg.end_time,
                                     text=seg.text,
                                     confidence=seg.confidence,
+                                    words_json=seg.words_json,
+                                    timing_source=seg.timing_source,
                                 )
                             )
                         self.db.commit()
@@ -752,26 +781,42 @@ class PipelineOrchestrator:
         return len(scenes)
 
     def _exec_ocr_detection(self, video: Video, version: AssetVersion, stage_run: StageRun) -> int:
-        from app.processing.visual_text import extract_visual_text_from_frame
+        from app.processing.visual_text import (
+            detect_ocr_engine,
+            extract_visual_text_with_provenance,
+            select_bounded_ocr_scenes,
+        )
+
+        engine, engine_version = detect_ocr_engine()
+        if engine is None:
+            # Explicit unavailable/skipped state — never invent synthetic OCR text
+            stage_run.skip_reason = "ocr_engine_unavailable:DEPENDENCY_MISSING"
+            self.db.flush()
+            return 0
+
         scenes = self.db.query(VideoScene).filter_by(video_id=video.id).all()
+        sampled_scenes = select_bounded_ocr_scenes(scenes)
         ocr_count = 0
 
-        for s in scenes:
+        for s in sampled_scenes:
             if s.thumbnail_path:
-                vis_text = extract_visual_text_from_frame(s.thumbnail_path)
-                if vis_text:
-                    s.description = vis_text
+                res = extract_visual_text_with_provenance(
+                    s.thumbnail_path,
+                    timestamp_sec=s.start_time,
+                )
+                if res.status == "extracted" and res.text:
+                    s.description = res.text
                     ocr_count += 1
-                    # Record visual annotation
+                    # Record visual annotation with frame timestamp & engine provenance
                     self.db.add(
                         Annotation(
                             id=str(uuid4()),
                             target_type="version",
                             target_id=version.id,
                             author_type=AuthorType.AI.value,
-                            display_name="On-Screen Visual Text",
+                            display_name=f"On-Screen Visual Text [t={s.start_time:.2f}s | {engine}@{engine_version}]",
                             trust=TrustLevel.AI_GENERATED.value,
-                            body=vis_text,
+                            body=res.text,
                             created_at=_utcnow(),
                         )
                     )
@@ -857,12 +902,18 @@ class PipelineOrchestrator:
             stage_run.skip_reason = "wav_file_missing"
             return False
 
+        asr_cfg = dict(self.config.get(STAGE_ASR_TRANSCRIPTION) or {})
         try:
             transcript_obj = transcribe_and_store(
                 db=self.db,
                 video=video,
                 audio_path=wav_path,
                 provider=self.provider,
+                language=asr_cfg.get("language"),
+                beam_size=asr_cfg.get("beam_size"),
+                vad_filter=asr_cfg.get("vad_filter"),
+                word_timestamps=asr_cfg.get("word_timestamps"),
+                condition_on_previous_text=asr_cfg.get("condition_on_previous_text"),
             )
             if transcript_obj and transcript_obj.segments:
                 # Record transcript annotation
@@ -884,6 +935,7 @@ class PipelineOrchestrator:
                     kind="transcript",
                     producer_stage=STAGE_ASR_TRANSCRIPTION,
                     producer_model=transcript_obj.model_name,
+                    producer_revision=getattr(self.provider, "model_revision", None),
                     config_hash=stage_run.fingerprint[:16],
                     trust=TrustLevel.ASR.value,
                 )

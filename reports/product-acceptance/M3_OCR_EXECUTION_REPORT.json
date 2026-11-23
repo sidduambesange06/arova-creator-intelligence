@@ -1,0 +1,159 @@
+{
+  "generated_at_utc": "2026-11-19T10:34:54.885738+00:00",
+  "git_head": "f4f9b75ad10a9293e62a5361ce54c0df89b0a09d",
+  "execution_status": "COMPLETED",
+  "engine": {
+    "name": "rapidocr_onnxruntime",
+    "version": "1.4.4",
+    "license": "Apache-2.0",
+    "supported_scripts_default_weights": [
+      "Latin (English)",
+      "Han (Chinese)"
+    ],
+    "indic_script_coverage": "NOT_SUPPORTED_BY_DEFAULT_WEIGHTS",
+    "runtime_network_downloads": false,
+    "bundled_onnx_assets": [
+      {
+        "file": "models/ch_PP-OCRv4_det_infer.onnx",
+        "size_bytes": 4745517,
+        "sha256": "d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9"
+      },
+      {
+        "file": "models/ch_PP-OCRv4_rec_infer.onnx",
+        "size_bytes": 10857958,
+        "sha256": "48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b"
+      },
+      {
+        "file": "models/ch_ppocr_mobile_v2.0_cls_infer.onnx",
+        "size_bytes": 585532,
+        "sha256": "e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c"
+      }
+    ]
+  },
+  "source_media": {
+    "path": "testdata/real_media/tears_of_steel/tears_of_steel_720p.mov",
+    "license": "CC-BY 3.0 (Blender Foundation — Tears of Steel)",
+    "sha256_before": "efa9062d9cdb7a338e40ad530dfdf234806743f29ae6a1a136b97ece4e588e8f",
+    "sha256_after": "efa9062d9cdb7a338e40ad530dfdf234806743f29ae6a1a136b97ece4e588e8f",
+    "immutable_verified": true
+  },
+  "normalization_policy_version": "v2_indic_unicode_safe_nfc",
+  "summary": {
+    "frames_evaluated": 6,
+    "text_frames": 4,
+    "no_text_frames": 2,
+    "mean_text_cer": 0.0598,
+    "mean_clear_text_cer": 0.0429,
+    "text_detection_misses": 0,
+    "no_text_false_positives": 0,
+    "errors": 0,
+    "corrupt_frame_handled_safely": true,
+    "mean_latency_ms": 1667.65
+  },
+  "resources": {
+    "rss_measurement_method": "max_of_discrete_process_observations_via_psutil",
+    "rss_max_observed_mb": null,
+    "vram_mb": "NOT_MEASURED",
+    "energy_joules": "NOT_MEASURED",
+    "python_version": "3.11.9",
+    "platform": "Windows-10-10.0.26300-SP0"
+  },
+  "frames": [
+    {
+      "frame_id": "tos_f01_clear_opening",
+      "filename": "f01_opening_006s.png",
+      "timestamp_sec": 6.0,
+      "category": "clear_text",
+      "frame_sha256": "5c5d2782830802bc0e884ef2bfccd2d7da38e3c4844420130448fe42a75927d5",
+      "ocr_status": "extracted",
+      "engine": "rapidocr_onnxruntime",
+      "engine_version": "1.4.4",
+      "latency_ms": 1619.29,
+      "reference_text": "the Mango Open Movie project",
+      "extracted_text": "the Mango Dpen Movie project",
+      "cer": 0.035714,
+      "char_edits": 1,
+      "ref_chars": 28
+    },
+    {
+      "frame_id": "tos_f03_difficult_overlay",
+      "filename": "f03_scene_045s.png",
+      "timestamp_sec": 45.0,
+      "category": "difficult_text",
+      "frame_sha256": "c34ecf561dfa7745474f386fba349de6870486961643f225b1c07e3dadaadaeb",
+      "ocr_status": "extracted",
+      "engine": "rapidocr_onnxruntime",
+      "engine_version": "1.4.4",
+      "latency_ms": 1573.84,
+      "reference_text": "40 YEARS LATER",
+      "extracted_text": "40 YEARSLATER",
+      "cer": 0.071429,
+      "char_edits": 1,
+      "ref_chars": 14
+    },
+    {
+      "frame_id": "tos_f06_credits_multiline",
+      "filename": "f06_credits_608s.png",
+      "timestamp_sec": 608.0,
+      "category": "clear_text",
+      "frame_sha256": "808d61dbc52fb60d9c82045bfb5fceb7f821ba5532311ff1c7124d4883b2752c",
+      "ocr_status": "extracted",
+      "engine": "rapidocr_onnxruntime",
+      "engine_version": "1.4.4",
+      "latency_ms": 2451.31,
+      "reference_text": "Cast Old Thom DEREK DE LINT Barley SERGIO HASSELBAINK Captain ROGIER SCHIPPERS Thom VANJA RUKAVINA Celia DENISE REBERGEN Djenghis JODY BHE Tech head CHRIS HALEY",
+      "extracted_text": "Cast OldThomDEREK DELINT Barley SERGIOHASSELBAINK CaptainROGIERSCHIPPERS Thom VANJARUKAVINA Celia DENISE REBERGEN Djenghis JoDYBHE Tech head CHRIS HALEY",
+      "cer": 0.05,
+      "char_edits": 8,
+      "ref_chars": 160
+    },
+    {
+      "frame_id": "tos_f07_logo_and_url",
+      "filename": "f07_credits_625s.png",
+      "timestamp_sec": 625.0,
+      "category": "difficult_text",
+      "frame_sha256": "4aae85b38f3f9a9e5ba039ced38a3d6f86fc807893846d3d629185dc1df971d3",
+      "ocr_status": "extracted",
+      "engine": "rapidocr_onnxruntime",
+      "engine_version": "1.4.4",
+      "latency_ms": 1563.76,
+      "reference_text": "All CG and VFX realised entirely with blender www.blender.org",
+      "extracted_text": "AllLCGandVFX realisedentirelywith blender' www.blender.org",
+      "cer": 0.081967,
+      "char_edits": 5,
+      "ref_chars": 61
+    },
+    {
+      "frame_id": "tos_f04_no_text_dialogue",
+      "filename": "f04_scene_120s.png",
+      "timestamp_sec": 120.0,
+      "category": "no_text",
+      "frame_sha256": "9b0014f3f2f4db66649dacf53bcd0a5a4a02e58867bda3167e5dd712baf195e7",
+      "ocr_status": "empty",
+      "engine": "rapidocr_onnxruntime",
+      "engine_version": "1.4.4",
+      "latency_ms": 1500.47,
+      "reference_text": "",
+      "extracted_text": "",
+      "cer": 0.0,
+      "char_edits": 0,
+      "ref_chars": 0
+    },
+    {
+      "frame_id": "tos_f05_no_text_closeup",
+      "filename": "f05_scene_240s.png",
+      "timestamp_sec": 240.0,
+      "category": "no_text",
+      "frame_sha256": "9e43188a18bea1c065b2592b2004ff18bf322a6f3b5e95e91224ac60f53082bf",
+      "ocr_status": "empty",
+      "engine": "rapidocr_onnxruntime",
+      "engine_version": "1.4.4",
+      "latency_ms": 1297.25,
+      "reference_text": "",
+      "extracted_text": "",
+      "cer": 0.0,
+      "char_edits": 0,
+      "ref_chars": 0
+    }
+  ]
+}

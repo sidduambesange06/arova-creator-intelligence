@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import {
   createAnnotation,
   exportVideoClip,
+  exportVideoSubtitles,
   fetchAnnotations,
+  fetchVideoOcrStatus,
   fetchVideoScenes,
   fetchVideos,
   fetchVideoTranscript,
@@ -15,7 +17,11 @@ import {
   uploadVideoSubtitles,
   type AnnotationItem,
   type ClipExportResponse,
+  type SubtitleExportFormat,
+  type TranscriptItem,
+  type TranscriptSegmentItem,
   type VideoItem,
+  type VideoOcrStatusItem,
   type VideoSceneItem,
   type VideoSummaryResponse,
 } from "../../services/api";
@@ -42,12 +48,19 @@ export function VideoWorkstationView({
 }: VideoWorkstationViewProps) {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
-  const [transcript, setTranscript] = useState<any | null>(null);
+  const [transcript, setTranscript] = useState<TranscriptItem | null>(null);
   const [scenes, setScenes] = useState<VideoSceneItem[]>([]);
+  const [ocrStatus, setOcrStatus] = useState<VideoOcrStatusItem | null>(null);
   const [annotations, setAnnotations] = useState<AnnotationItem[]>([]);
   const [summary, setSummary] = useState<VideoSummaryResponse | null>(null);
   const [processingPipeline, setProcessingPipeline] = useState(false);
   const [pipelineMsg, setPipelineMsg] = useState<string | null>(null);
+
+  // Subtitle Export State
+  const [exportingSubFormat, setExportingSubFormat] = useState<SubtitleExportFormat | null>(null);
+  const [subExportError, setSubExportError] = useState<string | null>(null);
+  const [subExportSuccess, setSubExportSuccess] = useState<string | null>(null);
+  const [includeAssKaraoke, setIncludeAssKaraoke] = useState(false);
 
   // Player State
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -114,18 +127,23 @@ export function VideoWorkstationView({
     setIsPreviewingRange(false);
     async function loadIntelligence() {
       try {
-        const [trans, sc, ann] = await Promise.all([
+        const [trans, sc, ann, ocr] = await Promise.all([
           fetchVideoTranscript(currentVidId).catch(() => null),
           fetchVideoScenes(currentVidId).catch(() => []),
           fetchAnnotations(currentVidId).catch(() => []),
+          fetchVideoOcrStatus(currentVidId).catch(() => null),
         ]);
         if (!cancelled) {
           setTranscript(trans);
           setScenes(Array.isArray(sc) ? sc : []);
           setAnnotations(Array.isArray(ann) ? ann : []);
+          setOcrStatus(ocr);
           setSummary(null);
           setClipResult(null);
           setClipError(null);
+          setSubExportError(null);
+          setSubExportSuccess(null);
+          setIncludeAssKaraoke(false);
           setInPoint(null);
           setOutPoint(null);
           if (initialStartTime !== undefined && initialStartTime >= 0) {
@@ -253,12 +271,14 @@ export function VideoWorkstationView({
     setPipelineMsg(null);
     try {
       await processVideo(selectedVideo.id);
-      const [trans, sc] = await Promise.all([
+      const [trans, sc, ocr] = await Promise.all([
         fetchVideoTranscript(selectedVideo.id).catch(() => null),
         fetchVideoScenes(selectedVideo.id).catch(() => []),
+        fetchVideoOcrStatus(selectedVideo.id).catch(() => null),
       ]);
       setTranscript(trans);
       setScenes(Array.isArray(sc) ? sc : []);
+      setOcrStatus(ocr);
       setPipelineMsg("7-stage intelligence pipeline completed (ASR + Scene Cuts + FTS5).");
     } catch (err) {
       setPipelineMsg(err instanceof Error ? err.message : "Pipeline execution failed");
@@ -348,6 +368,44 @@ export function VideoWorkstationView({
     }
   }
 
+  async function handleExportSubtitles(format: SubtitleExportFormat) {
+    if (!selectedVideo || exportingSubFormat !== null) return;
+    if (!transcript || !transcript.segments || transcript.segments.length === 0) {
+      setSubExportError("No transcript segments available to export.");
+      return;
+    }
+    setExportingSubFormat(format);
+    setSubExportError(null);
+    setSubExportSuccess(null);
+    let objectUrl: string | null = null;
+    try {
+      const karaokeEnabled = format === "ass" && includeAssKaraoke && hasWordTimings;
+      const { content, mimeType } = await exportVideoSubtitles(
+        selectedVideo.id,
+        format,
+        karaokeEnabled
+      );
+      const stem = selectedVideo.filename.replace(/\.[^.]+$/, "") || selectedVideo.id;
+      const downloadName = `${stem}.${format}`;
+      const blob = new Blob([content], { type: mimeType });
+      objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = downloadName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setSubExportSuccess(`Exported ${downloadName}`);
+    } catch (err) {
+      setSubExportError(err instanceof Error ? err.message : `Failed to export ${format.toUpperCase()} subtitles`);
+    } finally {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+      setExportingSubFormat(null);
+    }
+  }
+
   if (videos.length === 0) {
     return (
       <div className="p-8 rounded-panel bg-[#111827] border border-[#243149] text-center space-y-3 font-mono text-xs">
@@ -359,9 +417,17 @@ export function VideoWorkstationView({
     );
   }
 
-  const allSegments: any[] = transcript?.segments ?? [];
+  const allSegments: TranscriptSegmentItem[] = transcript?.segments ?? [];
+  const hasWordTimings = allSegments.some(
+    (seg) => Array.isArray(seg.words) && seg.words.length > 0
+  );
+  const timingSummaryLabel = !transcript || allSegments.length === 0
+    ? "No timing data"
+    : hasWordTimings
+      ? "Timing: ASR-estimated word timing (not forced-aligned)"
+      : "Timing: Segment-level only (word timings unavailable)";
   const filteredSegments = transcriptFilter.trim()
-    ? allSegments.filter((seg: any) =>
+    ? allSegments.filter((seg) =>
         String(seg.text || "")
           .toLowerCase()
           .includes(transcriptFilter.trim().toLowerCase())
@@ -771,15 +837,62 @@ export function VideoWorkstationView({
 
               {/* Track 1: Speech Transcript & Subtitles */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
                   <span className="flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-[#51DCC8]" />
                     Speech Transcript &amp; Dialogue
                     {transcript?.model_name ? ` (${transcript.model_name})` : ""}
                   </span>
-                  <span>
-                    {filteredSegments.length} / {allSegments.length} segments
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] text-slate-400" data-testid="timing-mode-badge">
+                      {timingSummaryLabel}
+                    </span>
+                    <span>
+                      {filteredSegments.length} / {allSegments.length} segments
+                    </span>
+                  </div>
+                </div>
+
+                {/* Subtitle Export Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-1.5 rounded bg-[#0B1019] border border-[#243149]/80 text-[11px] font-mono">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-slate-400">Export Subtitles:</span>
+                    {(["srt", "vtt", "ass"] as SubtitleExportFormat[]).map((fmt) => (
+                      <button
+                        key={fmt}
+                        type="button"
+                        aria-label={`Export ${fmt.toUpperCase()} subtitles`}
+                        disabled={allSegments.length === 0 || exportingSubFormat !== null}
+                        onClick={() => void handleExportSubtitles(fmt)}
+                        className="px-2 py-0.5 rounded bg-[#172235] hover:bg-[#232f48] text-[#F5F7FB] border border-[#243149] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B8CFF]"
+                      >
+                        {exportingSubFormat === fmt ? `Exporting ${fmt.toUpperCase()}...` : fmt.toUpperCase()}
+                      </button>
+                    ))}
+                    {hasWordTimings && (
+                      <label className="inline-flex items-center gap-1 text-[10px] text-[#51DCC8] cursor-pointer ml-1">
+                        <input
+                          type="checkbox"
+                          checked={includeAssKaraoke}
+                          onChange={(e) => setIncludeAssKaraoke(e.target.checked)}
+                          className="accent-[#51DCC8]"
+                        />
+                        <span>ASS Karaoke (\k)</span>
+                      </label>
+                    )}
+                  </div>
+                  <div className="text-[10px]">
+                    {subExportSuccess && (
+                      <span role="status" className="text-emerald-300">
+                        {subExportSuccess}
+                      </span>
+                    )}
+                    {subExportError && (
+                      <span role="alert" className="text-rose-300">
+                        {subExportError}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="max-h-44 overflow-y-auto space-y-1 p-2 rounded bg-[#0B1019] border border-[#243149]">
@@ -857,6 +970,7 @@ export function VideoWorkstationView({
                           <div className="relative w-24 h-14 bg-black rounded overflow-hidden flex items-center justify-center text-[10px] text-slate-400 font-mono">
                             {sc.thumbnail_path && (
                               <img
+                                loading="lazy"
                                 src={getSceneThumbnailUrl(selectedVideo.id, sc.scene_index)}
                                 alt={`Scene #${sc.scene_index + 1}`}
                                 className="absolute inset-0 w-full h-full object-cover opacity-80"
@@ -881,6 +995,103 @@ export function VideoWorkstationView({
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Track 3: Optical OCR Frame Evidence & Availability */}
+              <div className="space-y-1.5 pt-2 border-t border-[#243149]/60" data-testid="ocr-status-panel">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-[#6BCBFF]" />
+                    Optical OCR Frame Evidence
+                    {ocrStatus?.engine_name
+                      ? ` (${ocrStatus.engine_name}${ocrStatus.engine_version ? `@${ocrStatus.engine_version}` : ""})`
+                      : ""}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {ocrStatus?.version_id && (
+                      <span className="text-[10px] text-slate-500">
+                        ver:{ocrStatus.version_id.slice(0, 8)}
+                      </span>
+                    )}
+                    <span
+                      data-testid="ocr-state-badge"
+                      className={`px-2 py-0.5 rounded text-[10px] border ${
+                        ocrStatus?.status === "completed_with_text"
+                          ? "bg-emerald-950/50 text-emerald-300 border-emerald-800"
+                          : ocrStatus?.status === "completed_no_text"
+                            ? "bg-slate-900 text-slate-300 border-slate-700"
+                            : ocrStatus?.status === "running"
+                              ? "bg-cyan-950/50 text-[#6BCBFF] border-cyan-800"
+                              : ocrStatus?.status === "failed"
+                                ? "bg-rose-950/50 text-rose-300 border-rose-800"
+                                : ocrStatus?.status === "engine_unavailable"
+                                  ? "bg-amber-950/50 text-[#F4BF69] border-amber-800"
+                                  : "bg-[#0B1019] text-slate-400 border-[#243149]"
+                      }`}
+                    >
+                      {ocrStatus?.status === "engine_unavailable"
+                        ? "OCR Engine Unavailable"
+                        : ocrStatus?.status === "not_processed"
+                          ? "OCR Not Processed"
+                          : ocrStatus?.status === "running"
+                            ? "OCR Running"
+                            : ocrStatus?.status === "completed_no_text"
+                              ? "Completed — No Text Detected"
+                              : ocrStatus?.status === "completed_with_text"
+                                ? `Completed — ${ocrStatus.extracted_count} Frame(s)`
+                                : ocrStatus?.status === "failed"
+                                  ? "OCR Failed"
+                                  : "OCR Status Unavailable"}
+                    </span>
+                  </div>
+                </div>
+
+                {ocrStatus?.status === "engine_unavailable" && (
+                  <div className="p-2.5 rounded bg-[#0B1019] border border-amber-900/50 text-[11px] font-mono text-amber-200/90">
+                    {ocrStatus.remediation_hint ??
+                      "Install an optional local OCR engine (rapidocr-onnxruntime or tesseract + pytesseract + Pillow) to enable optical frame OCR."}
+                  </div>
+                )}
+
+                {ocrStatus?.status === "failed" && (
+                  <div
+                    role="alert"
+                    className="p-2.5 rounded bg-rose-950/40 border border-rose-900 text-[11px] font-mono text-rose-300"
+                  >
+                    OCR stage failed: {ocrStatus.error_message ?? "Unknown OCR error"}
+                  </div>
+                )}
+
+                {ocrStatus?.status === "not_processed" && (
+                  <div className="p-2 rounded bg-[#0B1019] border border-[#243149] text-[11px] font-mono text-slate-400">
+                    Local OCR engine is ready. Run the 7-stage pipeline to scan sampled scene keyframes.
+                  </div>
+                )}
+
+                {ocrStatus?.status === "completed_no_text" && (
+                  <div className="p-2 rounded bg-[#0B1019] border border-[#243149] text-[11px] font-mono text-slate-400">
+                    Optical OCR ran cleanly on sampled keyframes and detected no on-screen text.
+                  </div>
+                )}
+
+                {ocrStatus?.status === "completed_with_text" && ocrStatus.frames.length > 0 && (
+                  <div className="max-h-36 overflow-y-auto space-y-1 p-2 rounded bg-[#0B1019] border border-[#243149]">
+                    {ocrStatus.frames.map((frame) => (
+                      <button
+                        key={`${frame.scene_index}-${frame.timestamp_sec}`}
+                        type="button"
+                        onClick={() => handleSeek(frame.timestamp_sec)}
+                        aria-label={`Seek to OCR frame at ${frame.timestamp_sec.toFixed(1)}s`}
+                        className="w-full text-left p-1.5 rounded hover:bg-[#172235] text-xs font-mono text-slate-200 flex items-start justify-between gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B8CFF]"
+                      >
+                        <span className="pr-2">{frame.text}</span>
+                        <span className="text-[10px] text-[#6BCBFF] shrink-0">
+                          Scene #{frame.scene_index + 1} · {frame.timestamp_sec.toFixed(1)}s
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

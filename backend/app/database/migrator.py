@@ -11,6 +11,7 @@ import uuid
 
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -226,7 +227,8 @@ def run_database_migrations(
         # Path 1: Already versioned database
         if "alembic_version" in all_tables:
             current_rev = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-            if current_rev == "0003_indic_fts5_tokenization":
+            head_rev = ScriptDirectory.from_config(_get_alembic_config()).get_current_head()
+            if current_rev == head_rev:
                 # Already at head: zero backup, zero migration rerun
                 return
             decision = "versioned_upgrade"
@@ -262,9 +264,18 @@ def run_database_migrations(
                     "Automatic repair refused to prevent data corruption. A narrowly scoped repair must be proposed."
                 )
 
-    # Step 2: Create pre-migration backup before modifying database
-    target_path = db_path or settings.SQLITE_DB_PATH
-    if target_path and target_path != ":memory:":
+    # Step 2: Create pre-migration backup before modifying an existing non-empty database.
+    # Resolve target_path from target_engine rather than settings.SQLITE_DB_PATH so
+    # in-memory or isolated temporary engines never touch or copy the live database.
+    if db_path is not None:
+        target_path: str | Path | None = db_path
+    elif engine is not None:
+        engine_db = getattr(target_engine.url, "database", None)
+        target_path = engine_db if engine_db and engine_db != ":memory:" else None
+    else:
+        target_path = settings.SQLITE_DB_PATH
+
+    if target_path and str(target_path) != ":memory:" and decision != "empty_upgrade":
         create_backup(target_path)
 
     # Step 3: Execute migration according to decision

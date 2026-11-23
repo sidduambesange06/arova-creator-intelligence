@@ -74,6 +74,7 @@ export function App() {
   const [activeSection, setActiveSection] = useState<NavSection>("overview");
   const [selectedVideoId, setSelectedVideoId] = useState<string | undefined>(undefined);
   const [selectedVideoStartTime, setSelectedVideoStartTime] = useState<number | undefined>(undefined);
+  const [initialSearchQuery, setInitialSearchQuery] = useState<string | undefined>(undefined);
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState<boolean>(true);
@@ -311,6 +312,10 @@ export function App() {
                   setSelectedVideoStartTime(undefined);
                   setActiveSection("workstation");
                 }}
+                onQuickQuery={(q) => {
+                  setInitialSearchQuery(q);
+                  setActiveSection("hybrid-search");
+                }}
               />
             ) : activeSection === "media-library" ? (
               <MediaLibraryView
@@ -328,6 +333,7 @@ export function App() {
               />
             ) : activeSection === "hybrid-search" ? (
               <HybridSearchView
+                initialQuery={initialSearchQuery}
                 onSelectVideo={(vId, startSec) => {
                   setSelectedVideoId(vId);
                   setSelectedVideoStartTime(startSec);

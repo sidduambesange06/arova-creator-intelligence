@@ -8,6 +8,7 @@ import {
   getArchiveDownloadUrl,
   importPortableArchive,
   relinkMediaAsset,
+  resolveApiUrl,
   uploadPortableArchive,
   type DuplicateGroup,
   type ExportSummary,
@@ -56,7 +57,7 @@ export function StorageBackupView() {
           setVideos(vids);
           setDuplicates(dups);
           if (vids.length > 0) {
-            setCheckVersionId(vids[0].id);
+            setCheckVersionId(vids[0].version_id || vids[0].id);
           }
         }
       } catch {
@@ -75,15 +76,21 @@ export function StorageBackupView() {
     setExportSummary(null);
     setFeedback(null);
     try {
+      const selectedAssetIds = selectedVideoIds.map((vid) => {
+        const match = videos.find((v) => v.id === vid);
+        return match?.asset_id || vid;
+      });
       const summary = await exportPortableArchive({
-        asset_ids: selectedVideoIds.length > 0 ? selectedVideoIds : undefined,
+        asset_ids: selectedAssetIds.length > 0 ? selectedAssetIds : undefined,
         include_artifacts: includeArtifacts,
       });
       setExportSummary(summary);
       setFeedback(`Export completed: ${summary.archive_name} (${(summary.file_size_bytes / 1024).toFixed(1)} KB)`);
 
-      // Trigger automatic browser download
-      const downloadUrl = summary.download_url || getArchiveDownloadUrl(summary.archive_name);
+      // Trigger automatic browser download (always resolve relative paths against API_BASE_URL)
+      const downloadUrl = summary.download_url
+        ? resolveApiUrl(summary.download_url)
+        : getArchiveDownloadUrl(summary.archive_name);
       const a = document.createElement("a");
       a.href = downloadUrl;
       a.download = summary.archive_name;
@@ -325,7 +332,11 @@ export function StorageBackupView() {
               </div>
               <div className="pt-2 border-t border-[#243149]">
                 <a
-                  href={exportSummary.download_url || getArchiveDownloadUrl(exportSummary.archive_name)}
+                  href={
+                    exportSummary.download_url
+                      ? resolveApiUrl(exportSummary.download_url)
+                      : getArchiveDownloadUrl(exportSummary.archive_name)
+                  }
                   download={exportSummary.archive_name}
                   className="w-full py-2 rounded-control bg-[#51DCC8] hover:bg-[#43c4b2] text-[#080B12] text-xs font-semibold font-mono text-center transition-colors shadow-sm flex items-center justify-center gap-2"
                 >

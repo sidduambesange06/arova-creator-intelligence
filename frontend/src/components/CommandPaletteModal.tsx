@@ -130,8 +130,8 @@ export function CommandPaletteModal({ isOpen, onClose, commands }: CommandPalett
         </div>
 
         <div className="px-4 py-2 bg-[#0B1019] border-t border-[#243149] flex items-center justify-between text-[11px] text-slate-400 font-mono">
-          <span>â†‘â†“ to navigate</span>
-          <span>â†µ to select</span>
+          <span>↑↓ to navigate</span>
+          <span>↵ to select</span>
         </div>
       </div>
     </div>

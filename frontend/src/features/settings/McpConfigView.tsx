@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { fetchMediaLibraryStats, type MediaLibraryStats } from "../../services/api";
+import {
+  fetchMediaLibraryStats,
+  fetchSharedTools,
+  type MediaLibraryStats,
+} from "../../services/api";
 
 interface McpToolDef {
   name: string;
@@ -13,7 +17,7 @@ const DEFAULT_READ_ONLY_TOOLS: McpToolDef[] = [
     description: "List indexed videos with optional collection and processing status filters.",
     parameters: [
       { name: "collection_id", type: "string | null", description: "Optional collection filter" },
-      { name: "status", type: "string | null", description: "Optional status ('indexed', 'processing', etc.)" },
+      { name: "status", type: "string | null", description: "Optional status filter" },
     ],
   },
   {
@@ -26,8 +30,9 @@ const DEFAULT_READ_ONLY_TOOLS: McpToolDef[] = [
     description: "Perform hybrid two-stage semantic video search (Stage-1 Dense+BM25 RRF + Stage-2 Cross-Encoder).",
     parameters: [
       { name: "query", type: "string", description: "Natural language search query" },
-      { name: "top_k", type: "number", description: "Number of candidate windows to return (default 5)" },
-      { name: "use_reranker", type: "boolean", description: "Enable Stage-2 Cross-Encoder ML re-ranking (default true)" },
+      { name: "top_k", type: "number", description: "Number of candidate windows (default 5)" },
+      { name: "channel", type: "all | speech | visual | multimodal", description: "Evidence channel filter" },
+      { name: "use_reranker", type: "boolean", description: "Enable Stage-2 Cross-Encoder ML re-ranking" },
     ],
   },
   {
@@ -62,6 +67,29 @@ const DEFAULT_READ_ONLY_TOOLS: McpToolDef[] = [
     description: "Retrieve inventory counts and runtime metrics for the video library.",
     parameters: [],
   },
+  {
+    name: "get_evidence_citations",
+    description: "Retrieve grounded evidence citations with exact timecodes for a query.",
+    parameters: [
+      { name: "query", type: "string", description: "Evidence query" },
+      { name: "channel", type: "all | speech | visual | multimodal", description: "Evidence channel filter" },
+    ],
+  },
+  {
+    name: "get_media_availability",
+    description: "Check physical file presence, can_play, and can_export flags for an asset version or video.",
+    parameters: [{ name: "version_id", type: "string", description: "AssetVersion ID or Video ID" }],
+  },
+  {
+    name: "list_library_roots",
+    description: "List registered local media discovery roots and their policies.",
+    parameters: [],
+  },
+  {
+    name: "get_processing_status",
+    description: "Inspect recent processing jobs and stage progress for a video.",
+    parameters: [{ name: "video_id", type: "string | null", description: "Optional video ID filter" }],
+  },
 ];
 
 const OPTIONAL_WRITE_TOOLS: McpToolDef[] = [
@@ -80,6 +108,7 @@ type ClientTab = "claude" | "cursor" | "vscode";
 
 export function McpConfigView() {
   const [stats, setStats] = useState<MediaLibraryStats | null>(null);
+  const [liveTools, setLiveTools] = useState<McpToolDef[]>(DEFAULT_READ_ONLY_TOOLS);
   const [loadingStats, setLoadingStats] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<ClientTab>("claude");
   const [copied, setCopied] = useState<boolean>(false);
@@ -87,8 +116,26 @@ export function McpConfigView() {
   const loadStats = useCallback(async () => {
     setLoadingStats(true);
     try {
-      const data = await fetchMediaLibraryStats();
+      const [data, sharedTools] = await Promise.all([
+        fetchMediaLibraryStats().catch(() => null),
+        fetchSharedTools().catch(() => []),
+      ]);
       setStats(data);
+      if (Array.isArray(sharedTools) && sharedTools.length > 0) {
+        setLiveTools(
+          sharedTools
+            .filter((t) => t.read_only)
+            .map((t) => ({
+              name: t.name,
+              description: t.description,
+              parameters: Object.entries(t.parameters || {}).map(([pName, spec]) => ({
+                name: pName,
+                type: spec?.type ?? "any",
+                description: spec?.description ?? "",
+              })),
+            }))
+        );
+      }
     } catch {
       setStats(null);
     } finally {
@@ -112,7 +159,7 @@ export function McpConfigView() {
                 command: pythonPath,
                 args: ["-m", "mcp_server.server"],
                 env: {
-                  PYTHONPATH: ".",
+                  PYTHONPATH: "backend:.",
                 },
               },
             },
@@ -128,7 +175,7 @@ export function McpConfigView() {
                 command: pythonPath,
                 args: ["-m", "mcp_server.server"],
                 env: {
-                  PYTHONPATH: ".",
+                  PYTHONPATH: "backend:.",
                 },
               },
             },
@@ -144,7 +191,7 @@ export function McpConfigView() {
                 command: pythonPath,
                 args: ["-m", "mcp_server.server"],
                 env: {
-                  PYTHONPATH: ".",
+                  PYTHONPATH: "backend:.",
                 },
               },
             },
@@ -270,7 +317,7 @@ export function McpConfigView() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-xs font-semibold text-white">
-              Default Read-Only Tools ({DEFAULT_READ_ONLY_TOOLS.length})
+              Default Read-Only Tools ({liveTools.length})
             </h3>
             <p className="text-[11px] text-slate-400 mt-0.5">
               Strictly read-only retrieval tools registered by default. Zero file creation, deletion, or database mutation.
@@ -282,7 +329,7 @@ export function McpConfigView() {
         </div>
 
         <div className="space-y-2">
-          {DEFAULT_READ_ONLY_TOOLS.map((tool) => (
+          {liveTools.map((tool) => (
             <div
               key={tool.name}
               data-testid={`mcp-tool-${tool.name}`}
