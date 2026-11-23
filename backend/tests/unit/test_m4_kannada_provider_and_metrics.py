@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 import wave
@@ -174,7 +175,11 @@ def test_provider_never_fabricates_word_timestamps_when_unsupported(tmp_path: Pa
     assert res.segments[0].words is None
 
 
-def test_missing_local_weights_reports_unavailable_and_explicit_error(tmp_path: Path) -> None:
+def test_missing_local_weights_reports_unavailable_and_explicit_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Exercise missing weights independently of the optional runtime installation.
+    monkeypatch.setitem(sys.modules, "faster_whisper", SimpleNamespace(WhisperModel=object))
     missing_dir = tmp_path / "missing_ct2_weights"
     provider = FasterWhisperProvider(
         model_size_or_path=str(missing_dir),
