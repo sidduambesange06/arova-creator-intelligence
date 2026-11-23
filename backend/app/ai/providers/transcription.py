@@ -88,6 +88,7 @@ class FasterWhisperProvider:
         model_revision: str | None = None,
         supported_languages: frozenset[str] | set[str] | tuple[str, ...] | None = None,
         supports_word_timestamps: bool = True,
+        cpu_threads: int = 0,
     ) -> None:
         self.model_target = model_size_or_path or model_id or settings.WHISPER_MODEL_SIZE or "small"
         self.compute_type = compute_type or settings.WHISPER_COMPUTE_TYPE or "int8"
@@ -100,9 +101,10 @@ class FasterWhisperProvider:
             else None
         )
         self.supports_word_timestamps = bool(supports_word_timestamps)
+        self.cpu_threads = max(0, int(cpu_threads))
 
     def _get_cache_key(self) -> str:
-        return f"{self.model_target}:{self.device}:{self.compute_type}"
+        return f"{self.model_target}:{self.device}:{self.compute_type}:t{self.cpu_threads}"
 
     def _resolve_model_path(self) -> str | None:
         target_path = Path(self.model_target)
@@ -175,6 +177,7 @@ class FasterWhisperProvider:
                 model_size_or_path=resolved_path,
                 device=self.device,
                 compute_type=self.compute_type,
+                cpu_threads=self.cpu_threads,
                 local_files_only=True,
             )
             _LOADED_MODELS_CACHE[cache_key] = model
@@ -213,6 +216,7 @@ class FasterWhisperProvider:
             "model_target": str(self.model_target),
             "device": self.device,
             "compute_type": self.compute_type,
+            "cpu_threads": self.cpu_threads,
             "language": language,
             "vad_filter": vad_filter,
             "word_timestamps": effective_word_timestamps,
@@ -239,19 +243,26 @@ class FasterWhisperProvider:
 
                 detected_lang = getattr(info, "language", language or "en")
                 lang_prob = round(float(getattr(info, "language_probability", 1.0)), 4) if getattr(info, "language_probability", None) is not None else None
+                raw_duration = getattr(info, "duration", None)
+                max_duration = float(raw_duration) if isinstance(raw_duration, (int, float)) and raw_duration > 0 else None
 
                 segments: list[SegmentResult] = []
                 for s in segments_raw:
                     t_text = (s.text or "").strip()
-                    if t_text and s.end > s.start:
+                    seg_start = max(0.0, float(s.start))
+                    seg_end = float(s.end)
+                    if max_duration is not None:
+                        seg_start = min(seg_start, max_duration)
+                        seg_end = min(seg_end, max_duration)
+                    if t_text and seg_end > seg_start:
                         # Extract word timestamps only when genuinely supported and requested
                         words_data = None
                         if effective_word_timestamps and getattr(s, "words", None):
                             words_data = [
                                 {
                                     "word": w.word,
-                                    "start": round(float(w.start), 3),
-                                    "end": round(float(w.end), 3),
+                                    "start": round(max(seg_start, min(float(w.start), seg_end)), 3),
+                                    "end": round(max(seg_start, min(float(w.end), seg_end)), 3),
                                     "probability": round(float(w.probability), 4) if getattr(w, "probability", None) is not None else None,
                                 }
                                 for w in s.words
@@ -264,8 +275,8 @@ class FasterWhisperProvider:
 
                         segments.append(
                             SegmentResult(
-                                start_time=round(float(s.start), 3),
-                                end_time=round(float(s.end), 3),
+                                start_time=round(seg_start, 3),
+                                end_time=round(seg_end, 3),
                                 text=t_text,
                                 confidence=raw_avg_logprob if raw_avg_logprob is not None else 0.0,
                                 avg_logprob=raw_avg_logprob,

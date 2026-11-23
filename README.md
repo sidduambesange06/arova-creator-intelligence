@@ -199,10 +199,11 @@ Configuration is managed via environment variables or a local `.env` file (see [
 
 ## Known Limitations
 
-- **Speech ASR Language Performance:**
-  - *English (`en_us`):* ~6.7% WER, 0.42x RTF on CPU with faster-whisper-small.
-  - *Hindi (`hi_in`) & Tamil (`ta_in`):* ~64.9% - 78.6% WER with smaller models. Useful for keyword retrieval; requires secondary review for high-accuracy transcripts.
-  - *Kannada (`kn_in`) & Telugu (`te_in`):* High error rates on generic Whisper checkpoints due to script mismatch. Requires fine-tuned regional checkpoints or external providers.
+- **Speech ASR Language Performance (M4 5-Language Forced-Mode FLEURS Evaluation — Default Unchanged):**
+  - *English (`en_us`):* `11.00%` WER (`0.42x` RTF) on `faster-whisper-small`; `7.50%` WER (`1.37x` RTF) on experimental `faster-whisper-large-v3-turbo`.
+  - *Hindi (`hi_in`) & Tamil (`ta_in`):* `59.48%` / `65.52%` WER on `faster-whisper-small`; `38.36%` / `76.55%` WER on `faster-whisper-large-v3-turbo` (Tamil regressed `-11.03 pp`).
+  - *Kannada (`kn_in`) & Telugu (`te_in`):* `111.03%` / `116.06%` WER on `faster-whisper-small`; `57.35%` (`PASS_EXPERIMENTAL`) / `85.49%` (`KEEP_DEFAULT_FAIL`) WER on `faster-whisper-large-v3-turbo`.
+  - See [M4 Multilingual ASR Decision Summary](./reports/product-acceptance/M4_MULTILINGUAL_DECISION_SUMMARY.md) and [M4 Evaluation Plan](./reports/product-acceptance/M4_EVALUATION_PLAN.md) for raw counts, reproduction commands, and methodology disclosures.
 - **Keyframe OCR:** Current visual text extraction uses lightweight template heuristics. Full scene text recognition is planned for subsequent milestones.
 - **Single-Node Execution:** Designed for local developer workstations and single machines; does not operate as a distributed cluster.
 
@@ -218,6 +219,7 @@ See [`docs/KNOWN_ISSUES.md`](./docs/KNOWN_ISSUES.md) for detailed disclosures.
 - [MCP Toolset Reference](./docs/MCP_TOOLS.md)
 - [Installation & Deployment](./docs/installation.md)
 - [Feature Status Matrix](./docs/FEATURE_STATUS.md)
+- [Multilingual ASR Benchmark & Decision Summary (M4)](./reports/product-acceptance/M4_MULTILINGUAL_DECISION_SUMMARY.md)
 - [Known Limitations & Issues](./docs/KNOWN_ISSUES.md)
 - [Technical Decisions (ADRs)](./docs/TECHNICAL_DECISIONS.md)
 - [Contributing Guidelines](./CONTRIBUTING.md)

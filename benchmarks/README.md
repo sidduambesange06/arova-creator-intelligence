@@ -78,3 +78,12 @@ python scripts/benchmarks/run_benchmark.py --manifest benchmarks/manifests/tears
 python scripts/benchmarks/validate_results.py --result reports/benchmarks/alpha-baseline/environment.json --schema benchmarks/schemas/benchmark_result.schema.json
 ```
 
+---
+
+## Multilingual ASR Benchmark (M4 — Indic Creator Bench)
+
+For the 5-language (`kn_in`, `hi_in`, `en_us`, `ta_in`, `te_in`) offline ASR evaluation (`faster-whisper-small` vs `faster-whisper-large-v3-turbo`), frozen FLEURS manifests, pre-registered acceptance gates, and exact reproduction steps, see:
+- [M4 Multilingual ASR Decision Summary](../reports/product-acceptance/M4_MULTILINGUAL_DECISION_SUMMARY.md)
+- [M4 Fair 5-Language Evaluation Plan (v2.0)](../reports/product-acceptance/M4_EVALUATION_PLAN.md)
+- [M4 Decision Comparison Table](../reports/product-acceptance/M4_MULTILINGUAL_DECISION_COMPARISON.md)
+
